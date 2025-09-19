@@ -1,4 +1,4 @@
-# Getting Started weqwe
+# Getting Started
 
 ::: callout-caution
 The functions presented below constitute the core wrapper functions utilized throughout the data analysis, including two adapted function originally from the Imbens & Xu (2024) tutorial, which were modified to suit specific analytical purpose. For the full original collection of functions by Imbens & Xu (2024), including additional functions used in the analysis, please consult their official source code available on their GitHub repository.

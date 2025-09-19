@@ -18,7 +18,7 @@ The analysis in section 2 and 3 builds on the LDW data and considers in total th
 In section 4, the analysis applies the same set of statistical tools to analyze a fourth sample as an additional demonstration:
 (4) Lalonde male samples (1986).
 
-This section covers Model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race indicators (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a logistic regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods were applied and structured into five parts: Matching, Weighting, Trimming, Truncation, and Combined Methods integrating these techniques. From these, the top 5 performing methods were identified based on absolute standardized mean differences and effective sample size, and the resulting datasets were used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporated the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, placebo tests were conducted using 1975 earnings as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Additionally, sensitivity analyses were performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
+This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods were applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked were identified based on absolute standardized mean differences and effective sample size. The corresponding datasets were used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporated the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, placebo tests were conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Additionally, sensitivity analyses were performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
 
 # Set up
 ## Source functions and load data
@@ -40,11 +40,11 @@ load("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replicati
 # collect datasets in a list
 data <- list(lalonde = lalonde, ldw_tr = ldw_tr, ldw_co = ldw_co, ldw_cps = ldw_cps, ldw_psid = ldw_psid)
 
-# inspect each datasets summary statistics
+# inspect each dataset's summary statistics
 summary_stats <- inspect_data(data)
 print(summary_stats)
 
-# display first 5 rows of each dataset
+# display few rows of each dataset
 lapply(data, head, 5)
 ```
 
@@ -86,9 +86,9 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re74", "re75", "u74", "u75") #re74 included
 ```
 
-## Assessing overlap 
-
-To identify the average causal effect under unconfoundedness (that ensures that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and control units (meaning that for every combination of covariates, there are both treated and control units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess the overlaps in the propensity scores and use histograms to visualize results.
+## Assessing overlap and covariate balance
+### Overlap
+To identify the average causal effect under unconfoundedness (that ensures that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and control units (meaning that for every combination of covariates, there are both treated and control units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess the overlaps in the propensity scores and to visualize results via histograms.
 
 In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable overlap.
 ```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
@@ -108,16 +108,29 @@ Next, we examine the overlap of the expanded datasets.
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
 ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar) 
 ```
+### Covariate balance
+```{r, message=FALSE, warning=FALSE}
+love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
+love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
+love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
+love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")
 
-In the subsequent analysis that is focused on improving covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and good overlap.
+bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_cps, treat = "treat")
+bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_cps_plus, treat = "treat")
+bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_psid, treat = "treat")
+bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_psid_plus, treat = "treat")
+```
+Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
 
-Next we set up a model formula that is used in the following analysis.
+In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+
+For the following analysis, we set up a model formula.
 ```{r}
 #| code-fold: show
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
-## Improving covariate balance
+## Improving primarily covariate balance
 ### Matching 
 #### Distance Matching
 ##### 1:1 Nearest neighbor matching
@@ -149,7 +162,7 @@ m.out.psid_plus.k3 <- matchit(model, data = ldw_psid_plus, method = "nearest", d
 ##### Caliper matching
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# perform nearest neighbor matching with a caliper of 0.1 on the propensity score logit
+# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
 m.out.cps_plus.caliper <- matchit(model, data = ldw_cps_plus, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
 m.out.psid_plus.caliper <- matchit(model, data = ldw_psid_plus, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
 ```
@@ -181,7 +194,7 @@ m.out.psid_plus.optimal_pair <- matchit(model, data = ldw_psid_plus, method = "o
 ##### Optimal full matching
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# perform optimal full matching allowing sets with varying ratios of treated to controls, minimizing a global distance criterion
+# perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
 m.out.cps_plus.optimal_full <- matchit(model, data = ldw_cps_plus, method = "full", distance = "logit")
 m.out.psid_plus.optimal_full <- matchit(model, data = ldw_psid_plus, method = "full", distance = "logit")
 ```
@@ -189,7 +202,7 @@ m.out.psid_plus.optimal_full <- matchit(model, data = ldw_psid_plus, method = "f
 ##### Generalized full matching
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# perform generalized full matching using fast approximation, producing matched sets with flexible treated/control ratios 
+# perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
 m.out.cps_plus.general_full <- matchit(model, data = ldw_cps_plus, method = "quick", distance = "logit")
 m.out.psid_plus.general_full <- matchit(model, data = ldw_psid_plus, method = "quick", distance = "logit")
 ```
@@ -197,7 +210,7 @@ m.out.psid_plus.general_full <- matchit(model, data = ldw_psid_plus, method = "q
 ##### Genetic matching
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# perform genetic matching
+# perform genetic matching 
 m.out.cps_plus.genetic <- matchit(model, data = ldw_cps_plus, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
 m.out.psid_plus.genetic <- matchit(model, data = ldw_psid_plus, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
 ```
@@ -297,6 +310,7 @@ ldw_cps_plus$ebal_weight <- w.out.cps_plus.ebal$weights
 ldw_psid_plus$ebal_weight <- w.out.psid_plus.ebal$weights
 ```
 
+## Improving primarily overlap
 ### Truncation
 ```{r}
 #| code-fold: show
@@ -344,7 +358,7 @@ for (wcol in weight_columns) {
 
 #### Adaptive weight truncation
 
-We inspect the variance of the estimated weights. If variance is zero, adaptive weight truncation is not meaningful. 
+We first inspect the variance of the estimated weights. If variance is zero, adaptive weight truncation is not meaningful. 
 ```{r}
 #| code-fold: sh
 # inspect variance of weights 
@@ -357,7 +371,7 @@ for (wcol in weight_columns) {
 }
 ```
 
-Regarding these results we only apply this method to `ipw, smr, smr_ate` and `ebal`, where it can help mitigate the influence of extreme weights. 
+Regarding these results we only apply adaptive weight truncation to `ipw, smr, overlap` and `ebal` weights, where it may help mitigate the influence of extreme weights. 
 ```{r}
 #| code-fold: show
 # list weights that are valid 
@@ -382,12 +396,11 @@ for (wcol in weight_columns_at) {
 }
 ```
 
-## Improving overlap
 ### Trimming 
-#### Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
+#### Propensity score threshold trimming (analogous to tutorial of Imbens & Xu (2024))
 ```{r}
 #| code-fold: show
-# apply trimming with thresholds 0.9 and 0.8 for CPS and PSID respectively
+# apply trimming with thresholds 0.9 and 0.8 
 ldw_cps_trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
 ldw_psid_trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 
@@ -395,7 +408,11 @@ ldw_psid_trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 ldw_cps.trim_match <- subset(ldw_cps_trim, sample %in% c(1,3) & ps_assoverlap)
 ldw_psid.trim_match <- subset(ldw_psid_trim, sample %in% c(1,4) & ps_assoverlap)
 
-# re-estimate propensity scores on trimmed data & perform 1:1 matching (e.g. with GRF or matchit)
+# re-assign treat variable for controls in sample 3 or 4 (non-treated group)
+ldw_cps.trim_match$treat[ldw_cps.trim_match$sample == 3] <- 0
+ldw_psid.trim_match$treat[ldw_psid.trim_match$sample == 4] <- 0
+
+# re-estimate propensity scores on trimmed data and perform 1:1 matching
 ldw_cps.trim_match <- psmatch(data = ldw_cps.trim_match, Y = "re78", treat = "treat", cov = covar)
 ldw_psid.trim_match <- psmatch(data = ldw_psid.trim_match, Y = "re78", treat = "treat", cov = covar)
 ```
@@ -434,8 +451,6 @@ ldw_psid_plus.walker  <- walker_trim(ldw_psid_plus.ps)
 
 ## Improving both, covariate balance and overlap 
 ### Combination of methods
-
-
 ```{r}
 #| code-fold: show
 # list trimming methods
@@ -446,6 +461,7 @@ trimmed_psid <- list(ps_threshold = ldw_psid_trim, common_range = ldw_psid_plus.
 
 #### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r}
+# apply inverse probability weighting (IPW) with trimming and attach IPW weights
 ipw_comb.cps_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], ldw_cps_plus, "ipw_weight")),
   trim_names
@@ -454,12 +470,12 @@ ipw_comb.psid_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], ldw_psid_plus, "ipw_weight")),
   trim_names
 )
-ipw_comb.cps_plus
 ```
 
 #### SMR treated weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r}
 #| code-fold: show
+# apply standardized mortality ratio (SMR) weighting with trimming and attach SMR weights
 smr_treat_comb.cps_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], ldw_cps_plus, "smr_weight")),
   trim_names
@@ -473,6 +489,7 @@ smr_treat_comb.psid_plus <- setNames(
 #### Overlap weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r}
 #| code-fold: show
+# apply overlap weighting with trimming and attach overlap weights
 ov_comb.cps_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], ldw_cps_plus, "overlap_weight")),
   trim_names
@@ -486,6 +503,7 @@ ov_comb.psid_plus <- setNames(
 #### Entropy weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r}
 #| code-fold: show
+# apply entropy balancing weights with trimming and attach entropy weights
 entropy_comb.cps_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], ldw_cps_plus, "ebal_weight")),
   trim_names
@@ -498,7 +516,6 @@ entropy_comb.psid_plus <- setNames(
 
 ## Reassessing methods
 ### Matching
-Methods
 ```{r}
 #| code-fold: show
 # list all matching methods
@@ -571,7 +588,6 @@ plot_matchit(methods.psid_plus, "LDW-PSID1-PLUS")
 ```
 
 ### Weighting
-Methods
 ```{r}
 #| code-fold: show
 # list all weights
@@ -619,8 +635,8 @@ plot_weighting_methods(ldw_psid_plus, "treat", covar, weight.psid_plus, "LDW-PSI
 ### Truncation
 Methods
 ```{r}
-# list truncation methods
 #| code-fold: show
+# list truncation methods
 trunc.cps_plus <- list(
   fix_max_value_trunc.cps_plus = ldw_cps_plus.fixed,
   at_perc_trunc.cps_plus = ldw_cps_plus.percent,
@@ -729,7 +745,6 @@ comb_meth.cps_plus <- list(
   ipw = ipw_comb.cps_plus,
   smr_treated = smr_treat_comb.cps_plus,
   overlap = ov_comb.cps_plus,
-  matching = matching_comb.cps_plus,
   entropy = entropy_comb.cps_plus
 )
 
@@ -737,7 +752,6 @@ comb_meth.psid_plus <- list(
   ipw = ipw_comb.psid_plus,
   smr_treated = smr_treat_comb.psid_plus,
   overlap = ov_comb.psid_plus,
-  matching = matching_comb.psid_plus,
   entropy = entropy_comb.psid_plus
 )
 ```
@@ -751,7 +765,7 @@ smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "tr
 
 #### ESS
 ```{r}
-# compute ess
+# compute ESS
 ess_all_comb_meth.cps_plus <- compute_ess_all_datasets(comb_meth.cps_plus, "treat", covar)
 ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
@@ -795,6 +809,7 @@ ranked_psid_plus <- assess_methods(all_psid_plus)
 
 Rank the results and get only the top 5
 ```{r}
+# get top 5 methods for each dataset
 top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
@@ -805,132 +820,173 @@ save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_model_a")
 
 ```{r}
 dataset_list_cps <- list(
-  "All"                                         = ldw_cps_plus,
-  "original"                                    = ldw_cps_plus,
+  "All" = ldw_cps_plus,
+  "original" = ldw_cps_plus,
   ## Matching
-  "nn"                                          = m.out.cps_plus.nearest, 
-  "caliper"                                     = m.out.cps_plus.caliper,
-  "card"                                        = m.out.cps_plus.card,
-  "cem"                                         = m.out.cps_plus.cem,
-  "cS"                                          = m.out.cps_plus.cs,
-  "k2"                                          = m.out.cps_plus.k2,
-  "k3"                                          = m.out.cps_plus.k3,
-  "mahvars"                                     = m.out.cps_plus.mahvars,
-  "optimal_full"                                = m.out.cps_plus.optimal_full,
-  "optimal_pair"                                = m.out.cps_plus.optimal_pair,
-  "gen_full"                                    = m.out.cps_plus.general_full,
-  "genetic"                                     = m.out.cps_plus.genetic,
-  "exact"                                       = m.out.cps_plus.exact,
-  "subcl"                                       = m.out.cps_plus.subcl,
-  "profile"                                     = m.out.cps_plus.profile,
+  "nn" = m.out.cps_plus.nearest, 
+  "caliper" = m.out.cps_plus.caliper,
+  "card" = m.out.cps_plus.card,
+  "cem" = m.out.cps_plus.cem,
+  "cS" = m.out.cps_plus.cs,
+  "k2"  = m.out.cps_plus.k2,
+  "k3" = m.out.cps_plus.k3,
+  "mahvars" = m.out.cps_plus.mahvars,
+  "optimal_full" = m.out.cps_plus.optimal_full,
+  "optimal_pair" = m.out.cps_plus.optimal_pair,
+  "gen_full" = m.out.cps_plus.general_full,
+  "genetic" = m.out.cps_plus.genetic,
+  "exact" = m.out.cps_plus.exact,
+  "subcl" = m.out.cps_plus.subcl,
+  "profile"  = m.out.cps_plus.profile,
   ## Weighting
-  "ipw_weight"                                  = ldw_cps_plus$ipw_weight, 
-  "smr_weight"                                  = ldw_cps_plus$smr_weight,
-  "opt_weight"                                  = ldw_cps_plus$opt_weight,
-  "overlap_weight"                              = ldw_cps_plus$overlap_weight,
-  "ebal_weight"                                 = ldw_cps_plus$ebal_weight,
-  #"smr_ate_weight"                              = ldw_cps_plus$smr_ate_weight,
+  "ipw_weight" = ldw_cps_plus$ipw_weight, 
+  "smr_weight" = ldw_cps_plus$smr_weight,
+  "opt_weight" = ldw_cps_plus$opt_weight,
+  "overlap_weight" = ldw_cps_plus$overlap_weight,
+  "ebal_weight" = ldw_cps_plus$ebal_weight,
   ## Truncation
-  "fix_max_value_trunc.cps_plus_ebal_weight"   = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_ipw_weight"     = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_opt_weight"     = ldw_cps_plus.fixed,
+  "fix_max_value_trunc.cps_plus_ebal_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc.cps_plus_ipw_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc.cps_plus_opt_weight" = ldw_cps_plus.fixed,
   "fix_max_value_trunc.cps_plus_overlap_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_smr_weight"     = ldw_cps_plus.fixed,
-  
-  "at_perc_trunc.cps_plus_ebal_weight"          = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_ipw_weight"            = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_opt_weight"            = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_overlap_weight"        = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_smr_weight"            = ldw_cps_plus.percent,
-  
-  "adap_weight_trunc.cps_plus_ebal_weight"      = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_ipw_weight"       = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_opt_weight"       = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_overlap_weight"   = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_smr_weight"       = ldw_cps_plus.adapt,
-  
+  "fix_max_value_trunc.cps_plus_smr_weight" = ldw_cps_plus.fixed,
+  "at_perc_trunc.cps_plus_ebal_weight" = ldw_cps_plus.percent,
+  "at_perc_trunc.cps_plus_ipw_weight"  = ldw_cps_plus.percent,
+  "at_perc_trunc.cps_plus_opt_weight"  = ldw_cps_plus.percent,
+  "at_perc_trunc.cps_plus_overlap_weight" = ldw_cps_plus.percent,
+  "at_perc_trunc.cps_plus_smr_weight" = ldw_cps_plus.percent,
+  "adap_weight_trunc.cps_plus_ebal_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc.cps_plus_ipw_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc.cps_plus_opt_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc.cps_plus_overlap_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc.cps_plus_smr_weight" = ldw_cps_plus.adapt,
   ##Trimming
-  "ps_threshold"                                = ldw_cps.trim_match,
-  "common_range"                                = ldw_cps_plus.common,
-  "stuermer"                                    = ldw_cps_plus.stuermer,
-  "walker"                                      = ldw_cps_plus.walker,
-  "crump"                                       = ldw_cps_plus.crump,
-  
+  "ps_threshold" = ldw_cps.trim_match,
+  "common_range" = ldw_cps_plus.common,
+  "stuermer" = ldw_cps_plus.stuermer,
+  "walker" = ldw_cps_plus.walker,
+  "crump" = ldw_cps_plus.crump,
   ##Combined methods
-  "ipw_common_range"                            = ipw_comb.cps_plus[[1]],
-  "ipw_crump"                                   = ipw_comb.cps_plus[[2]],
-  "ipw_ps_threshold"                            = ipw_comb.cps_plus[[3]],
-  "ipw_stuermer"                                = ipw_comb.cps_plus[[4]],
-  "ipw_walker"                                  = ipw_comb.cps_plus[[5]],
-  
-  "smr_treated_common_range"                    = smr_treat_comb.cps_plus[[1]],
-  "smr_treated_crump"                           = smr_treat_comb.cps_plus[[2]],
-  "smr_treated_ps_threshold"                    = smr_treat_comb.cps_plus[[3]],
-  "smr_treated_stuermer"                        = smr_treat_comb.cps_plus[[4]],
-  "smr_treated_walker"                          = smr_treat_comb.cps_plus[[5]],
-  
-  "overlap_common_range"                        = ov_comb.cps_plus[[1]],
-  "overlap_crump"                               = ov_comb.cps_plus[[2]],
-  "overlap_ps_threshold"                        = ov_comb.cps_plus[[3]],
-  "overlap_stuermer"                            = ov_comb.cps_plus[[4]],,
-  "overlap_walker"                              = ov_comb.cps_plus[[5]],,
-  
-  "entropy_common_range"                        = entropy_comb.cps_plus[[1]],
-  "entropy_crump"                               = entropy_comb.cps_plus[[2]],,
-  "entropy_ps_threshold"                        = entropy_comb.cps_plus[[3]],,
-  "entropy_stuermer"                            = entropy_comb.cps_plus[[4]],,
-  "entropy_walker"                              = entropy_comb.cps_plus[[5]],,
-  
-  #"matching_common_range"                       = matching_common_range.cps_plus,
-  #"matching_crump"                              = matching_crump.cps_plus,
-  #"matching_ps_threshold"                       = matching_ps_threshold.cps_plus,
-  #"matching_stuermer"                           = matching_stuermer.cps_plus,
-  #"matching_walker"                             = matching_walker.cps_plus,
-)
-```
+  "ipw_common_range" = ipw_comb.cps_plus[[1]],
+  "ipw_crump" = ipw_comb.cps_plus[[2]],
+  "ipw_ps_threshold" = ipw_comb.cps_plus[[3]],
+  "ipw_stuermer" = ipw_comb.cps_plus[[4]],
+  "ipw_walker" = ipw_comb.cps_plus[[5]],
+  "smr_treated_common_range" = smr_treat_comb.cps_plus[[1]],
+  "smr_treated_crump" = smr_treat_comb.cps_plus[[2]],
+  "smr_treated_ps_threshold" = smr_treat_comb.cps_plus[[3]],
+  "smr_treated_stuermer" = smr_treat_comb.cps_plus[[4]],
+  "smr_treated_walker" = smr_treat_comb.cps_plus[[5]],
+  "overlap_common_range" = ov_comb.cps_plus[[1]],
+  "overlap_crump" = ov_comb.cps_plus[[2]],
+  "overlap_ps_threshold" = ov_comb.cps_plus[[3]],
+  "overlap_stuermer" = ov_comb.cps_plus[[4]],
+  "overlap_walker" = ov_comb.cps_plus[[5]],
+  "entropy_common_range" = entropy_comb.cps_plus[[1]],
+  "entropy_crump" = entropy_comb.cps_plus[[2]],
+  "entropy_ps_threshold" = entropy_comb.cps_plus[[3]],
+  "entropy_stuermer" = entropy_comb.cps_plus[[4]],
+  "entropy_walker" = entropy_comb.cps_plus[[5]])
 
-```{r}
-
+dataset_list_psid <- list(
+  "All" = ldw_psid_plus, 
+  "original" = ldw_psid_plus, 
+  "nn" = m.out.psid_plus.nearest, 
+  "caliper"= m.out.psid_plus.caliper,
+  "card" = m.out.psid_plus.card,
+  "cem" = m.out.psid_plus.cem,
+  "cS" = m.out.psid_plus.cs,
+  "k2" = m.out.psid_plus.k2,
+  "k3" = m.out.psid_plus.k3,
+  "mahvars" = m.out.psid_plus.mahvars,
+  "optimal_full" = m.out.psid_plus.optimal_full,
+  "optimal_pair" = m.out.psid_plus.optimal_pair,
+  "gen_full" = m.out.psid_plus.general_full,
+  "genetic" = m.out.psid_plus.genetic,
+  "exact" = m.out.psid_plus.exact,
+  "subcl" = m.out.psid_plus.subcl,
+  "profile" = m.out.psid_plus.profile,
+  ## Weighting
+  "ipw_weight" = ldw_psid_plus$ipw_weight, 
+  "smr_weight" = ldw_psid_plus$smr_weight,
+  "opt_weight" = ldw_psid_plus$opt_weight,
+  "overlap_weight" = ldw_psid_plus$overlap_weight,
+  "ebal_weight" = ldw_psid_plus$ebal_weight,
+  ## Truncation
+  "fix_max_value_trunc.psid_plus_ebal_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc.psid_plus_ipw_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc.psid_plus_opt_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc.psid_plus_overlap_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc.psid_plus_smr_weight" = ldw_psid_plus.fixed,
+  "at_perc_trunc.psid_plus_ebal_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc.psid_plus_ipw_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc.psid_plus_opt_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc.psid_plus_overlap_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc.psid_plus_smr_weight" = ldw_psid_plus.percent,
+  "adap_weight_trunc.psid_plus_ebal_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc.psid_plus_ipw_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc.psid_plus_opt_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc.psid_plus_overlap_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc.psid_plus_smr_weight" = ldw_psid_plus.adapt,
+  ##Trimming
+  "ps_threshold" = ldw_psid.trim_match,
+  "common_range" = ldw_psid_plus.common,
+  "stuermer" = ldw_psid_plus.stuermer,
+  "walker" = ldw_psid_plus.walker,
+  "crump" = ldw_psid_plus.crump,
+  ##Combined methods
+  "ipw_common_range" = ipw_comb.psid_plus[[1]],
+  "ipw_crump"= ipw_comb.psid_plus[[2]],
+  "ipw_ps_threshold"= ipw_comb.psid_plus[[3]],
+  "ipw_stuermer"= ipw_comb.psid_plus[[4]],
+  "ipw_walker" = ipw_comb.psid_plus[[5]],
+  "smr_treated_common_range" = smr_treat_comb.psid_plus[[1]],
+  "smr_treated_crump"= smr_treat_comb.psid_plus[[2]],
+  "smr_treated_ps_threshold" = smr_treat_comb.psid_plus[[3]],
+  "smr_treated_stuermer" = smr_treat_comb.psid_plus[[4]],
+  "smr_treated_walker" = smr_treat_comb.psid_plus[[5]],
+  "overlap_common_range" = ov_comb.psid_plus[[1]],
+  "overlap_crump" = ov_comb.psid_plus[[2]],
+  "overlap_ps_threshold"  = ov_comb.psid_plus[[3]],
+  "overlap_stuermer" = ov_comb.psid_plus[[4]],
+  "overlap_walker"= ov_comb.psid_plus[[5]],
+  "entropy_common_range" = entropy_comb.psid_plus[[1]],
+  "entropy_crump" = entropy_comb.psid_plus[[2]],
+  "entropy_ps_threshold" = entropy_comb.psid_plus[[3]],
+  "entropy_stuermer" = entropy_comb.psid_plus[[4]],
+  "entropy_walker" = entropy_comb.psid_plus[[5]])
 ```
 
 ```{r}
 # create the datasets from combined lists for your top 5 methods:
 top5_datasets.cps_plus <- create_top5_datasets(dataset_list_cps, top5_methods.cps_plus)
-#top5_datasets.psid_plus <- create_top5_datasets(all_psid_plus, top5_methods.psid_plus)
+top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.psid_plus)
 ```
------
-```{r}
-all_cps_plus$Method
-```
-
-```{r}
-#names(all_methods.cps_plus)
-```
------
 
 ```{r}
 # save them into .RData files
-save_top5_individual_files(all_methods.cps_plus, top5_methods.cps_plus, prefix = "model_a_cps")
-save_top5_individual_files(all_methods.psid_plus, top5_methods.psid_plus, prefix = "model_a_psid")
+save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "model_a_cps")
+save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "model_a_psid")
 ```
 
 ## Estimate the ATT
 
-Next we process with the estimation of the ATT using both the LDW-Experimental dataset and the newly constructed top 5 samples for each observational dataset that had highest score results. 
+Next we proceed with the estimation of the ATT using both the LDW-Experimental dataset and the newly constructed top 5 datasets for each observational dataset, LDW-CPS1-PLUS and LDW-PSID1-PLUS, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
-out4 <- estimate_all(ldw_cps_trim, "re78", "treat", covar)
-out5 <- estimate_all(ldw_psid_trim, "re78", "treat", covar)
+```
+
+```{r, message=FALSE, warning=FALSE}
+out4 <- estimate_all(ldw_cps.trim_match, "re78", "treat", covar) 
+out5 <- estimate_all(ldw_psid.trim_match, "re78", "treat", covar)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 out.cps_plus <- lapply(top5_datasets.cps_plus, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid_plus <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, "re78", "treat", covar))
-```
 
-```{r}
 out6 <- out.cps_plus[[1]]
 out7 <- out.cps_plus[[2]]
 out8 <- out.cps_plus[[3]]
@@ -946,34 +1002,41 @@ out15 <- out.psid_plus[[5]]
 
 ```{r}
 # build plot titles 
-base_titles <- c("(1) LDW-Experimental", "(2) LDW-CPS1", "(3) LDW-PSID1")
-top5_titles.cps_plus <- paste0("(", 4:(3 + length(top5_methods.cps_plus)), ") Top CPS1: ", top5_methods.cps_plus)
-top5_titles.psid_plus <- paste0("(", (4 + length(top5_methods.cps_plus)):(3 + length(top5_methods.cps_plus) + length(top5_methods.psid_plus)), ") Top PSID1: ", top5_methods.psid_plus)
+base_titles <- c("(A) LDW-Experimental", "(B) LDW-CPS1" , "(C) LDW-PSID1", "(D) Trimmed LDW-CPS1 ", "(E) Trimmed LDW-PSID1")
+top_start <- 6 # F is 6th letter
+num_cps <- length(top5_methods.cps_plus)
+num_psid <- length(top5_methods.psid_plus)
+top_letters_cps <- LETTERS[top_start:(top_start + num_cps - 1)]
+top_letters_psid <- LETTERS[(top_start + num_cps):(top_start + num_cps + num_psid - 1)]
+top5_titles.cps_plus <- paste0("(", top_letters_cps, ") Top CPS1: ", top5_methods.cps_plus)
+top5_titles.psid_plus <- paste0("(", top_letters_psid, ") Top PSID1: ", top5_methods.psid_plus)
 plot_titles <- c(base_titles, top5_titles.cps_plus, top5_titles.psid_plus)
 
 # combine all results
-all_outs <- list(out1, out2, out3, out4, out5, out6, out7, out8, out9, out10, out11, out12, out13, out14, out15)
+all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 10. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, base_titles, top5_methods.cps_plus, top5_methods.psid_plus, band, est)
+plot_att_panels(all_outs, plot_titles, band, est)
+```
 
+```{r}
 # save results
-save_att_panels(all_outs, base_titles, top5_methods.cps_plus, top5_methods.psid_plus, band, est, "model_a")
+save_att_panels(all_outs, plot_titles, band, est, "model_a")
 ```
 
 ```{r, warning=FALSE}
-# Prepare all results in the order shown in the plots
+# prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, summarize_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
 att_summary
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for thirteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1 and the top-ranked for CPS1-PLUS and PSID1-PLUS after application of advanced covariate balancing and overlap improvement techniques.
+The above figures show the ATT estimates and their 95% confidence intervals for thirteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1 and the top 5 ranked for LDW-CPS1-PLUS and LDW-PSID1-PLUS after application of advanced covariate balancing and overlap improvement techniques.
 
 Figure (1) presents the benchmark from the experimental sample (LDW-Experimental). Figures (2) and (3) show results for the  observational samples, LDW-CPS1 and LDW-PSID1, respectively. Figures (4-8) display ATT estimates for samples derived from top-ranked methods applied to CPS1-PLUS, while figures (9) to (13) display estimates for samples derived from top-ranked methods of PSID1-PLUS.
 
@@ -1024,8 +1087,8 @@ The Conditional Average Treatment Effect on the Treated (CATT) specifically allo
 catt.ldw <- catt(ldw, Y, treat, covar)
 catt.cps <- catt(ldw_cps, Y, treat, covar)
 catt.psid <- catt(ldw_psid, Y, treat, covar)
-catt.cps.trim <- catt(ldw_trim_cps, Y, treat, covar)
-catt.psid.trim <- catt(ldw_trim_psid, Y, treat, covar)
+catt.cps.trim <- catt(ldw_cps.trim_match, Y, treat, covar)
+catt.psid.trim <- catt(ldw_psid.trim_match, Y, treat, covar)
 ```
 
 ```{r, warning=FALSE}
@@ -1035,6 +1098,7 @@ catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, tr
 ```
 
 Then, we employ a modified version of the `plot_catt()` function from Imbens & Xu (2024) to visualize the results. In the subsequent figures, we plot the estimated CATTs from all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
+
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates Model A using LDW Data"}
 #| code-fold: show
 # combine all catt objects 
@@ -1042,22 +1106,19 @@ all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim)
 
 # plot results
 plot_catt_panels(all_catt, plot_titles)
+```
 
+```{r}
 # save results
 save_catt_panels(all_catt, plot_titles, prefix = "model_a")
 ```
 
 Although the AIPW estimator can produce ATT estimates closely aligned with the experimental benchmark using LDW data, its performance for revealing the true CATT is considerably worse. 
-
 ```{r, warning=FALSE}
 #| code-fold: show
-for (i in seq_along(all_catt)) {
-  catt_vec <- all_catt[[i]]$catt
-  min_val <- min(catt_vec, na.rm = TRUE)
-  max_val <- max(catt_vec, na.rm = TRUE)
-  cat(sprintf("Method: %s\nMin CATT: %.2f\nMax CATT: %.2f\n\n", plot_titles[i], min_val, max_val))
-}
+eval_catt(all_catt, plot_titles)
 ```
+
 Specifically, with LDW-CPS1, CATT estimates span from $-5,745.166 to $6,956.62, contrasting with the CATT estimated from experimental data which ranges from $-71.17303 to $3,813.05. Employing LDW-PSID generates CATT estimates ranging from $-8,145.318 to $4,567.563. With the datasets obtained from the top-ranked methods applied to the CPS1-PLUS and PSID1-PLUS datasets, the CATT estimates exhibit varying ranges that often lie within or close to the experimental benchmark, with some methods such as `exact` and `profile` producing more positive minimum and maximum values, while others show wider spreads including substantial negative minima, reflecting heterogeneity in treatment effect estimates across methods and samples.
 
 ### Quantile Treatment Effect on the Treated (QTET)
@@ -1072,8 +1133,8 @@ qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 #| code-fold: show
 #qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
 #qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
-#qte.ldw_cps.trim <- est_qte(Y, treat, covar, data = ldw_cps_trim)
-#qte.ldw_psid.trim <- est_qte(Y, treat, covar, data = ldw_psid_trim) 
+#qte.ldw_cps.trim <- est_qte(Y, treat, covar, data = ldw_cps.trim_match)
+#qte.ldw_psid.trim <- est_qte(Y, treat, covar, data = ldw_psid.trim_match) 
 ```
 
 ```{r, warning=FALSE}
@@ -1087,8 +1148,8 @@ qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 #qte.ldw0 <- est_qte(Y, treat, NULL, data = ldw)
 #qte.ldw.cps0 <- est_qte(Y, treat, NULL, data = ldw_cps)
 #qte.ldw.psid0 <- est_qte(Y, treat, NULL, data = ldw_psid)
-#qte.ldw_cps.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps_trim)
-#qte.ldw_psid.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid_trim)
+#qte.ldw_cps.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps.trim_match)
+#qte.ldw_psid.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid.trim_match)
 #qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, NULL, data = d))
 #qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
@@ -1096,7 +1157,7 @@ qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
-#all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid), qte.top5.cps, qte.top5.psid)
+#all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5.cps, qte.top5.psid)
 
 # plot results
 #plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000))
@@ -1122,15 +1183,19 @@ covar_pl <- c("age", "education", "black", "hispanic", "married", "nodegree", "r
 out1_pl <- estimate_all(ldw, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(ldw_cps, Y_pl, "treat", covar_pl)
 out3_pl <- estimate_all(ldw_psid, Y_pl, "treat", covar_pl)
-out4_pl <- estimate_all(ldw_cps_trim, Y_pl, "treat", covar)
-out5_pl <- estimate_all(ldw_psid_trim, Y_pl, "treat", covar)
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+out4_pl <- estimate_all(ldw_cps.trim_match, Y_pl, "treat", covar_pl)
+out5_pl <- estimate_all(ldw_psid.trim_match, Y_pl, "treat", covar_pl)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # estimate placebo ATT on top ranked datasets
-out_cps_pl <- lapply(top5_datasets.cps_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
-out_psid_pl <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
+out.cps_pl <- lapply(top5_datasets.cps_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
+out.psid_pl <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
 out6_pl <- out_cps_pl[[1]]
 out7_pl <- out_cps_pl[[2]]
 out8_pl <- out_cps_pl[[3]]
@@ -1146,28 +1211,22 @@ out15_pl <- out_psid_pl[[5]]
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 13. Placebo Test Model B: '75 Earnings as the Outcome"}
 #| code-fold: show
 # collect all placebo results 
-all_outs_pl <- list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl, out6_pl, out7_pl, out8_pl, out9_pl, out10_pl, out11_pl, out12_pl, out13_pl, out14_pl, out15_pl)
+all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl), out.cps_pl, out.psid_pl)
 
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
 ylim_pl <- c(-12000, 2000)
-plot_att_panels(all_outs_pl, base_titles, top5_methods.cps_plus, top5_methods.psid_plus, band_pl, est_pl, ylim_pl)
+plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
 
 # save results
-save_att_panels(all_outs, base_titles, top5_methods.cps_plus, top5_methods.psid_plus, band, est, "model_a_placebo")
+save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "model_a_placebo")
 ```
 
 The *Placebo* ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
 #| code-fold: show
-all_outs_pl <- list(
-  out1_pl, out2_pl, out3_pl,
-  out4_pl, out5_pl, out6_pl, out7_pl, out8_pl,
-  out9_pl, out10_pl, out11_pl, out12_pl, out13_pl
-)
-
-result_mat_pl <- create_matrix_results(all_outs_pl, plot_titles)
+result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
 knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model A Placebo ATT Estimates and SEs for All Samples and Estimators")
 ```
 
@@ -1178,11 +1237,10 @@ The top-ranked samples of CPS1-PLUS and PSID1-PLUS produce diverse results. For 
 For the PSID1-PLUS dataset, the `profile` sample (9), `k3` sample (11), and `card` sample (13) produce negative ATT estimates, with some positive exceptions across the different estimators. In contrast the `mahvars` sample (10) and `optimal_pair` sample (12) yield positive ATT estimates closer to the experimental benchmark, where the former sample has some negative ATT estimates across the different estimators.
 
 Across all estimators and observational top-ranked samples (5–13), with the exception of the exact matching sample (4), the placebo analysis reveals substantial bias and deviation from the true effect, demonstrating the inherent limitations of confounding adjustment using observational data.  
-
 ```{r}
 #| code-fold: show
 # save results 
-save_csv(result_mat, "LDW_att_estimates_model_a")
+save_csv(result_mat_pl, "LDW_att_estimates_pl_model_a")
 ```
 
 ## Sensitivity Analyses

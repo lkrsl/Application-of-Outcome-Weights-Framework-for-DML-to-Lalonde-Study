@@ -763,24 +763,8 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 
 # 4. Estimation
 ## 4.1 ATT
-#### load_top_method_dataset()
-load_top_method_dataset <- function(rank, prefix) {
-  files <- list.files("data", pattern = paste0("^top", rank, "_", prefix, "_method_.*\\.RData$"), full.names = TRUE)
-  if(length(files) == 0) stop(paste("No file found for rank", rank, "and prefix", prefix))
-  load(files[1])  
-  if (inherits(dataset_to_save, "matchit")) {
-    dataset_to_save <- match.data(dataset_to_save)
-  }
-  # Ensure data frame class (no data.table)
-  dataset_to_save <- as.data.frame(dataset_to_save)
-  return(dataset_to_save)
-}
-
 #### plot_att_panels()
-plot_att_panels <- function(all_outs, base_titles, top5_cps_methods, top5_psid_methods, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  top5_cps_titles  <- paste0("(", 4:(3 + length(top5_cps_methods)), ") Top CPS1: ", top5_cps_methods)
-  top5_psid_titles <- paste0("(", (4 + length(top5_cps_methods)):(3 + length(top5_cps_methods) +  length(top5_psid_methods)), ") Top PSID1: ", top5_psid_methods)
-  plot_titles <- c(base_titles, top5_cps_titles, top5_psid_titles)
+plot_att_panels <- function(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
   num_pages <- ceiling(length(all_outs) / plots_per_page)
   for (page in seq_len(num_pages)) {
     start_idx <- (page - 1) * plots_per_page + 1
@@ -801,23 +785,18 @@ plot_att_panels <- function(all_outs, base_titles, top5_cps_methods, top5_psid_m
 
 #### save_att_panels()
 save_att_panels <- function(
-    all_outs, base_titles, top5_cps_methods, top5_psid_methods,
-    band, est, prefix, plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  folder <- "../graphs/lalonde"             # fixed output folder 
-  ylim   <- c(-15500, 5500)                 # fixed axis limits
+    all_outs, plot_titles, band, est, prefix,
+    plots_per_page = 4, ylab = "Estimate", textsize = 1) {
+  folder <- "../graphs/lalonde"
+  ylim   <- c(-15500, 5500)
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
-  # Build plot titles
-  top5_cps_titles  <- paste0("(", 4:(3 + length(top5_cps_methods)), ") Top CPS1: ", top5_cps_methods)
-  top5_psid_titles <- paste0("(", (4 + length(top5_cps_methods)):(3 + length(top5_cps_methods) + length(top5_psid_methods)), ") Top PSID1: ", top5_psid_methods)
-  plot_titles      <- c(base_titles, top5_cps_titles, top5_psid_titles)
-  
   num_pages <- ceiling(length(all_outs) / plots_per_page)
   for (page in seq_len(num_pages)) {
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
     pdf(file_name, width = 8, height = 11)
-    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
+    par(mfrow = c(plots_per_page, 1), mar = c(3,4,3,2))
     start_idx <- (page - 1) * plots_per_page + 1
-    end_idx   <- min(page * plots_per_page, length(all_outs))
+    end_idx <- min(page * plots_per_page, length(all_outs))
     for (i in start_idx:end_idx) {
       plot_coef(all_outs[[i]],
                 band = band, line = est, ylim = ylim,
@@ -1203,8 +1182,8 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
   id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
   
   for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 2 # skip experimental vs itself
-    end_idx   <- min(page * plots_per_page + 1, length(all_catt))
+    start_idx <- (page - 1) * plots_per_page + 1 
+    end_idx   <- min(page * plots_per_page, length(all_catt))
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       other <- all_catt[[i]]
@@ -1234,43 +1213,46 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
 }
 
 #### save_catt_panels()
-save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), prefix = "model_a", plots_per_page = 4) {
+save_catt_panels <- function(
+  all_catt, plot_titles, range = c(-8000, 8000), prefix = "model_a", plots_per_page = 4) {
   dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   catt_ldw <- all_catt[[1]]$catt
-  att_ldw  <- all_catt[[1]]$att[1]
-  id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
-  num_panels <- length(all_catt) - 1   # skip experimental on page
-  num_pages  <- ceiling(num_panels / plots_per_page)
+  att_ldw <- all_catt[[1]]$att[1]
+  id_ldw <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
+  num_pages <- ceiling(length(all_catt) / plots_per_page)
   for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 2  # always skip all_catt[[1]]
-    end_idx   <- min(page * plots_per_page + 1, length(all_catt))
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx <- min(page * plots_per_page, length(all_catt))
     plots_this_page <- end_idx - start_idx + 1
     file_name <- sprintf("../graphs/lalonde/%s_catt_estimates_%d.pdf", prefix, page)
     pdf(file = file_name, width = 10, height = 12)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
+    rows <- ceiling(plots_per_page / 2)
+    cols <- 2
+    par(mfrow = c(rows, cols), mar = c(4, 4, 2, 2))
     for (i in start_idx:end_idx) {
       other <- all_catt[[i]]
       main_label <- plot_titles[i]
       catt2 <- other$catt
-      att2  <- other$att[1]
-      id2   <- if (!is.null(other$id)) other$id else seq_along(catt2)
+      att2 <- other$att[1]
+      id2 <- if (!is.null(other$id)) other$id else seq_along(catt2)
+      
       common_ids <- intersect(id_ldw, id2)
-      idx_ldw    <- match(common_ids, id_ldw)
-      idx_other  <- match(common_ids, id2)
+      idx_ldw <- match(common_ids, id_ldw)
+      idx_other <- match(common_ids, id2)
       catt1_plot <- catt_ldw[idx_ldw]
       catt2_plot <- catt2[idx_other]
       plot_catt(
         catt1 = catt1_plot,
         catt2 = catt2_plot,
-        att1  = att_ldw,
-        att2  = att2,
-        xlab  = "CATT (Experimental)",
-        ylab  = main_label,
-        main  = main_label,
+        att1 = att_ldw,
+        att2 = att2,
+        xlab = "CATT (Experimental)",
+        ylab = main_label,
+        main = main_label,
         axes.range = range
       )
     }
-    # blanks if fewer than 4 plots on last page
+    # Fill empty panels on last page with empty plots if any
     if (plots_this_page < plots_per_page) {
       for (k in seq_len(plots_per_page - plots_this_page)) plot.new()
     }
@@ -1278,22 +1260,35 @@ save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), pref
   }
 }
 
+#### eval_catt()
+eval_catt <- function(all_catt, plot_titles) {
+  do.call(rbind, lapply(seq_along(all_catt), function(i) {
+    catt_vec <- all_catt[[i]]$catt
+    data.frame(
+      Method = plot_titles[i],
+      Min_Catt = min(catt_vec, na.rm = TRUE),
+      Max_Catt = max(catt_vec, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+
 ## 4.3 QTET
 #### plot_qtet_panels()
 plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000)) {
-  panels_per_page <- 4  # for 2x2 grid
+  panels_per_page <- plots_per_page
   num_panels <- length(all_qtet)
-  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
+  num_pages  <- ceiling(num_panels / panels_per_page)
   for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * panels_per_page + 2  # skip the experimental reference itself
-    end_idx   <- min(page * panels_per_page + 1, num_panels)
+    start_idx <- (page - 1) * panels_per_page + 1
+    end_idx   <- min(page * panels_per_page, num_panels)
     par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
     for (i in start_idx:end_idx) {
       comp_qte <- all_qtet[[i]]
       if (!is.null(comp_qte)) {
         plot_qte(
-          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
-          bm = experimental_qte, # blue reference line (always the experimental)
+          mod = comp_qte,
+          bm = experimental_qte,
           main = plot_titles[i],
           ylim = ylim
         )
@@ -1306,25 +1301,23 @@ plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
         )
       }
     }
-    # If last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
+    # Fill remaining slots if needed
     plots_this_page <- end_idx - start_idx + 1
     if (plots_this_page < panels_per_page) {
-      for (k in seq_len(panels_per_page - plots_this_page)) {
-        plot.new()
-      }
+      for (k in seq_len(panels_per_page - plots_this_page)) plot.new()
     }
   }
 }
 
 #### save_qtet_panels()
 save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_a") {
-  panels_per_page <- 4  # for 2x2 grid
+  panels_per_page <- plots_per_page
   num_panels <- length(all_qtet)
-  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
+  num_pages  <- ceiling(num_panels / panels_per_page)
   dir.create("../figures", showWarnings = FALSE, recursive = TRUE)
   for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * panels_per_page + 2  # skip experimental reference itself
-    end_idx   <- min(page * panels_per_page + 1, num_panels)
+    start_idx <- (page - 1) * panels_per_page + 1
+    end_idx   <- min(page * panels_per_page, num_panels)
     plots_this_page <- end_idx - start_idx + 1
     file_name <- sprintf("../figures/%s_qtet_estimates_%d.pdf", prefix, page)
     pdf(file = file_name, width = 12, height = 10)
@@ -1333,8 +1326,8 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
       comp_qte <- all_qtet[[i]]
       if (!is.null(comp_qte)) {
         plot_qte(
-          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
-          bm = experimental_qte, # blue reference line (always the experimental)
+          mod = comp_qte,
+          bm = experimental_qte,
           main = plot_titles[i],
           ylim = ylim
         )
@@ -1346,7 +1339,6 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
                bty = "n")
       }
     }
-    # Fill remaining spots on the page if fewer than 4 actual panels
     if (plots_this_page < panels_per_page) {
       for (k in seq_len(panels_per_page - plots_this_page)) plot.new()
     }
