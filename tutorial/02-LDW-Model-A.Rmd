@@ -449,7 +449,6 @@ ldw_cps_plus.walker   <- walker_trim(ldw_cps_plus.ps)
 ldw_psid_plus.walker  <- walker_trim(ldw_psid_plus.ps)
 ```
 
-## Improving both, covariate balance and overlap 
 ### Combination of methods
 ```{r}
 #| code-fold: show
@@ -971,7 +970,7 @@ save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "
 
 ## Estimate the ATT
 
-Next we proceed with the estimation of the ATT using both the LDW-Experimental dataset and the newly constructed top 5 datasets for each observational dataset, LDW-CPS1-PLUS and LDW-PSID1-PLUS, that had highest score results. 
+Next we proceed with the estimation of the ATT using both the LDW-Experimental sample and the newly constructed top 5 samples for each observational dataset, LDW-CPS1-PLUS and LDW-PSID1-PLUS, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
@@ -1036,15 +1035,15 @@ rownames(att_summary) <- plot_titles
 att_summary
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for thirteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1 and the top 5 ranked for LDW-CPS1-PLUS and LDW-PSID1-PLUS after application of advanced covariate balancing and overlap improvement techniques.
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples for both LDW-CPS1 and LDW-PSID1 based on various matching and trimming criteria.
 
-Figure (1) presents the benchmark from the experimental sample (LDW-Experimental). Figures (2) and (3) show results for the  observational samples, LDW-CPS1 and LDW-PSID1, respectively. Figures (4-8) display ATT estimates for samples derived from top-ranked methods applied to CPS1-PLUS, while figures (9) to (13) display estimates for samples derived from top-ranked methods of PSID1-PLUS.
+Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational estimators.
+Figures (B) and C3) show results for the observational samples, LDW-CPS1 and LDW-PSID1, respectively, while figures (D) and (E) present those for the trimmed versions.
+Figures (F) through (J) display results for CPS1-PLUS-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-PLUS-derived subsamples under parallel rules.
 
-Across the CPS1-PLUS samples (figures 4–8), all estimators yield positive ATT estimates that tightly cluster around the experimental benchmark (red dashed line).
+Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yield ATT estimates that closely cluster around the experimental benchmark. However, there are slightly larger deviations for the `overlap_crump` and `ps_threshold` (similar procedure to D) subsamples. While most estimates are positive, the `optimal_pair` and `overlap_crump` subsamples include a few negative ATT estimates, and all ATT estimates for the `mahvars` subsample are negative.
 
-In PSID1-PLUS samples (figures 9–13), all estimators produce positive ATT estimates close to the experimental benchmark, with the exception of `propensity score matching` applied to the `card` sample, which produces a slightly negative ATT estimate. 
-
-The PSID1-PLUS samples also display marginally higher mean standard errors (in total - not method-wise) and exhibit a broader range of effect estimates (in total - not method-wise) compared to the CPS1-PLUS samples.
+In contrast, the estimates for LDW-PSID1 and its top-ranked subsamples exhibit greater dispersion and substantially higher standard errors. Most ATT estimates are negatively aligned, indicating increased methodological uncertainty in these samples. Positive ATT estimates emerge only for the `overlap_crump` and `fix_max_value_trunc_overlap_weight` subsamples.
 
 The ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
@@ -1058,15 +1057,9 @@ knitr::kable(result_mat, booktabs = TRUE, caption = "Model A ATT Estimates and S
 The first value in each cell represents the point estimate from the respective estimator and sample. The number in brackets directly following it is the robust standard error (SE) associated with that estimate, indicating the uncertainty or variability around the point estimate.
 :::
 
-Column 1 reports the estimates from the LDW-Experimental sample, column 2 corresponds to LDW-CPS1, and column 3 to LDW-PSID1, while columns 4 through 13 present the estimates obtained from samples derived using the top-ranked methods applied to the CPS1-PLUS and PSID1-PLUS datasets, each evaluated across several estimators. 
+The tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. For most CPS1-based samples, estimates remain not only positive but also comparatively close to the experimental benchmark, with modest variance inflation. In contrast, the PSID1-based estimates exhibit higher variability, more frequently negative values, and larger standard errors, reflecting the greater challenge of achieving balance and overlap in this observational dataset.
 
-The LDW-CPS1 dataset produces estimates closely aligned with the experimental benchmark, whereas the LDW-PSID1 dataset exhibits greater variability in the estimates. The top-ranked samples yield diverse results. 
-
-Within the CPS1-PLUS dataset, the `exact` matching sample (column 4) and the `mahvars` matching sample (column 6) provide positive estimates near the experimental benchmark. In contrast, the `profile` (column 5), `optimal_pair` (column 7), and `card` (column 8) samples generate estimates slightly further from the benchmark, though still relatively close across most estimators.
-
-Regarding the PSID1-PLUS dataset, the `mahvars` (column 10) and `optimal_pair` (column 12) samples deliver estimates very close to the experimental benchmark, while the profile sample (column 9) exhibits a moderate deviation. The `k3` (column 11) and `card` (column 13) samples, however, produce estimates that deviate more substantially from the benchmark.
-
-Across all observational samples based on CPS1-PLUS and PSID1-PLUS datasets (columns 4 to 13), the standard errors tend to be higher than in the experimental sample, reflecting increased uncertainty associated with these estimations.
+Overall, the figures and table jointly demonstrate that trimming subsamples can bring observational estimates closer to the experimental benchmark, particularly for CPS1. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist, especially in PSID1. Additionally, ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation.
 ```{r}
 # save results 
 save_csv(result_mat, "LDW_att_estimates_model_a")
@@ -1081,7 +1074,7 @@ Improved overlap and covariate balance generally leads to estimates closer to th
 
 Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.
 
-The Conditional Average Treatment Effect on the Treated (CATT) specifically allows investigation of how treatment effects differ across covariate-defined subpopulations. In the following, we estimate the CATT using causal forests through the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method for multiple datasets: the LDW-Experimental, LDW-CPS1, and LDW-PSID1 samples, as well as top-ranked samples derived from the CPS1-PLUS and PSID1-PLUS datasets. Estimation is implemented via the `catt()`-function from Imbens and Xu (2024).
+The Conditional Average Treatment Effect on the Treated (CATT) enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. In the following, we estimate the CATT using causal forests via the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method for the same samples previously considered in the ATT estimation. This estimation is performed using the `catt()` function from Imbens and Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
 catt.ldw <- catt(ldw, Y, treat, covar)
@@ -1097,8 +1090,11 @@ catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, trea
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-Then, we employ a modified version of the `plot_catt()` function from Imbens & Xu (2024) to visualize the results. In the subsequent figures, we plot the estimated CATTs from all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
+Then, we employ a modified version of the `plot_catt()` function from Imbens & Xu (2024) to visualize the results. In the subsequent figures, we plot the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
 
+::: callout-tip
+Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
+:::
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates Model A using LDW Data"}
 #| code-fold: show
 # combine all catt objects 
@@ -1118,8 +1114,11 @@ Although the AIPW estimator can produce ATT estimates closely aligned with the e
 #| code-fold: show
 eval_catt(all_catt, plot_titles)
 ```
+Specifically, with LDW-CPS1, CATT estimates span from $-5,345.44 to $6,959.96, contrasting with the CATT estimated from experimental data which ranges from $-122.74 to $3,846.87. Employing LDW-PSID generates CATT estimates ranging from $-8,569.46 to $4,552.47. 
 
-Specifically, with LDW-CPS1, CATT estimates span from $-5,745.166 to $6,956.62, contrasting with the CATT estimated from experimental data which ranges from $-71.17303 to $3,813.05. Employing LDW-PSID generates CATT estimates ranging from $-8,145.318 to $4,567.563. With the datasets obtained from the top-ranked methods applied to the CPS1-PLUS and PSID1-PLUS datasets, the CATT estimates exhibit varying ranges that often lie within or close to the experimental benchmark, with some methods such as `exact` and `profile` producing more positive minimum and maximum values, while others show wider spreads including substantial negative minima, reflecting heterogeneity in treatment effect estimates across methods and samples.
+For the trimmed and top-ranked subsamples derived from CPS1 and PSID1, the ranges of CATT estimates vary, often approaching or partially overlapping with the experimental benchmark. However, certain methods—such as 'card' or 'mahvars'—produce minima that are substantially more negative, while maxima can be either higher or lower than the experimental upper bound, reflecting substantial heterogeneity in treatment effect estimation across methods and sample constructions.
+
+With the subsamples obtained from the top-ranked methods applied to LDW-CPS1 and LDW-PSID1, the CATT estimates exhibit varying ranges that often lie within or close to the experimental benchmark, with some methods such as `exact` and `profile` producing more positive minimum and maximum values, while others show wider spreads including substantial negative minima, reflecting heterogeneity in treatment effect estimates across methods and samples.
 
 ### Quantile Treatment Effect on the Treated (QTET)
 
@@ -1196,16 +1195,16 @@ out5_pl <- estimate_all(ldw_psid.trim_match, Y_pl, "treat", covar_pl)
 # estimate placebo ATT on top ranked datasets
 out.cps_pl <- lapply(top5_datasets.cps_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
 out.psid_pl <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
-out6_pl <- out_cps_pl[[1]]
-out7_pl <- out_cps_pl[[2]]
-out8_pl <- out_cps_pl[[3]]
-out9_pl <- out_cps_pl[[4]]
-out10_pl <- out_cps_pl[[5]]
-out11_pl <- out_psid_pl[[1]]
-out12_pl <- out_psid_pl[[2]]
-out13_pl <- out_psid_pl[[3]]
-out14_pl <- out_psid_pl[[4]]
-out15_pl <- out_psid_pl[[5]]
+out6_pl <- out.cps_pl[[1]]
+out7_pl <- out.cps_pl[[2]]
+out8_pl <- out.cps_pl[[3]]
+out9_pl <- out.cps_pl[[4]]
+out10_pl <- out.cps_pl[[5]]
+out11_pl <- out.psid_pl[[1]]
+out12_pl <- out.psid_pl[[2]]
+out13_pl <- out.psid_pl[[3]]
+out14_pl <- out.psid_pl[[4]]
+out15_pl <- out.psid_pl[[5]]
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 13. Placebo Test Model B: '75 Earnings as the Outcome"}
