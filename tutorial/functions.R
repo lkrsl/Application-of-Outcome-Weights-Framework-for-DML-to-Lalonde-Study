@@ -1291,6 +1291,7 @@ eval_catt <- function(all_catt, plot_titles) {
       Min_Catt = min(catt_vec, na.rm = TRUE),
       Max_Catt = max(catt_vec, na.rm = TRUE),
       Mean_Catt = mean(catt_vec, na.rm = TRUE),
+      Diff_Catt = max(catt_vec, na.rm = TRUE) - min(catt_vec, na.rm = TRUE),
       stringsAsFactors = FALSE
     )
   }))

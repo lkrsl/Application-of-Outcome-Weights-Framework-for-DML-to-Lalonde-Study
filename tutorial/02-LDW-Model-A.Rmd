@@ -31,7 +31,7 @@ source("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replica
 
 ```{r}
 # load data
-load("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/data/lalonde.RData")
+load("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/data/lalonde.RData")
 ```
 
 ## Inspect data
@@ -48,7 +48,7 @@ print(summary_stats)
 lapply(data, head, 5)
 ```
 
-## Load and preprocess data (LaLonde-Dehejia-Wahba (LDW))
+## Load and preprocess data
 ```{r}
 #| code-fold: show
 # assigns 1 to the experimental controls
@@ -970,7 +970,7 @@ save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "
 
 ## Estimate the ATT
 
-Next we proceed with the estimation of the ATT using both the LDW-Experimental sample and the newly constructed top 5 samples for each observational dataset, LDW-CPS1-PLUS and LDW-PSID1-PLUS, that had highest score results. 
+Next we proceed with the estimation of the ATT using both the LDW-Experimental sample and the newly constructed top 5 samples for each observational dataset, LDW-CPS1 and LDW-PSID1, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
@@ -1027,6 +1027,13 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "model_a")
 ```
 
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples for both LDW-CPS1 and LDW-PSID1 based on various matching and trimming criteria.
+
+Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational estimators. Figures (B) and C3) show results for the observational samples, LDW-CPS1 and LDW-PSID1, respectively, while figures (D) and (E) present those for the trimmed versions. Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
+
+Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yield ATT estimates that closely cluster around the experimental benchmark. However, there are slightly larger deviations for the `overlap_crump` and `ps_threshold` (similar procedure to D) subsamples. While most estimates are positive, the `optimal_pair` and `overlap_crump` subsamples include a few negative ATT estimates, and all ATT estimates for the `mahvars` subsample are negative.
+
+In contrast, the estimates for LDW-PSID1 and its top-ranked subsamples exhibit greater dispersion and substantially higher standard errors compared to LDW-CPS1 samples. Most ATT estimates are negatively aligned, indicating increased methodological uncertainty in these samples. Positive ATT estimates emerge only for the `overlap_crump` and `fix_max_value_trunc_overlap_weight` subsamples.
 ```{r, warning=FALSE}
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, summarize_att)
@@ -1034,14 +1041,6 @@ att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
 att_summary
 ```
-
-The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples for both LDW-CPS1 and LDW-PSID1 based on various matching and trimming criteria.
-
-Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational estimators. Figures (B) and C3) show results for the observational samples, LDW-CPS1 and LDW-PSID1, respectively, while figures (D) and (E) present those for the trimmed versions. Figures (F) through (J) display results for CPS1-PLUS-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-PLUS-derived subsamples under parallel rules.
-
-Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yield ATT estimates that closely cluster around the experimental benchmark. However, there are slightly larger deviations for the `overlap_crump` and `ps_threshold` (similar procedure to D) subsamples. While most estimates are positive, the `optimal_pair` and `overlap_crump` subsamples include a few negative ATT estimates, and all ATT estimates for the `mahvars` subsample are negative.
-
-In contrast, the estimates for LDW-PSID1 and its top-ranked subsamples exhibit greater dispersion and substantially higher standard errors. Most ATT estimates are negatively aligned, indicating increased methodological uncertainty in these samples. Positive ATT estimates emerge only for the `overlap_crump` and `fix_max_value_trunc_overlap_weight` subsamples.
 
 The ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
@@ -1057,7 +1056,7 @@ The first value in each cell represents the point estimate from the respective e
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. For most CPS1-based samples, estimates remain not only positive but also comparatively close to the experimental benchmark, with modest variance inflation. In contrast, the PSID1-based estimates exhibit higher variability, more frequently negative values, and larger standard errors, reflecting the greater challenge of achieving balance and overlap in this observational dataset.
 
-Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that trimming samples can bring observational estimates closer to the experimental benchmark, particularly for CPS1. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist, especially in PSID1. 
+Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that trimming samples can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r}
 # save results 
 save_csv(result_mat, "LDW_att_estimates_model_a")
@@ -1166,6 +1165,8 @@ Each plot displays three distinct series for every dataset analyzed: (1) The blu
 
 These figures display QTET estimates derived from both the LDW experimental and various non-experimental samples. The QTETs estimated from the original and trimmed LDW-CPS1 samples generally correspond well with the true QTET, although the estimates often suffer from low power. In contrast, QTET estimates from the original and trimmed LDW-PSID1 samples show clear biases when compared to the experimental benchmark, which clusters near zero. The QTET estimates derived from the top-ranked subsamples ...
 
+ADD EXPLANATION HERE
+
 ## Validation through Placebo Analyses
 
 To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating 1975 earnings (re75) as the outcome variable and omitting both re75 and u75 from the list of covariates. The analysis utilizes all previously considered samples, excluding re75 and u75 from the model. The ATT is then recomputed with the function `estimate_all`, conditioning only on the remaining set of covariates.
@@ -1236,11 +1237,11 @@ result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
 knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model A Placebo ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-The placebo analysis reveals that the experimental benchmark (first row and first column) for 1975 earnings is near zero and statistically insignificant, while all estimators applied to the observational datasets, CPS1 and PSID1, yield by majority large, negative ATT estimates.
+The placebo analysis reveals that the experimental benchmark (first row and first column) for 1975 earnings is near zero and statistically insignificant, while all estimators applied to the observational datasets, LDW-CPS1 and LDW-PSID1, yield by majority large, negative ATT estimates.
 
-For CPS1, all ATT estimates are negative, but the trimmed version (D) shows a slight improvement toward the benchmark. The `overlap_crump` trimming further improves CPS1 results, while the `card` (F), `ps_threshold` (I), and `optimal_pair` (J) trimming methods provide even greater improvement. The `mahvars` (G) method delivers ATT estimates closest to the experimental benchmark.
+For LDW-CPS1, all ATT estimates are negative, but the trimmed version (D) shows a slight improvement toward the benchmark. The `overlap_crump` trimming further improves CPS1 results, while the `card` (F), `ps_threshold` (I), and `optimal_pair` (J) trimming methods provide even greater improvement. The `mahvars` (G) method delivers ATT estimates closest to the experimental benchmark.
 
-For PSID1, the sample (O) applying the `fix_max_value_truncation_overlap_weight` shows some improvement compared to the original PSID1 sample. The `card`, `mahvars`, and `overlap_crump` methods yield better ATT estimates closer to the experimental benchmark, with the `ps_threshold` method producing estimates that are the closest.
+For LDW-PSID1, the sample (O) applying the `fix_max_value_truncation_overlap_weight` shows no improvement compared to the original PSID1 sample. The `card`, `mahvars`, and `overlap_crump` methods yield better ATT estimates closer to the experimental benchmark, with the `ps_threshold` method producing estimates that are the closest.
 
 It is important to note that the (N) and (E) samples, as well as (I) and (D), correspond to the same underlying methods but applied to slightly different datasets.
 
