@@ -60,4 +60,4 @@ rsconnect/
 
 
 *.csv
-*.RDATA
+*.RDATA*
