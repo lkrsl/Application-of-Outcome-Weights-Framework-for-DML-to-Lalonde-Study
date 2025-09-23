@@ -848,21 +848,21 @@ dataset_list_cps <- list(
   "overlap_weight" = ldw_cps_plus$overlap_weight,
   "ebal_weight" = ldw_cps_plus$ebal_weight,
   ## Truncation
-  "fix_max_value_trunc.cps_plus_ebal_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_ipw_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_opt_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_overlap_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_smr_weight" = ldw_cps_plus.fixed,
-  "at_perc_trunc.cps_plus_ebal_weight" = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_ipw_weight"  = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_opt_weight"  = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_overlap_weight" = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_smr_weight" = ldw_cps_plus.percent,
-  "adap_weight_trunc.cps_plus_ebal_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_ipw_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_opt_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_overlap_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_smr_weight" = ldw_cps_plus.adapt,
+  "fix_max_value_trunc_ebal_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_ipw_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_opt_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_overlap_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_smr_weight" = ldw_cps_plus.fixed,
+  "at_perc_trunc_ebal_weight" = ldw_cps_plus.percent,
+  "at_perc_trunc_ipw_weight"  = ldw_cps_plus.percent,
+  "at_perc_trunc_opt_weight"  = ldw_cps_plus.percent,
+  "at_perc_trunc_overlap_weight" = ldw_cps_plus.percent,
+  "at_perc_trunc_smr_weight" = ldw_cps_plus.percent,
+  "adap_weight_trunc_ebal_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_ipw_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_opt_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_overlap_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_smr_weight" = ldw_cps_plus.adapt,
   ##Trimming
   "ps_threshold" = ldw_cps.trim_match,
   "common_range" = ldw_cps_plus.common,
@@ -918,21 +918,21 @@ dataset_list_psid <- list(
   "overlap_weight" = ldw_psid_plus$overlap_weight,
   "ebal_weight" = ldw_psid_plus$ebal_weight,
   ## Truncation
-  "fix_max_value_trunc.psid_plus_ebal_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_ipw_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_opt_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_overlap_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_smr_weight" = ldw_psid_plus.fixed,
-  "at_perc_trunc.psid_plus_ebal_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_ipw_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_opt_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_overlap_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_smr_weight" = ldw_psid_plus.percent,
-  "adap_weight_trunc.psid_plus_ebal_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_ipw_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_opt_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_overlap_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_smr_weight" = ldw_psid_plus.adapt,
+  "fix_max_value_trunc_ebal_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_ipw_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_opt_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_overlap_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_smr_weight" = ldw_psid_plus.fixed,
+  "at_perc_trunc_ebal_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_ipw_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_opt_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_overlap_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_smr_weight" = ldw_psid_plus.percent,
+  "adap_weight_trunc_ebal_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_ipw_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_opt_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_overlap_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_smr_weight" = ldw_psid_plus.adapt,
   ##Trimming
   "ps_threshold" = ldw_psid.trim_match,
   "common_range" = ldw_psid_plus.common,
@@ -974,7 +974,8 @@ save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "mo
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "model_b_psid")
 ```
 
-## Estimate the ATT
+## Estimating
+### ATT
 
 Next we proceed with the estimation of the ATT using both the LDW-Experimental sample and the newly constructed top 5 samples for each observational dataset, LDW-CPS1 and LDW-PSID1, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
@@ -1041,7 +1042,7 @@ For LDW-PSID1 and its subsamples, the estimates continue to exhibit greater disp
 ```{r, warning=FALSE}
 
 # prepare all results in the order shown in the plots
-all_summaries <- lapply(all_outs, summarize_att)
+all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
 att_summary
@@ -1073,7 +1074,7 @@ save_csv(result_mat, "LDW_att_estimates_model_b")
 Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors due to reduced effective sample size. This highlights the importance of balancing bias reduction with precision, and the need to carefully select methods that optimize this trade-off for robust causal inference.
 :::
 
-## Alternative Estimands: CATT and QTET
+## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
 
 Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.
@@ -1280,25 +1281,11 @@ filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 14. Sensitivity Analyses Model B"}
 #| code-fold: show
 # loop over valid datasets and assign index
-#for (i in seq_along(filtered_datasets_sens)) {
-#    idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
-#    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
-#    title(main = plot_titles[idx])
-#}
-
-sens_results <- list()
-
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
-    # Capture the output of sens_ana to an object
-    res <- sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
-    sens_results[[idx]] <- res  
-    print(paste("Sensitivity analysis results for dataset:", plot_titles[idx]))
-    print(res)
+    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = plot_titles[idx])
 }
-
-sens_results[[1]]
 ```
 
 ```{r}

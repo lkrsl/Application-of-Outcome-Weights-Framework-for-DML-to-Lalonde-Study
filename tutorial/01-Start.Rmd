@@ -68,13 +68,18 @@ If you are using RStudio, you should now see the functions in the Environment se
 
 | Function                                            | Description                                                                                                                                                                     |                 Code                  |
 |------------------|------------------------------------|:----------------:|
-| `inspect_data()` | Inspection of datasets.    | [More](#inspect) |
-| `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`,`common_range_trim()`,`crump_trim()`,`stuermer_trim()`,`walker_trim()`,`truncate_weights_fixed()`,`truncate_weights_percentile()`,`check_weights()`,`truncate_weights_adaptive()`,`trim_attach_weights()`,`get_smd_stats()`,`compute_abs_smd_matchit()`,`compute_ess_matchit()`,`plot_matchit()`,`compute_abs_smd_trim()`,`compute_ess_trim()`,`plot_trim()`,`compute_abs_smd_trunc()`,`compute_ess_trunc()`,`plot_truncation_methods()`,`compute_abs_smd_weight()`,`compute_ess_weight()`,`plot_weighting_methods()`,`compute_smd_all_datasets()`,`compute_ess_all_datasets()`,`plot_comb_overlap_all_interactive()`,`plot_comb_love_plots()`,`combine_results()`,`assess_methods()`,`get_top_methods()`,`create_top5_datasets()`,`save_top5_individual_files()` and `load_top_method_dataset()` | Implementation of covariate balancing and overlap methods. | [More](#covariate-balance-overlap) |
-| `inspect_data()` | Performance evaluation through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#evaluation) |
-| `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `plot_catt_panels()`, `plot_qtet_panels()` and `create_matrix_results()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#estimate-all) |
-| `check_filter_datasets()` |  Validation and filtering of datasets.  | [More](#sensitivity) |
+| `inspect_data()` | Inspects datasets.    | [More](#inspec) |
 
-<a name="inspect"></a>
+| `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`, `truncate_weights_fixed()`, `truncate_weights_percentile()`, `check_weights()`, `truncate_weights_adaptive()`, `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()` and `trim_attach_weights()` | Implements methods to improve covariate balancing and overlap. | [More](#impl-cov-bal-overl-mthds) |
+
+`get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_truncation_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()` and `save_top5_individual_files()` 
+| Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#eval-mthds) |
+
+| `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `eval_catt()`, `plot_qtet_panels()` and `save_qtet_panels()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#est-and-plot-att-catt-qtet) |
+
+| `check_filter_datasets()`, `save_sensitivity_plots()` |  Validates and filters datasets.  | [More](#sens-ana) |
+
+<a name="inspec"></a>
 
 ### Inspection
 
@@ -94,9 +99,9 @@ inspect_data <- function(data_list) {
 }
 ```
 
-<a name="covariate-balance-overlap"></a>
+<a name="impl-cov-bal-overl-mthds"></a>
 
-### Improving primarily covariate balance
+### Improving covariate balance and overlap
 #### Matching
 
 `matchit_profile()` performs nearest neighbor matching based on a combination of specified covariates and each observation's distance from the overall covariate mean, returning a matchit object for balance diagnostics and matched sampling.
@@ -255,6 +260,8 @@ original_data$orig_row <- NULL
 return(trimmed_data)
 }
 ```
+
+<a name="eval-mthds"></a>
 
 ### Reassessing methods
 #### Matching
@@ -876,7 +883,7 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 ### Estimating 
 #### ATT
 
-<a name="estimate-all"></a>
+<a name="est-and-plot-att-catt-qtet"></a>
 
 `estimate_all()` runs multiple treatment effect estimators on a dataset and returns point estimates, standard errors and confidence intervals.
 ```{r class.source = 'fold-hide'}
@@ -1285,9 +1292,9 @@ create_matrix_results <- function(all_outs, sample_names) {
 }
 ```
 
-`summarize_att()` computes summary statistics of the treatment effect estimates. 
+`eval_att()` computes summary statistics of the treatment effect estimates. 
 ```{r class.source = 'fold-hide'}
-summarize_att <- function(result) {
+eval_att <- function(result) {
   data.frame(
     Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error across all estimator results
     Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate of all estimator results
@@ -1483,7 +1490,7 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
 }
 ```
 
-<a name="sensitivity"></a>
+<a name="sens-ana"></a>
 
 ## Sensitivity Analysis
 

@@ -290,7 +290,7 @@ for (wcol in weight_columns) {
   if (wcol %in% names(lcs_psid_plus)) {
     check_weights(lcs_psid_plus, wcol)
   } else {
-    cat("Column", wcol, "not found in nsw_cps.plus\n")
+    cat("Column", wcol, "not found in lcs_cps.plus\n")
   }
 }
 ```
@@ -317,11 +317,12 @@ lcs_psid_trim <- ps_trim(lcs_psid_plus.ps, threshold = 0.9)
 # exclude experimental controls, subset trimmed data appropriately
 lcs_psid.trim_match <- subset(lcs_psid_trim, expc %in% c(0,2) & ps_assoverlap)
 
-# re-assign treat variable for controls in sample 3 or 4 (non-treated group)
-lcs_psid.trim_match$treat[lcs_psid.trim_match$expc == 1] <- 0
-
 # re-estimate propensity scores on trimmed data and perform 1:1 matching
 lcs_psid.trim_match <- psmatch(data = lcs_psid.trim_match, Y = "re79", treat = "treat", cov = covar)
+
+# trim experimental data and re-assign treat variable for controls in sample 3 or 4 (non-treated group)
+#lcs_trim_psid <- subset(lcs_psid_trim, expc %in% c(0, 1))
+#lcs_trim_psid$treat[lcs_trim_psid$expc == 1] <- 0
 ```
 
 #### Common range trimming
@@ -511,7 +512,7 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE5.'}
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE5.'}
 #| code-fold: show
 # visualize covariate balance
 plot_truncation_methods(trunc.psid_plus, "treat", covar, weight_columns, "LCS-PSID-PLUS")
@@ -557,10 +558,10 @@ plot_trim(trim.psid_plus, treat, covar)
 #| code-fold: show
 # visualize covariate balance
 love.plot(lcs_psid, lcs_psid.trim_match, treat, covar = covar, title = "LCS-PSID1-PLUS - propensity threshold trimming")
-love.plot(lcs_psid_plus, lcs_psid_plus.common, treat, covar, title = "LCS-PSID1-PLUS - common range trimming")
-love.plot(lcs_psid_plus, lcs_psid_plus.crump, treat, covar, title = "LCS-PSID1-PLUS - crump trimming")
-love.plot(lcs_psid_plus, lcs_psid_plus.stuermer, treat, covar, title = "LCS-PSID1-PLUS - stuermer trimming")
-love.plot(lcs_psid_plus, lcs_psid_plus.walker,  treat, covar, title = "LCS-PSID1-PLUS - walker trimming")
+love.plot(lcs_psid, lcs_psid_plus.common, treat, covar, title = "LCS-PSID1-PLUS - common range trimming")
+love.plot(lcs_psid, lcs_psid_plus.crump, treat, covar, title = "LCS-PSID1-PLUS - crump trimming")
+love.plot(lcs_psid, lcs_psid_plus.stuermer, treat, covar, title = "LCS-PSID1-PLUS - stuermer trimming")
+love.plot(lcs_psid, lcs_psid_plus.walker,  treat, covar, title = "LCS-PSID1-PLUS - walker trimming")
 ```
 
 ### Combined methods
@@ -589,7 +590,7 @@ ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "tr
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE9.'} 
 # visualize covariate balance
-#plot_comb_love_plots(comb_meth.psid_plus, "treat", covar, prefix_psid = "LCS-PSID1")
+#plot_comb_love_plots(comb_meth.psid_plus, "treat", covar)
 ```
 
 ADD EXPLANATION HERE
@@ -598,14 +599,11 @@ ADD EXPLANATION HERE
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_psid_plus <- combine_results("psid_plus") 
-
-# print all results
-print(all_psid_plus)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(all_psid_plus, "LCS_PSID1_PLUS_all_results")
+save_csv(all_psid_plus, "PSID1_PLUS_all_results_lcs")
 ```
 
 Assess all methods and create score
@@ -621,7 +619,7 @@ Rank the results and get only the top 5
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
 # save results 
-save_csv(top5_methods.psid_plus, "LCS_PSID1_PLUS_top5_methods")
+save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_lcs")
 ```
 The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 
@@ -758,7 +756,7 @@ ADD EXPLANATION HERE
 ```{r, warning=FALSE}
 
 # prepare all results in the order shown in the plots
-all_summaries <- lapply(all_outs, summarize_att)
+all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
 att_summary
@@ -865,7 +863,7 @@ Each plot displays three distinct series for every dataset analyzed: (1) The blu
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates using LCS Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
-#all_qtet <- c(list(qte.lcs, qte.nsw_psid, qte.nsw_psid.trim), qte.top5.cps, qte.top5.psid)
+#all_qtet <- c(list(qte.lcs, qte.lcs_psid, qte.lcs_psid.trim), qte.top5.cps, qte.top5.psid)
 
 # plot results
 #plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.lcs, plots_per_page = 4, ylim = c(-25000, 15000))
@@ -880,7 +878,6 @@ ADD EXPLANATION HERE
 
 To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating the number of children in 1975—a variable not included in LaLonde’s original dataset - as the outcome variable. The analysis utilizes all previously considered samples. The ATT is then recomputed with the function `estimate_all`, conditioning only on the remaining set of covariates.
 ```{r, warning=FALSE}
-#| code-fold: show
 # define variables
 Y_pl <- "nchildren75"
 treat <- "treat"
@@ -889,6 +886,8 @@ covar_pl <- c("age", "educ", "nodegree", "married", "black", "hisp", "re75", "u7
 
 ```{r, warning=FALSE}
 #| code-fold: show
+set.seed(1234)
+load("data/lcs.RData") 
 # estimate placebo ATT on original and observational datasets
 out1_pl <- estimate_all(lcs, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(lcs_psid, Y_pl, "treat", covar_pl)
@@ -897,7 +896,7 @@ out2_pl <- estimate_all(lcs_psid, Y_pl, "treat", covar_pl)
 ```{r, warning=FALSE}
 #| code-fold: show
 # estimate placebo ATT on trimmed datasets (analogous to tutorial of Imbens & Xu (2024))
-out3_pl <- estimate_all(lcs_psid.trim_match, Y_pl, "treat", covar_pl)
+out3_pl <- estimate_all(lcs_psid_trim, Y_pl, "treat", covar_pl)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -922,7 +921,7 @@ all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl), out.psid_pl)
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
-ylim_pl <- c(-12000, 2000)
+ylim_pl = c(-1.5, 1)
 plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
 ```
 
@@ -956,7 +955,7 @@ Finally, a sensitivity analyses using the LCS data is conducted and results are 
 # define variables
 Y <- "re79"
 treat <- "treat"
-# redefine covariates: removing "nchildren75" to be used as placebo outcome
+# redefine covariates
 covar <- c("age", "educ", "nodegree", "married", "black", "hisp", "re75", "u75")
 bm <- c("re75")
 ```
@@ -970,20 +969,13 @@ filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, 
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 14. Sensitivity Analyses LCS"}
 #| code-fold: show
+par(mfrow = c(1,2))
 # loop over valid datasets and assign index
-sens_results <- list()
-
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
-    # capture the output of sens_ana to an object
-    res <- sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
-    sens_results[[idx]] <- res  
-    print(paste("Sensitivity analysis results for dataset:", plot_titles[idx]))
-    print(res)
+    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = plot_titles[idx])
 }
-
-#sens_results
 ```
 
 ```{r}

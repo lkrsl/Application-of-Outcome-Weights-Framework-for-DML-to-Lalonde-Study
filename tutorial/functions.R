@@ -1175,8 +1175,8 @@ create_matrix_results <- function(all_outs, sample_names) {
   return(result_mat)
 }
 
-####  summarize_att()
-summarize_att <- function(result) {
+####  eval_att()
+eval_att <- function(result) {
   data.frame(
     Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error across all estimator results
     Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate of all estimator results

@@ -725,16 +725,16 @@ plot_trim(trim.psid_plus, treat, covar)
 #| code-fold: show
 # visualize covariate balance
 love.plot(ldw_cps, ldw_cps.trim_match, treat, covar = covar, title = "LDW-CPS1-PLUS - propensity threshold trimming")
-love.plot(ldw_cps_plus, ldw_cps_plus.common, treat, covar, title = "LDW-CPS1-PLUS - common range trimming")
-love.plot(ldw_cps_plus, ldw_cps_plus.crump,  treat, covar, title = "LDW-CPS1-PLUS - crump trimming") 
-love.plot(ldw_cps_plus, ldw_cps_plus.stuermer, treat, covar, title = "LDW-CPS1-PLUS - stuermer trimming")
-love.plot(ldw_cps_plus, ldw_cps_plus.walker,  treat, covar, title = "LDW-CPS1-PLUS - walker trimming")
+love.plot(ldw_cps, ldw_cps_plus.common, treat, covar, title = "LDW-CPS1-PLUS - common range trimming")
+love.plot(ldw_cps, ldw_cps_plus.crump,  treat, covar, title = "LDW-CPS1-PLUS - crump trimming") 
+love.plot(ldw_cps, ldw_cps_plus.stuermer, treat, covar, title = "LDW-CPS1-PLUS - stuermer trimming")
+love.plot(ldw_cps, ldw_cps_plus.walker,  treat, covar, title = "LDW-CPS1-PLUS - walker trimming")
 
 love.plot(ldw_psid, ldw_psid.trim_match, treat, covar = covar, title = "LDW-PSID1-PLUS - propensity threshold trimming")
-love.plot(ldw_psid_plus, ldw_psid_plus.common, treat, covar, title = "LDW-PSID1-PLUS - common range trimming")
-love.plot(ldw_psid_plus, ldw_psid_plus.crump, treat, covar, title = "LDW-PSID1-PLUS - crump trimming")
-love.plot(ldw_psid_plus, ldw_psid_plus.stuermer, treat, covar, title = "LDW-PSID1-PLUS - stuermer trimming")
-love.plot(ldw_psid_plus, ldw_psid_plus.walker,  treat, covar, title = "LDW-PSID1-PLUS - walker trimming")
+love.plot(ldw_psid, ldw_psid_plus.common, treat, covar, title = "LDW-PSID1-PLUS - common range trimming")
+love.plot(ldw_psid, ldw_psid_plus.crump, treat, covar, title = "LDW-PSID1-PLUS - crump trimming")
+love.plot(ldw_psid, ldw_psid_plus.stuermer, treat, covar, title = "LDW-PSID1-PLUS - stuermer trimming")
+love.plot(ldw_psid, ldw_psid_plus.walker,  treat, covar, title = "LDW-PSID1-PLUS - walker trimming")
 ```
 
 ### Combined methods
@@ -844,21 +844,21 @@ dataset_list_cps <- list(
   "overlap_weight" = ldw_cps_plus$overlap_weight,
   "ebal_weight" = ldw_cps_plus$ebal_weight,
   ## Truncation
-  "fix_max_value_trunc.cps_plus_ebal_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_ipw_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_opt_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_overlap_weight" = ldw_cps_plus.fixed,
-  "fix_max_value_trunc.cps_plus_smr_weight" = ldw_cps_plus.fixed,
-  "at_perc_trunc.cps_plus_ebal_weight" = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_ipw_weight"  = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_opt_weight"  = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_overlap_weight" = ldw_cps_plus.percent,
-  "at_perc_trunc.cps_plus_smr_weight" = ldw_cps_plus.percent,
-  "adap_weight_trunc.cps_plus_ebal_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_ipw_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_opt_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_overlap_weight" = ldw_cps_plus.adapt,
-  "adap_weight_trunc.cps_plus_smr_weight" = ldw_cps_plus.adapt,
+  "fix_max_value_trunc_ebal_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_ipw_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_opt_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_overlap_weight" = ldw_cps_plus.fixed,
+  "fix_max_value_trunc_smr_weight" = ldw_cps_plus.fixed,
+  "at_perc_trunc_ebal_weight" = ldw_cps_plus.percent,
+  "at_perc_trunc_ipw_weight"  = ldw_cps_plus.percent,
+  "at_perc_trunc_opt_weight"  = ldw_cps_plus.percent,
+  "at_perc_trunc_overlap_weight" = ldw_cps_plus.percent,
+  "at_perc_trunc_smr_weight" = ldw_cps_plus.percent,
+  "adap_weight_trunc_ebal_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_ipw_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_opt_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_overlap_weight" = ldw_cps_plus.adapt,
+  "adap_weight_trunc_smr_weight" = ldw_cps_plus.adapt,
   ##Trimming
   "ps_threshold" = ldw_cps.trim_match,
   "common_range" = ldw_cps_plus.common,
@@ -912,21 +912,21 @@ dataset_list_psid <- list(
   "overlap_weight" = ldw_psid_plus$overlap_weight,
   "ebal_weight" = ldw_psid_plus$ebal_weight,
   ## Truncation
-  "fix_max_value_trunc.psid_plus_ebal_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_ipw_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_opt_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_overlap_weight" = ldw_psid_plus.fixed,
-  "fix_max_value_trunc.psid_plus_smr_weight" = ldw_psid_plus.fixed,
-  "at_perc_trunc.psid_plus_ebal_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_ipw_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_opt_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_overlap_weight" = ldw_psid_plus.percent,
-  "at_perc_trunc.psid_plus_smr_weight" = ldw_psid_plus.percent,
-  "adap_weight_trunc.psid_plus_ebal_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_ipw_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_opt_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_overlap_weight" = ldw_psid_plus.adapt,
-  "adap_weight_trunc.psid_plus_smr_weight" = ldw_psid_plus.adapt,
+  "fix_max_value_trunc_ebal_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_ipw_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_opt_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_overlap_weight" = ldw_psid_plus.fixed,
+  "fix_max_value_trunc_smr_weight" = ldw_psid_plus.fixed,
+  "at_perc_trunc_ebal_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_ipw_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_opt_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_overlap_weight" = ldw_psid_plus.percent,
+  "at_perc_trunc_smr_weight" = ldw_psid_plus.percent,
+  "adap_weight_trunc_ebal_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_ipw_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_opt_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_overlap_weight" = ldw_psid_plus.adapt,
+  "adap_weight_trunc_smr_weight" = ldw_psid_plus.adapt,
   ##Trimming
   "ps_threshold" = ldw_psid.trim_match,
   "common_range" = ldw_psid_plus.common,
@@ -1037,7 +1037,7 @@ Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yiel
 In contrast, the estimates for LDW-PSID1 and its top-ranked subsamples exhibit greater dispersion and substantially higher standard errors compared to LDW-CPS1 samples. Most ATT estimates are negatively aligned, indicating increased methodological uncertainty in these samples. Positive ATT estimates emerge only for the `overlap_crump` and `fix_max_value_trunc_overlap_weight` subsamples.
 ```{r, warning=FALSE}
 # prepare all results in the order shown in the plots
-all_summaries <- lapply(all_outs, summarize_att)
+all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
 att_summary
