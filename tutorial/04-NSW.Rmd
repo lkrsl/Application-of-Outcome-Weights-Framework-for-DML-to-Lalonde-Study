@@ -9,7 +9,7 @@ LaLonde (1986) evaluated the effect of the National Supported Work Demonstration
 (1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
 (2) PSID-1, based on Panel Study of Income Dynamics for household heads under 55 from specific years who were not retired in 1975, adjusted for factors like employment status and poverty level, resulting in four additional comparison groups;
 
-This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 in the original LaLonde dataset (loaded as NSW below, similar to Imbens & Xu). 
+This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 in the original LaLonde dataset (loaded as nsw below, similar to Imbens & Xu). 
 
 # Set up
 ## Source functions and load data
@@ -17,12 +17,12 @@ This section (4) examines the effect of the treatment (participation in the job 
 #| code-fold: show
 # source functions
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-source("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/functions.R")
+source("functions.R")
 ```
 
 ```{r}
 # load data
-load("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/data/lalonde.RData")
+load("data/lalonde.RData")
 ```
 
 ## Load and preprocess data (LaLonde (NSW))
@@ -759,6 +759,7 @@ plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, pr
 
 ADD EXPLANATION HERE
 
+### Getting top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps_plus <- combine_results("cps_plus")
@@ -771,11 +772,10 @@ print(all_psid_plus)
 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(all_cps_plus, "CPS1_PLUS_all_results_nsw")
-save_csv(all_psid_plus, "PSID1_PLUS_all_results_nsw")
+save_csv(all_cps_plus, "NSW_CPS1_PLUS_all_results")
+save_csv(all_psid_plus, "NSW_PSID1_PLUS_all_results")
 ```
 
-### Getting top methods and datasets
 Assess all methods and create score
 - smd_score rescales Mean_Abs_SMD to a 0-1 range where lower Mean_Abs_SMD leads to a higher score
 - ess_score measures sample size effectiveness by combining effective sample sizes (Control + Treated) and normalizing between 0 and 1
@@ -791,8 +791,8 @@ top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
 # save results 
-save_csv(top5_methods.cps_plus, "CPS1_PLUS_top5_methods_model_b")
-save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_model_b")
+save_csv(top5_methods.cps_plus, "NSW_CPS1_PLUS_top5_methods")
+save_csv(top5_methods.psid_plus, "NSW_PSID1_PLUS_top5_methods")
 ```
 The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 
@@ -949,7 +949,8 @@ save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "ns
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "nsw_psid")
 ```
 
-## Estimate the ATT
+## Estimating
+### ATT
 
 Next we proceed with the estimation of the ATT using both the NSW-Experimental sample and the newly constructed top 5 samples for each observational dataset, NSW-CPS1 and NSW-PSID1, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
@@ -1042,7 +1043,7 @@ save_csv(result_mat, "NSW_att_estimates")
 Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors due to reduced effective sample size. This highlights the importance of balancing bias reduction with precision, and the need to carefully select methods that optimize this trade-off for robust causal inference.
 :::
 
-## Alternative Estimands: CATT and QTET
+## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
 
 Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.

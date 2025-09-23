@@ -1,5 +1,4 @@
 # 1 Set up
-
 # 1.1 Installation
 packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "MatchIt", "optmatch", "quickmatch", 
   "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
@@ -32,7 +31,7 @@ library(tidyr)
 library(tidyverse)
 library(WeightIt)
 
-# source files for aipw_ow extension
+#### source files for aipw_ow extension
 skripte <- list.files(
   "/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/outcome_weights/R", 
   pattern = "\\.R$", 
@@ -54,7 +53,7 @@ inspect_data <- function(data_list) {
   )
 }
 
-# 2. Improving overlap 
+# 2. Improving covariate balance and overlap
 ## 2.1 Matching
 ### 2.1.1 Profile matching
 #### matchit_profile()
@@ -89,76 +88,23 @@ create_overlap_weights <- function(data, formula) {
   return(ifelse(data$treat == 1, 1 - ps, ps))
 }
 
-## 2.3 Trimming
-### 2.3.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
-ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
-  sub <- data[which(data[, ps] < threshold), ]
-  return(sub)
-}
-
-### 2.3.2 Common range trimming
-#### common_range_trim ()
-common_range_trim <- function(data, ps_col = "ps_assoverlap", treat_col = "treat") {
-  lower_cut <- max(
-    min(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
-    min(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
-  )
-  upper_cut <- min(
-    max(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
-    max(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
-  )
-  sub <- data[data[[ps_col]] >= lower_cut & data[[ps_col]] <= upper_cut, ]
-  return(sub)
-}
-
-### 2.3.3 Crump trimming
-#### crump_trim ()
-crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9) {
-  sub <- data[data[[ps_col]] >= lower & data[[ps_col]] <= upper, ]
-  return(sub)
-}
-
-### 2.3.4 Stuermer trimming
-#### stuermer_trim ()
-stuermer_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
-                         lower_percentile = 0.05, upper_percentile = 0.95) {
-  treated_ps   <- data[[ps_col]][data[[treat_col]] == 1]
-  untreated_ps <- data[[ps_col]][data[[treat_col]] == 0]
-  lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
-  upper_cutoff <- quantile(untreated_ps, probs = upper_percentile, na.rm = TRUE)
-  sub <- data[data[[ps_col]] >= lower_cutoff & data[[ps_col]] <= upper_cutoff, ]
-  return(sub)
-}
-
-### 2.3.5 Walker trimming
-#### walker_trim ()
-walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
-                        lower_cutoff = 0.3, upper_cutoff = 0.7) {
-  treat_prevalence  <- mean(data[[treat_col]], na.rm = TRUE)
-  logit_ps          <- log(data[[ps_col]] / (1 - data[[ps_col]]))
-  logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
-  preference_score  <- 1 / (1 + exp(-(logit_ps - logit_prevalence)))
-  sub <- data[preference_score >= lower_cutoff & preference_score <= upper_cutoff, ]
-  return(sub)
-}
-
-## 2.4 Truncation
-### 2.4.1 Fixed maximum value truncation
+## 2.3 Truncation
+### 2.3.1 Fixed maximum value truncation
 #### truncate_weights_fixed()
 truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
   data[[weight_col]] <- pmin(data[[weight_col]], max_weight)
   return(data)
 }
 
-### 2.4.2 At percentile truncation
+### 2.3.2 At percentile truncation
 #### truncate_weights_percentile()
 truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
-    weight_cutoff <- quantile(data[[weight_col]], probs = percentile, na.rm = TRUE)
-    data[[weight_col]] <- pmin(data[[weight_col]], weight_cutoff)
-    return(data)
+  weight_cutoff <- quantile(data[[weight_col]], probs = percentile, na.rm = TRUE)
+  data[[weight_col]] <- pmin(data[[weight_col]], weight_cutoff)
+  return(data)
 }  
-  
-### 2.4.3 Adaptive weight truncation
+
+### 2.3.3 Adaptive weight truncation
 #### check_weights()
 check_weights <- function(data, weight_col = "weight") {
   w <- data[[weight_col]]
@@ -174,6 +120,59 @@ truncate_weights_adaptive <- function(data, weight_col, c = 3) {
     data[[weight_col]] <- pmin(w, cutoff)
   }
   return(data)
+}
+
+## 2.4 Trimming
+### 2.4.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
+ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
+  sub <- data[which(data[, ps] < threshold), ]
+  return(sub)
+}
+
+### 2.4.2 Common range trimming
+#### common_range_trim ()
+common_range_trim <- function(data, ps_col = "ps_assoverlap", treat_col = "treat") {
+  lower_cut <- max(
+    min(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
+    min(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
+  )
+  upper_cut <- min(
+    max(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
+    max(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
+  )
+  sub <- data[data[[ps_col]] >= lower_cut & data[[ps_col]] <= upper_cut, ]
+  return(sub)
+}
+
+### 2.4.3 Crump trimming
+#### crump_trim ()
+crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9) {
+  sub <- data[data[[ps_col]] >= lower & data[[ps_col]] <= upper, ]
+  return(sub)
+}
+
+### 2.4.4 Stuermer trimming
+#### stuermer_trim ()
+stuermer_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
+                         lower_percentile = 0.05, upper_percentile = 0.95) {
+  treated_ps   <- data[[ps_col]][data[[treat_col]] == 1]
+  untreated_ps <- data[[ps_col]][data[[treat_col]] == 0]
+  lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
+  upper_cutoff <- quantile(untreated_ps, probs = upper_percentile, na.rm = TRUE)
+  sub <- data[data[[ps_col]] >= lower_cutoff & data[[ps_col]] <= upper_cutoff, ]
+  return(sub)
+}
+
+### 2.4.5 Walker trimming
+#### walker_trim ()
+walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
+                        lower_cutoff = 0.3, upper_cutoff = 0.7) {
+  treat_prevalence  <- mean(data[[treat_col]], na.rm = TRUE)
+  logit_ps          <- log(data[[ps_col]] / (1 - data[[ps_col]]))
+  logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
+  preference_score  <- 1 / (1 + exp(-(logit_ps - logit_prevalence)))
+  sub <- data[preference_score >= lower_cutoff & preference_score <= upper_cutoff, ]
+  return(sub)
 }
 
 ## 2.5 Combination of methods
@@ -193,7 +192,7 @@ original_data$orig_row <- NULL
 return(trimmed_data)
 }
 
-# 3. Reassessing overlap
+# 3. Reassessing methods
 ## 3.1 Matching
 #### get_smd_stats()
 get_smd_stats <- function(match_object) {
@@ -245,56 +244,76 @@ plot_matchit <- function(match_list, dataset_name) {
   }
 } 
 
-## 3.2 Trimming
+## 3.2 Weighting
 ### 3.2.1 SMD
-#### compute_abs_smd_trim()
-compute_abs_smd_trim <- function(trimming_list, treat_var, covars) {
-  smd_list <- lapply(names(trimming_list), function(name) {
-    data <- trimming_list[[name]]
+#### compute_abs_smd_weight()
+compute_abs_smd_weight <- function(data_list, treat_var, covars, weight_cols) {
+  smd_list <- lapply(weight_cols, function(wcol) {
+    data <- data_list
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
       data = data,
-      un = TRUE, 
+      weights = data[[wcol]],
+      un = TRUE,
       s.d.denom = "treated"
     )
     smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Un)
+    smd_vals <- abs(smd_df$Diff.Adj)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
-      Method   = name,
+      Method = wcol,
       Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd 
+      Max_Abs_SMD  = max_smd
     ))
   })
-  smd_summary <- do.call(rbind, smd_list)
-  rownames(smd_summary) <- NULL
-  return(smd_summary)
+  do.call(rbind, smd_list)
 }
 
 ### 3.2.2 ESS
-#### compute_ess_trim()
-compute_ess_trim <- function(trimming_list, treat_var, covars) {
-  ess_list <- lapply(trimming_list, function(data) {
-    bal_obj <- cobalt::bal.tab(as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-                               data = data, un = TRUE)
+#### compute_ess_weight()
+compute_ess_weight <- function(data, treat_var, covars, weight_cols) {
+  ess_list <- lapply(weight_cols, function(wcol) {
+    bal_obj <- cobalt::bal.tab(
+      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      data = data,
+      weights = data[[wcol]],
+      un = FALSE
+    )
     samples <- bal_obj$Observations
-    df <- as.data.frame(samples)[c("Control", "Treated")]
+    if ("Adjusted" %in% rownames(samples)) {
+      df <- samples["Adjusted", c("Control", "Treated"), drop = FALSE]
+    } else {
+      df <- samples[1, c("Control", "Treated"), drop = FALSE]
+    }
+    df <- cbind(Method = wcol, df)
+    rownames(df) <- NULL
     return(df)
   })
-  ess_df <- do.call(rbind, ess_list)
-  ess_df$Method <- names(trimming_list)
-  rownames(ess_df) <- NULL
-  ess_df <- ess_df[, c("Method", "Control", "Treated")]
-  return(ess_df)
+  do.call(rbind, ess_list)
 }
 
 ### 3.2.3 Visuals
-#### plot_trim()
-plot_trim <- function(ldw_list, treat, covar) {
-  par(mfrow = c(2,3))
-  for (ldw_obj in ldw_list) {
-    assess_overlap(ldw_obj, treat = treat, cov = covar)
+#### plot_weighting_methods()
+plot_weighting_methods <- function(data, treat_var, covars, weight_list, dataset_name = NULL) {
+  for (wcol in names(weight_list)) {
+    bal_obj <- cobalt::bal.tab(
+      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      data = data,
+      weights = weight_list[[wcol]],
+      un = TRUE,
+      s.d.denom = "treated"
+    )
+    title_text <- if (!is.null(dataset_name)) paste(dataset_name, "-", wcol, "weighting") else wcol
+    lp <- cobalt::love.plot(
+      bal_obj,
+      stats = "mean.diffs",
+      abs = TRUE,
+      var.order = "unadjusted",
+      thresholds = c(m = 0.1),
+      title = title_text
+    )
+    print(lp)
   }
 }
 
@@ -406,76 +425,56 @@ plot_truncation_methods <- function(trunc_list, treat_var, covars, weight_cols, 
   }
 }
 
-## 3.4 Weighting
+## 3.4 Trimming
 ### 3.4.1 SMD
-#### compute_abs_smd_weight()
-compute_abs_smd_weight <- function(data_list, treat_var, covars, weight_cols) {
-  smd_list <- lapply(weight_cols, function(wcol) {
-    data <- data_list
+#### compute_abs_smd_trim()
+compute_abs_smd_trim <- function(trimming_list, treat_var, covars) {
+  smd_list <- lapply(names(trimming_list), function(name) {
+    data <- trimming_list[[name]]
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
       data = data,
-      weights = data[[wcol]],
-      un = TRUE,
+      un = TRUE, 
       s.d.denom = "treated"
     )
     smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Adj)
+    smd_vals <- abs(smd_df$Diff.Un)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
-      Method = wcol,
+      Method   = name,
       Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd
+      Max_Abs_SMD  = max_smd 
     ))
   })
-  do.call(rbind, smd_list)
+  smd_summary <- do.call(rbind, smd_list)
+  rownames(smd_summary) <- NULL
+  return(smd_summary)
 }
 
 ### 3.4.2 ESS
-#### compute_ess_weight()
-compute_ess_weight <- function(data, treat_var, covars, weight_cols) {
-  ess_list <- lapply(weight_cols, function(wcol) {
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-      data = data,
-      weights = data[[wcol]],
-      un = FALSE
-    )
+#### compute_ess_trim()
+compute_ess_trim <- function(trimming_list, treat_var, covars) {
+  ess_list <- lapply(trimming_list, function(data) {
+    bal_obj <- cobalt::bal.tab(as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+                               data = data, un = TRUE)
     samples <- bal_obj$Observations
-    if ("Adjusted" %in% rownames(samples)) {
-      df <- samples["Adjusted", c("Control", "Treated"), drop = FALSE]
-    } else {
-      df <- samples[1, c("Control", "Treated"), drop = FALSE]
-    }
-    df <- cbind(Method = wcol, df)
-    rownames(df) <- NULL
+    df <- as.data.frame(samples)[c("Control", "Treated")]
     return(df)
   })
-  do.call(rbind, ess_list)
+  ess_df <- do.call(rbind, ess_list)
+  ess_df$Method <- names(trimming_list)
+  rownames(ess_df) <- NULL
+  ess_df <- ess_df[, c("Method", "Control", "Treated")]
+  return(ess_df)
 }
 
 ### 3.4.3 Visuals
-#### plot_weighting_methods()
-plot_weighting_methods <- function(data, treat_var, covars, weight_list, dataset_name = NULL) {
-  for (wcol in names(weight_list)) {
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-      data = data,
-      weights = weight_list[[wcol]],
-      un = TRUE,
-      s.d.denom = "treated"
-    )
-    title_text <- if (!is.null(dataset_name)) paste(dataset_name, "-", wcol, "weighting") else wcol
-    lp <- cobalt::love.plot(
-      bal_obj,
-      stats = "mean.diffs",
-      abs = TRUE,
-      var.order = "unadjusted",
-      thresholds = c(m = 0.1),
-      title = title_text
-    )
-    print(lp)
+#### plot_trim()
+plot_trim <- function(ldw_list, treat, covar) {
+  par(mfrow = c(2,3))
+  for (ldw_obj in ldw_list) {
+    assess_overlap(ldw_obj, treat = treat, cov = covar)
   }
 }
 
@@ -555,7 +554,7 @@ compute_ess_all_datasets <- function(combined_list, treat_var, covars) {
 }
 
 ### 3.5.3 Visuals
-#### plot_comb_overlap_all_interactive()
+#### plot_comb_overlap()
 plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
                               prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
   all_combined_list <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
@@ -636,6 +635,7 @@ plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat_var, covar
   }
 }
 
+## 3.6 Getting top methods and datasets
 #### combine_results()
 combine_results <- function(dataset_name) {
   dataset_lower <- tolower(dataset_name)
@@ -676,7 +676,8 @@ combine_results <- function(dataset_name) {
   # Merge SMD and ESS results by Method
   final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
   # Remove dataset suffixes like ".cps_plus" or ".psid_plus" from Method names for cleaner labels
-  final_df$Method <- gsub("\\.(cps_plus|psid_plus)$", "", final_df$Method, ignore.case = TRUE)
+  final_df$Method <- gsub("\\.psid_plus", "", final_df$Method, ignore.case = TRUE)
+  final_df$Method <- gsub("\\.cps_plus", "", final_df$Method, ignore.case = TRUE)
     # Reset row names
   rownames(final_df) <- NULL
   return(final_df)
@@ -773,91 +774,8 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
   }
 }
 
-# 4. Estimation
+# 4. Estimating
 ## 4.1 ATT
-#### load_top_method_dataset()
-load_top_method_dataset <- function(rank, prefix) {
-  files <- list.files("data", pattern = paste0("^top", rank, "_", prefix, "_method_.*\\.RData$"), full.names = TRUE)
-  if(length(files) == 0) stop(paste("No file found for rank", rank, "and prefix", prefix))
-  load(files[1])  
-  if (inherits(dataset_to_save, "matchit")) {
-    dataset_to_save <- match.data(dataset_to_save)
-  }
-  # Ensure data frame class (no data.table)
-  dataset_to_save <- as.data.frame(dataset_to_save)
-  return(dataset_to_save)
-}
-
-#### plot_att_panels()
-plot_att_panels <- function(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  num_pages <- ceiling(length(all_outs) / plots_per_page)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 1
-    end_idx   <- min(page * plots_per_page, length(all_outs))
-    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
-    for (i in start_idx:end_idx) {
-      out <- all_outs[[i]]
-      plot_coef(out, 
-                band = band, 
-                line = est,
-                ylim = ylim,
-                main = plot_titles[i],
-                ylab = ylab,
-                textsize = textsize)
-    }
-  }
-}
-
-#### save_att_panels()
-save_att_panels <- function(
-    all_outs, plot_titles, band, est, prefix,
-    plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  folder <- "../graphs/lalonde"
-  ylim   <- c(-15500, 5500)
-  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
-  num_pages <- ceiling(length(all_outs) / plots_per_page)
-  for (page in seq_len(num_pages)) {
-    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file_name, width = 8, height = 11)
-    par(mfrow = c(plots_per_page, 1), mar = c(3,4,3,2))
-    start_idx <- (page - 1) * plots_per_page + 1
-    end_idx <- min(page * plots_per_page, length(all_outs))
-    for (i in start_idx:end_idx) {
-      plot_coef(all_outs[[i]],
-                band = band, line = est, ylim = ylim,
-                main = plot_titles[i], ylab = ylab, textsize = textsize)
-    }
-    dev.off()
-  }
-}
-
-#### create_matrix_results()
-create_matrix_results <- function(all_outs, sample_names) {
-  n_samples <- length(sample_names)
-  n_estimators <- nrow(all_outs[[1]])
-  result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
-  # Set up alternating column names
-  cnames <- character(n_samples * 2)
-  for (j in seq_along(sample_names)) {
-    cnames[(j-1)*2 + 1] <- sample_names[j]
-    cnames[(j-1)*2 + 2] <- "" # SE/parenthesis column
-  }
-  colnames(result_mat) <- cnames
-  estimator_names <- rownames(all_outs[[1]])
-  rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
-  # Fill values
-  for (j in seq_along(all_outs)) {
-    out <- all_outs[[j]]
-    result_mat[1, (j-1)*2 + 1] <- sprintf("%.2f", out[1, 1])
-    result_mat[1, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[1, 2]), ")")
-    for (i in 2:(n_estimators+1)) {
-      result_mat[i, (j-1)*2 + 1] <- sprintf("%.2f", out[i-1, 1])
-      result_mat[i, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[i-1, 2]), ")")
-    }
-  }
-  return(result_mat)
-}
-
 #### estimate_all()
 # difference in means
 diff <- function(data, Y, treat) {
@@ -1187,6 +1105,76 @@ plot_coef <- function(out,
   box()
 }
 
+#### plot_att_panels()
+plot_att_panels <- function(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
+  num_pages <- ceiling(length(all_outs) / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx   <- min(page * plots_per_page, length(all_outs))
+    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
+    for (i in start_idx:end_idx) {
+      out <- all_outs[[i]]
+      plot_coef(out, 
+                band = band, 
+                line = est,
+                ylim = ylim,
+                main = plot_titles[i],
+                ylab = ylab,
+                textsize = textsize)
+    }
+  }
+}
+
+#### save_att_panels()
+save_att_panels <- function(
+    all_outs, plot_titles, band, est, prefix,
+    plots_per_page = 4, ylab = "Estimate", textsize = 1) {
+  folder <- "../graphs/lalonde"
+  ylim   <- c(-15500, 5500)
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  num_pages <- ceiling(length(all_outs) / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
+    pdf(file_name, width = 8, height = 11)
+    par(mfrow = c(plots_per_page, 1), mar = c(3,4,3,2))
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx <- min(page * plots_per_page, length(all_outs))
+    for (i in start_idx:end_idx) {
+      plot_coef(all_outs[[i]],
+                band = band, line = est, ylim = ylim,
+                main = plot_titles[i], ylab = ylab, textsize = textsize)
+    }
+    dev.off()
+  }
+}
+
+#### create_matrix_results()
+create_matrix_results <- function(all_outs, sample_names) {
+  n_samples <- length(sample_names)
+  n_estimators <- nrow(all_outs[[1]])
+  result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
+  # Set up alternating column names
+  cnames <- character(n_samples * 2)
+  for (j in seq_along(sample_names)) {
+    cnames[(j-1)*2 + 1] <- sample_names[j]
+    cnames[(j-1)*2 + 2] <- "" # SE/parenthesis column
+  }
+  colnames(result_mat) <- cnames
+  estimator_names <- rownames(all_outs[[1]])
+  rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
+  # Fill values
+  for (j in seq_along(all_outs)) {
+    out <- all_outs[[j]]
+    result_mat[1, (j-1)*2 + 1] <- sprintf("%.2f", out[1, 1])
+    result_mat[1, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[1, 2]), ")")
+    for (i in 2:(n_estimators+1)) {
+      result_mat[i, (j-1)*2 + 1] <- sprintf("%.2f", out[i-1, 1])
+      result_mat[i, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[i-1, 2]), ")")
+    }
+  }
+  return(result_mat)
+}
+
 ####  summarize_att()
 summarize_att <- function(result) {
   data.frame(
@@ -1219,10 +1207,8 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
       common_ids <- intersect(id_ldw, id2)
       idx_ldw    <- match(common_ids, id_ldw)
       idx_other  <- match(common_ids, id2)
-      
       catt1_plot <- catt_ldw[idx_ldw]
       catt2_plot <- catt2[idx_other]
-      
       plot_catt(
         catt1 = catt1_plot,
         catt2 = catt2_plot,
@@ -1325,7 +1311,7 @@ plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
         )
       }
     }
-    # If last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
+    # if last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
     plots_this_page <- end_idx - start_idx + 1
     if (plots_this_page < panels_per_page) {
       for (k in seq_len(panels_per_page - plots_this_page)) {
@@ -1373,7 +1359,7 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
   }
 }
 
-## 5. Sensitivity Analysis
+# 5. Sensitivity Analysis
 #### check_filter_data()
 check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
   valid_datasets <- list()

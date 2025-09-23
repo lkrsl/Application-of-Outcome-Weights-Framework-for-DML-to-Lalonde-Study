@@ -19,12 +19,12 @@ This section (3) covers Model B, which, similar to Model A, uses 1978 earnings (
 #| code-fold: show
 # source functions
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-source("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/functions.R")
+source("functions.R")
 ```
 
 ```{r}
 # load data
-load("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/data/lalonde.RData")
+load("data/lalonde.RData")
 ```
 
 ## Inspect data
@@ -782,6 +782,8 @@ plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefi
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
+### Getting top methods and datasets
+
 Across all combined methods, the overlap plots for model B show highly comparable distributions of propensity score log odds across the various trimming and weighting strategies. 
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
@@ -799,7 +801,6 @@ save_csv(all_cps_plus, "CPS1_PLUS_all_results_model_b")
 save_csv(all_psid_plus, "PSID1_PLUS_all_results_model_b")
 ```
 
-### Getting top methods and datasets
 Assess all methods and create score
 - smd_score rescales Mean_Abs_SMD to a 0-1 range where lower Mean_Abs_SMD leads to a higher score
 - ess_score measures sample size effectiveness by combining effective sample sizes (Control + Treated) and normalizing between 0 and 1

@@ -1,20 +1,20 @@
 # Getting Started
 
 ::: callout-caution
-The functions presented below constitute the core wrapper functions utilized throughout the data analysis, including two adapted function originally from the Imbens & Xu (2024) tutorial, which were modified to suit specific analytical purpose. For the full original collection of functions by Imbens & Xu (2024), including additional functions used in the analysis, please consult their official source code available on their GitHub repository.
+The functions presented below constitute the core wrapper functions utilized throughout the analysis, including three adapted function originally from the Imbens & Xu (2024) tutorial, which were modified to suit specific analytical purpose (highlighted by ***). For the full original collection of functions by Imbens & Xu (2024), including additional functions used in the analysis, please consult their official source code available on their GitHub repository.
 :::
 
 ## Installation
 
-Several R packages are required for the subsequent data analysis and visualization. The code below checks for all required packages and installs those that are missing. After the installation, the packages need to be loaded.  
+Several R packages are required for the analysis and visualization. The code below checks for all required packages and installs those that are missing. After the installation, the packages need to be loaded.  
 
 ::: callout-note
-Since the analysis sources functions directly from the Imbens & Xu (2024) tutorial, the required packages are automatically installed and loaded as part of that process. Therefore, it is only necessary to install and load any additional packages that are needed for the analysis.
+Since the analysis sources functions directly from the Imbens & Xu (2024) tutorial, the required packages are automatically installed and loaded as part of that process. Therefore, it is only necessary to install and load any additional packages that are required for the analysis.
 :::
 
 **Packages**: "data.table", "dplyr", "ggplot2", "gridExtra", "highr", "MatchIt", "optmatch", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 
-```{r, eval=FALSE}
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
 # required packages
 packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "MatchIt", "optmatch", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
@@ -57,8 +57,10 @@ To use the wrapper functions, the simplest method is to source the R script with
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-source("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/data/functions.R")
+source("functions.R")
 ```
+
+
 
 If you are using RStudio, you should now see the functions in the Environment section.
 
@@ -67,7 +69,8 @@ If you are using RStudio, you should now see the functions in the Environment se
 | Function                                            | Description                                                                                                                                                                     |                 Code                  |
 |------------------|------------------------------------|:----------------:|
 | `inspect_data()` | Inspection of datasets.    | [More](#inspect) |
-| `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`,`common_range_trim()`,`crump_trim()`,`stuermer_trim()`,`walker_trim()`,`truncate_weights_fixed()`,`truncate_weights_percentile()`,`check_weights()`,`truncate_weights_adaptive()`,`trim_attach_weights()`,`get_smd_stats()`,`compute_abs_smd_matchit()`,`compute_ess_matchit()`,`plot_matchit()`,`compute_abs_smd_trim()`,`compute_ess_trim()`,`plot_trim()`,`compute_abs_smd_trunc()`,`compute_ess_trunc()`,`plot_truncation_methods()`,`compute_abs_smd_weight()`,`compute_ess_weight()`,`plot_weighting_methods()`,`compute_smd_all_datasets()`,`compute_ess_all_datasets()`,`plot_comb_overlap_all_interactive()`,`plot_comb_love_plots()`,`combine_results()`,`assess_methods()`,`get_top_methods()`,`create_top5_datasets()`,`save_top5_individual_files()` and `load_top_method_dataset()` | Implementation of covariate balancing methods and comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)). | [More](#overlap) |
+| `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`,`common_range_trim()`,`crump_trim()`,`stuermer_trim()`,`walker_trim()`,`truncate_weights_fixed()`,`truncate_weights_percentile()`,`check_weights()`,`truncate_weights_adaptive()`,`trim_attach_weights()`,`get_smd_stats()`,`compute_abs_smd_matchit()`,`compute_ess_matchit()`,`plot_matchit()`,`compute_abs_smd_trim()`,`compute_ess_trim()`,`plot_trim()`,`compute_abs_smd_trunc()`,`compute_ess_trunc()`,`plot_truncation_methods()`,`compute_abs_smd_weight()`,`compute_ess_weight()`,`plot_weighting_methods()`,`compute_smd_all_datasets()`,`compute_ess_all_datasets()`,`plot_comb_overlap_all_interactive()`,`plot_comb_love_plots()`,`combine_results()`,`assess_methods()`,`get_top_methods()`,`create_top5_datasets()`,`save_top5_individual_files()` and `load_top_method_dataset()` | Implementation of covariate balancing and overlap methods. | [More](#covariate-balance-overlap) |
+| `inspect_data()` | Performance evaluation through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#evaluation) |
 | `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `plot_catt_panels()`, `plot_qtet_panels()` and `create_matrix_results()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#estimate-all) |
 | `check_filter_datasets()` |  Validation and filtering of datasets.  | [More](#sensitivity) |
 
@@ -91,10 +94,10 @@ inspect_data <- function(data_list) {
 }
 ```
 
-<a name="overlap"></a>
+<a name="covariate-balance-overlap"></a>
 
-### Overlap
-#### Improving overlap
+### Improving primarily covariate balance
+#### Matching
 
 `matchit_profile()` performs nearest neighbor matching based on a combination of specified covariates and each observation's distance from the overall covariate mean, returning a matchit object for balance diagnostics and matched sampling.
 ```{r class.source = 'fold-hide'}
@@ -108,6 +111,8 @@ matchit_profile <- function(data, treat_var, covars) {
   return(match_out)
 }
 ```
+
+#### Weighting
 
 `create_smr_weights()` calculates standardized mortality ratio (SMR) weights based on estimated propensity scores, allowing for ATT or ATE weighting according to the estimand specified.
 ```{r class.source = 'fold-hide'}
@@ -129,6 +134,56 @@ create_overlap_weights <- function(data, formula) {
   ps_model <- glm(formula, data = data, family = binomial())
   ps <- predict(ps_model, type = "response")
   return(ifelse(data$treat == 1, 1 - ps, ps))
+}
+```
+
+#### Truncation
+
+`truncate_weights_fixed()` caps weights at a fixed maximum value to limit extreme weight influence.
+```{r class.source = 'fold-hide'}
+truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
+  data[[weight_col]] <- pmin(data[[weight_col]], max_weight)
+  return(data)
+}
+```
+
+`truncate_weights_percentile()` caps weights at a specified percentile threshold to reduce outliers in weight distribution.
+```{r class.source = 'fold-hide'}
+truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
+  weight_cutoff <- quantile(data[[weight_col]], probs = percentile, na.rm = TRUE)
+  data[[weight_col]] <- pmin(data[[weight_col]], weight_cutoff)
+  return(data)
+}    
+```
+
+`check_weights()` prints the variance of the specified weight vector to assess variability and relevance for adaptive truncation.
+```{r class.source = 'fold-hide'}
+check_weights <- function(data, weight_col = "weight") {
+  w <- data[[weight_col]]
+  cat("Variance of", weight_col, ":", var(w, na.rm = TRUE), "\n")
+}  
+```
+
+`truncate_weights_adaptive()` caps weights adaptively at a threshold defined by the mean plus a multiple of the standard deviation.
+```{r class.source = 'fold-hide'}
+truncate_weights_adaptive <- function(data, weight_col, c = 3) {
+  w <- data[[weight_col]]
+  # Only apply if variance is positive
+  if (var(w, na.rm = TRUE) > 0) {
+    cutoff <- mean(w, na.rm = TRUE) + c * sd(w, na.rm = TRUE)
+    data[[weight_col]] <- pmin(w, cutoff)
+  }
+  return(data)
+}
+```
+
+#### Trimming 
+
+`ps_trim()` trims the dataset based on a specified propensity score threshold, removing observations whose propensity scores exceed the given cutoff value.*** 
+```{r class.source = 'fold-hide'}
+ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
+  sub <- data[which(data[, ps] < threshold), ]
+  return(sub)
 }
 ```
 
@@ -182,44 +237,7 @@ walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap",
 }
 ```
 
-`truncate_weights_fixed()` caps weights at a fixed maximum value to limit extreme weight influence.
-```{r class.source = 'fold-hide'}
-truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
-  data[[weight_col]] <- pmin(data[[weight_col]], max_weight)
-  return(data)
-}
-```
-
-`truncate_weights_percentile()` caps weights at a specified percentile threshold to reduce outliers in weight distribution.
-```{r class.source = 'fold-hide'}
-truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
-    weight_cutoff <- quantile(data[[weight_col]], probs = percentile, na.rm = TRUE)
-    data[[weight_col]] <- pmin(data[[weight_col]], weight_cutoff)
-    return(data)
-}  
-```
-
-`check_weights()` prints the variance of the specified weight vector to assess variability and relevance for adaptive truncation.
-```{r class.source = 'fold-hide'}
-check_weights <- function(data, weight_col = "weight") {
-  w <- data[[weight_col]]
-  cat("Variance of", weight_col, ":", var(w, na.rm = TRUE), "\n")
-}  
-```
-
-`truncate_weights_adaptive()` caps weights adaptively at a threshold defined by the mean plus a multiple of the standard deviation.
-```{r class.source = 'fold-hide'}
-truncate_weights_adaptive <- function(data, weight_col, c = 3) {
-  w <- data[[weight_col]]
-  # only apply if variance is positive
-  if (var(w, na.rm = TRUE) > 0) {
-    cutoff <- mean(w, na.rm = TRUE) + c * sd(w, na.rm = TRUE)
-    data[[weight_col]] <- pmin(w, cutoff)
-  }
-  return(data)
-}
-```
-
+#### Combined methods
 `trim_attach_weights()` merges trimmed data with original weights, preserving corresponding weight values after trimming.
 ```{r class.source = 'fold-hide'}
 trim_attach_weights <- function(trimmed_data, original_data, weight_col){
@@ -238,7 +256,8 @@ return(trimmed_data)
 }
 ```
 
-#### Assessing overlap
+### Reassessing methods
+#### Matching
 
 `get_smd_stats()` extracts mean and maximum absolute standardized mean differences (SMDs) from a balance object to assess covariate balance.
 ```{r class.source = 'fold-hide'}
@@ -295,60 +314,84 @@ plot_matchit <- function(match_list, dataset_name) {
 }
 ```
 
-`compute_abs_smd_trim()` computes absolute SMDs for multiple trimmed datasets.
+#### Weighting
+
+`compute_abs_smd_weight()` calculates absolute SMDs for datasets weighted by specified weight vectors.
 ```{r class.source = 'fold-hide'}
-compute_abs_smd_trim <- function(trimming_list, treat_var, covars) {
-  smd_list <- lapply(names(trimming_list), function(name) {
-    data <- trimming_list[[name]]
+compute_abs_smd_weight <- function(data_list, treat_var, covars, weight_cols) {
+  smd_list <- lapply(weight_cols, function(wcol) {
+    data <- data_list
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
       data = data,
-      un = TRUE, 
+      weights = data[[wcol]],
+      un = TRUE,
       s.d.denom = "treated"
     )
     smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Un)
+    smd_vals <- abs(smd_df$Diff.Adj)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
-      Method   = name,
+      Method = wcol,
       Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd 
+      Max_Abs_SMD  = max_smd
     ))
   })
-  smd_summary <- do.call(rbind, smd_list)
-  rownames(smd_summary) <- NULL
-  return(smd_summary)
+  do.call(rbind, smd_list)
 }
 ```
 
-`compute_ess_trim()` extracts ESS information for multiple trimmed datasets.
+`compute_ess_weight()` extracts ESS associated with different weighting schemes.
 ```{r class.source = 'fold-hide'}
-compute_ess_trim <- function(trimming_list, treat_var, covars) {
-  ess_list <- lapply(trimming_list, function(data) {
-    bal_obj <- cobalt::bal.tab(as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-                               data = data, un = TRUE)
+compute_ess_weight <- function(data, treat_var, covars, weight_cols) {
+  ess_list <- lapply(weight_cols, function(wcol) {
+    bal_obj <- cobalt::bal.tab(
+      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      data = data,
+      weights = data[[wcol]],
+      un = FALSE
+    )
     samples <- bal_obj$Observations
-    df <- as.data.frame(samples)[c("Control", "Treated")]
+    if ("Adjusted" %in% rownames(samples)) {
+      df <- samples["Adjusted", c("Control", "Treated"), drop = FALSE]
+    } else {
+      df <- samples[1, c("Control", "Treated"), drop = FALSE]
+    }
+    df <- cbind(Method = wcol, df)
+    rownames(df) <- NULL
     return(df)
   })
-  ess_df <- do.call(rbind, ess_list)
-  ess_df$Method <- names(trimming_list)
-  rownames(ess_df) <- NULL
-  ess_df <- ess_df[, c("Method", "Control", "Treated")]
-  return(ess_df)
+  do.call(rbind, ess_list)
 }
 ```
 
-`plot_trim()` plots overlap diagnostics for a set of trimmed datasets, visualizing covariate balance before and after matching.
+`plot_weighting_methods()` generates love plots, visualizing covariate balance under different weighting methods.
 ```{r class.source = 'fold-hide'}
-plot_trim <- function(ldw_list, treat, covar) {
-  par(mfrow = c(2,3))
-  for (ldw_obj in ldw_list) {
-    assess_overlap(ldw_obj, treat = treat, cov = covar)
+plot_weighting_methods <- function(data, treat_var, covars, weight_list, dataset_name = NULL) {
+  for (wcol in names(weight_list)) {
+    bal_obj <- cobalt::bal.tab(
+      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      data = data,
+      weights = weight_list[[wcol]],
+      un = TRUE,
+      s.d.denom = "treated"
+    )
+    title_text <- if (!is.null(dataset_name)) paste(dataset_name, "-", wcol, "weighting") else wcol
+    lp <- cobalt::love.plot(
+      bal_obj,
+      stats = "mean.diffs",
+      abs = TRUE,
+      var.order = "unadjusted",
+      thresholds = c(m = 0.1),
+      title = title_text
+    )
+    print(lp)
   }
 }
 ```
+
+#### Truncation
 
 `compute_abs_smd_trunc()` calculates absolute SMDs for truncated weight datasets across different truncation methods and weighting variables.
 ```{r class.source = 'fold-hide'}
@@ -460,186 +503,174 @@ plot_truncation_methods <- function(trunc_list, treat_var, covars, weight_cols, 
 }
 ```
 
-`compute_abs_smd_weight()` calculates absolute SMDs for datasets weighted by specified weight vectors.
+#### Trimming
+
+`compute_abs_smd_trim()` computes absolute SMDs for multiple trimmed datasets.
 ```{r class.source = 'fold-hide'}
-compute_abs_smd_weight <- function(data_list, treat_var, covars, weight_cols) {
-  smd_list <- lapply(weight_cols, function(wcol) {
-    data <- data_list
+compute_abs_smd_trim <- function(trimming_list, treat_var, covars) {
+  smd_list <- lapply(names(trimming_list), function(name) {
+    data <- trimming_list[[name]]
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
       data = data,
-      weights = data[[wcol]],
-      un = TRUE,
+      un = TRUE, 
       s.d.denom = "treated"
     )
     smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Adj)
+    smd_vals <- abs(smd_df$Diff.Un)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
-      Method = wcol,
+      Method   = name,
       Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd
+      Max_Abs_SMD  = max_smd 
     ))
   })
-  do.call(rbind, smd_list)
+  smd_summary <- do.call(rbind, smd_list)
+  rownames(smd_summary) <- NULL
+  return(smd_summary)
 }
 ```
 
-`compute_ess_weight()` extracts ESS associated with different weighting schemes.
+`compute_ess_trim()` extracts ESS information for multiple trimmed datasets.
 ```{r class.source = 'fold-hide'}
-compute_ess_weight <- function(data, treat_var, covars, weight_cols) {
-  ess_list <- lapply(weight_cols, function(wcol) {
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-      data = data,
-      weights = data[[wcol]],
-      un = FALSE
-    )
+compute_ess_trim <- function(trimming_list, treat_var, covars) {
+  ess_list <- lapply(trimming_list, function(data) {
+    bal_obj <- cobalt::bal.tab(as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+                               data = data, un = TRUE)
     samples <- bal_obj$Observations
-    if ("Adjusted" %in% rownames(samples)) {
-      df <- samples["Adjusted", c("Control", "Treated"), drop = FALSE]
-    } else {
-      df <- samples[1, c("Control", "Treated"), drop = FALSE]
-    }
-    df <- cbind(Method = wcol, df)
-    rownames(df) <- NULL
+    df <- as.data.frame(samples)[c("Control", "Treated")]
     return(df)
   })
-  do.call(rbind, ess_list)
+  ess_df <- do.call(rbind, ess_list)
+  ess_df$Method <- names(trimming_list)
+  rownames(ess_df) <- NULL
+  ess_df <- ess_df[, c("Method", "Control", "Treated")]
+  return(ess_df)
 }
 ```
 
-`plot_weighting_methods()` generates love plots, visualizing covariate balance under different weighting methods.
+`plot_trim()` plots overlap diagnostics for a set of trimmed datasets, visualizing covariate balance before and after matching.
 ```{r class.source = 'fold-hide'}
-plot_weighting_methods <- function(data, treat_var, covars, weight_list, dataset_name = NULL) {
-  for (wcol in names(weight_list)) {
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-      data = data,
-      weights = weight_list[[wcol]],
-      un = TRUE,
-      s.d.denom = "treated"
-    )
-    title_text <- if (!is.null(dataset_name)) paste(dataset_name, "-", wcol, "weighting") else wcol
-    lp <- cobalt::love.plot(
-      bal_obj,
-      stats = "mean.diffs",
-      abs = TRUE,
-      var.order = "unadjusted",
-      thresholds = c(m = 0.1),
-      title = title_text
-    )
-    print(lp)
+plot_trim <- function(ldw_list, treat, covar) {
+  par(mfrow = c(2,3))
+  for (ldw_obj in ldw_list) {
+    assess_overlap(ldw_obj, treat = treat, cov = covar)
   }
 }
 ```
 
+#### Combined methods
+
 `compute_smd_all_datasets ()` aggregates absolute SMD statistics across multiple datasets, weighting methods, and trimming techniques.
 ```{r class.source = 'fold-hide'}
-compute_smd_all_datasets <- function(all_combined_list, treat_var, covars) {
-  smd_all <- lapply(names(all_combined_list), function(ds_name) {
-    combined_list <- all_combined_list[[ds_name]]
-    smd_list <- lapply(names(combined_list), function(weight_method) {
-      method_list <- combined_list[[weight_method]]
-      res <- lapply(names(method_list), function(trim_method) {
-        data <- method_list[[trim_method]]
-        # check if weight column exists, if not use equal weights
-        if (!"weight" %in% colnames(data)) {
-          data$weight <- rep(1, nrow(data))
-        }
-        bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-          data = data,
-          weights = data$weight,
-          un = TRUE,
-          s.d.denom = "treated"
-        )
-        smd_df <- as.data.frame(bal_obj$Balance)
-        smd_vals <- abs(smd_df$Diff.Adj)
-        return(data.frame(
-          Weighting = weight_method,
-          Trimming  = trim_method,
-          Mean_Abs_SMD = mean(smd_vals, na.rm = TRUE),
-          Max_Abs_SMD  = max(smd_vals, na.rm = TRUE),
-          Dataset = ds_name
-        ))
-      })
-      do.call(rbind, res)
+compute_smd_all_datasets <- function(combined_list, treat_var, covars) {
+  smd_list <- lapply(names(combined_list), function(weight_method) {
+    method_list <- combined_list[[weight_method]]
+    res <- lapply(names(method_list), function(trim_method) {
+      data <- method_list[[trim_method]]
+      # Use equal weights if weight column missing
+      if (!"weight" %in% colnames(data)) {
+        data$weight <- rep(1, nrow(data))
+      }
+      bal_obj <- cobalt::bal.tab(
+        as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+        data = data,
+        weights = data$weight,
+        un = TRUE,
+        s.d.denom = "treated"
+      )
+      smd_df <- as.data.frame(bal_obj$Balance)
+      smd_vals <- abs(smd_df$Diff.Adj)
+      method_name <- paste(weight_method, trim_method, sep = "_")
+      data.frame(
+        Method = method_name,
+        Mean_Abs_SMD = mean(smd_vals, na.rm = TRUE),
+        Max_Abs_SMD = max(smd_vals, na.rm = TRUE)
+      )
     })
-    do.call(rbind, smd_list)
+    do.call(rbind, res)
   })
-  return(do.call(rbind, smd_all))
+  smd_summary <- do.call(rbind, smd_list)
+  rownames(smd_summary) <- NULL
+  return(smd_summary)
 }
 ```
 
 `compute_ess_all_datasets()` aggregates ESS information across various datasets, weighting methods, and trimming techniques.
 ```{r class.source = 'fold-hide'}
-compute_ess_all_datasets <- function(all_combined_list, treat_var, covars) {
-  ess_all <- lapply(names(all_combined_list), function(ds_name) {
-    combined_list <- all_combined_list[[ds_name]]
-    ess_list <- lapply(names(combined_list), function(weight_method) {
-      method_list <- combined_list[[weight_method]]
-      res <- lapply(names(method_list), function(trim_method) {
-        data <- method_list[[trim_method]]
-        # check if weight column exists, if not use equal weights
-        if (!"weight" %in% colnames(data)) {
-          data$weight <- rep(1, nrow(data))
-        }
-        bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
-          data = data,
-          weights = data$weight,
-          un = TRUE,
-          s.d.denom = "treated"
-        )
-        samples <- bal_obj$Observations
-        if ("Adjusted" %in% rownames(samples)) {
-          control_ess <- samples["Adjusted", "Control"]
-          treated_ess <- samples["Adjusted", "Treated"]
-        } else {
-          control_ess <- samples[1, "Control"]
-          treated_ess <- samples[1, "Treated"]
-        }
-        return(data.frame(
-          Weighting = weight_method,
-          Trimming  = trim_method,
-          Control   = control_ess,
-          Treated   = treated_ess,
-          Dataset   = ds_name
-        ))
-      })
-      do.call(rbind, res)
+compute_ess_all_datasets <- function(combined_list, treat_var, covars) {
+  ess_list <- lapply(names(combined_list), function(weight_method) {
+    method_list <- combined_list[[weight_method]]
+    res <- lapply(names(method_list), function(trim_method) {
+      data <- method_list[[trim_method]]
+      # Use equal weights if weight column missing
+      if (!"weight" %in% colnames(data)) {
+        data$weight <- rep(1, nrow(data))
+      }
+      bal_obj <- cobalt::bal.tab(
+        as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+        data = data,
+        weights = data$weight,
+        un = TRUE,
+        s.d.denom = "treated"
+      )
+      samples <- bal_obj$Observations
+      if ("Adjusted" %in% rownames(samples)) {
+        control_ess <- samples["Adjusted", "Control"]
+        treated_ess <- samples["Adjusted", "Treated"]
+      } else {
+        control_ess <- samples[1, "Control"]
+        treated_ess <- samples[1, "Treated"]
+      }
+      method_name <- paste(weight_method, trim_method, sep = "_")
+      data.frame(
+        Method = method_name,
+        Control = control_ess,
+        Treated = treated_ess
+      )
     })
-    do.call(rbind, ess_list)
+    do.call(rbind, res)
   })
-  return(do.call(rbind, ess_all))
+  ess_summary <- do.call(rbind, ess_list)
+  rownames(ess_summary) <- NULL
+  return(ess_summary)
 }
 ```
 
-`plot_comb_overlap_all_interactive()` creates interactive plots assessing overlap for combinations of weighting and trimming methods across datasets.
+`plot_comb_overlap()` creates plots assessing overlap for combinations of weighting and trimming methods across datasets.
 ```{r class.source = 'fold-hide'}
-plot_comb_overlap_all_interactive <- function(all_combined_list, treat, covar) {
+plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+                              prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
+  all_combined_list <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  
   for (ds_name in names(all_combined_list)) {
     combined_list <- all_combined_list[[ds_name]]
     plot_list <- list()
-    for (method_name in names(combined_list)) {
-      for (trim_method in names(combined_list[[method_name]])) {
-        plot_list[[paste(method_name, trim_method, sep="_")]] <- list(
-          data = combined_list[[method_name]][[trim_method]],
-          method_name = method_name,
-          trim_method = trim_method
+    method_names <- character()
+    # Build plots and exact method names list
+    for (weight_method in names(combined_list)) {
+      for (trim_method in names(combined_list[[weight_method]])) {
+        full_method_name <- paste(weight_method, trim_method, sep = "_")
+        plot_list[[full_method_name]] <- list(
+          data = combined_list[[weight_method]][[trim_method]],
+          method_name = full_method_name
         )
+        method_names <- c(method_names, full_method_name)
       }
     }
     total_plots <- length(plot_list)
-    plots_per_page <- 9  # 3x3 layout
+    plots_per_page <- 4  # 2x2 layout
     for (i in seq(1, total_plots, by = plots_per_page)) {
       page_plots <- plot_list[i:min(i + plots_per_page - 1, total_plots)]
-      par(mfrow = c(3,3), mar = c(4,4,2,1))
+      par(mfrow = c(2, 2), mar = c(4, 4, 2, 1))
       for (p in page_plots) {
         assess_overlap(p$data, treat = treat, cov = covar)
-        title(main = paste0(ds_name, ": ", p$method_name, " + ", p$trim_method))
+        idx <- match(p$method_name, method_names)
+        prefix <- if (ds_name == "CPS" && idx <= 25) prefix_cps else
+          if (ds_name == "PSID" && idx <= 25) prefix_psid else ""
+        
+        title(main = paste0(prefix, " - ", p$method_name))
       }
     }
   }
@@ -648,29 +679,41 @@ plot_comb_overlap_all_interactive <- function(all_combined_list, treat, covar) {
 
 `plot_comb_love_plots()` visualizes SMDs via love plots for combined weighting and trimming approaches.
 ```{r class.source = 'fold-hide'}
-plot_comb_love_plots <- function(all_datasets, treat_var, covars) {
+plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat_var, covars,
+                                 prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
+  all_datasets <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
   for (ds_name in names(all_datasets)) {
     method_list <- all_datasets[[ds_name]]
-    plots <- list()
+    method_names <- unlist(lapply(names(method_list), function(weighting) {
+      trimmed_list <- method_list[[weighting]]
+      sapply(names(trimmed_list), function(trim) paste(weighting, trim, sep = "_"))
+    }))
+    plot_counter <- 0
     for (weighting in names(method_list)) {
       trimmed_list <- method_list[[weighting]]
       for (trim in names(trimmed_list)) {
         df <- trimmed_list[[trim]]
+        plot_counter <- plot_counter + 1
         if (!"weight" %in% names(df)) df$weight <- 1
         bal <- cobalt::bal.tab(
           as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
           data = df,
           weights = df$weight,
-          un = TRUE, 
+          un = TRUE,
           s.d.denom = "treated"
         )
+        method_name <- paste(weighting, trim, sep = "_")
+        prefix <- ""
+        if (ds_name == "CPS" && plot_counter <= 25) prefix <- prefix_cps
+        if (ds_name == "PSID" && plot_counter <= 25) prefix <- prefix_psid
+        title_text <- paste(prefix, method_name, sep = " - ")
         lp <- cobalt::love.plot(
           bal,
-          stats      = "mean.diffs",
-          absolute   = TRUE,
-          var.order  = "unadjusted",
+          stats = "mean.diffs",
+          absolute = TRUE,
+          var.order = "unadjusted",
           thresholds = c(m = .1),
-          title      = paste(ds_name, weighting, trim, sep = " | ")
+          title = title_text
         )
         print(lp)
       }
@@ -679,47 +722,63 @@ plot_comb_love_plots <- function(all_datasets, treat_var, covars) {
 }
 ```
 
+#### Getting top methods and datasets
 `combine_results()` merges and summarizes SMD and ESS statistics from various analysis stages into a final comparison table.
 ```{r class.source = 'fold-hide'}
 combine_results <- function(dataset_name) {
-  # retrieve matching results
-  smd_matching <- get(paste0("smd_matchit_", tolower(dataset_name)))
-  ess_matching <- get(paste0("ess_matchit_", tolower(dataset_name)))
-  # retrieve trimming results
-  smd_trimming <- get(paste0("smd_trim_", tolower(dataset_name)))
-  ess_trimming <- get(paste0("ess_trim_", tolower(dataset_name)))
-  # retrieve truncation results
-  smd_trunc <- get(paste0("smd_trunc_", tolower(dataset_name)))
-  ess_trunc <- get(paste0("ess_trunc_", tolower(dataset_name)))
-  # retrieve weighting results
-  smd_weighting <- get(paste0("smd_weight_", tolower(dataset_name)))
-  ess_weighting <- get(paste0("ess_weight_", tolower(dataset_name)))
-  # extract combined results
-  smd_combined <- smd_all_comb[smd_all_comb$Dataset == dataset_name, ]
-  ess_combined <- ess_all_comb[ess_all_comb$Dataset == dataset_name, ]
-  # adjust column names for combined datasets
-  colnames(smd_combined)[1:2] <- c("Weighting_Method", "Trimming_Method")
-  smd_combined$Method <- paste(smd_combined$Weighting_Method, smd_combined$Trimming_Method, sep = "_")
-  ess_combined$Method <- paste(ess_combined$Weighting, ess_combined$Trimming, sep = "_")
-  # combine all SMD results
-  smd_all <- rbind(
+  dataset_lower <- tolower(dataset_name)
+  # Retrieve matching results
+  smd_matching <- get(paste0("smd_matchit.", dataset_lower))
+  ess_matching <- get(paste0("ess_matchit.", dataset_lower))
+  # Retrieve trimming results
+  smd_trimming <- get(paste0("smd_trim.", dataset_lower))
+  ess_trimming <- get(paste0("ess_trim.", dataset_lower))
+  # Retrieve truncation results
+  smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
+  ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
+  # Retrieve weighting results
+  smd_weighting <- get(paste0("smd_weight.", dataset_lower))
+  ess_weighting <- get(paste0("ess_weight.", dataset_lower))
+  # Retrieve combined SMD and ESS
+  # Make sure you have these variables in your environment per dataset
+  smd_combined_var <- paste0("smd_all_comb_meth.", dataset_lower)
+  ess_combined_var <- paste0("ess_all_comb_meth.", dataset_lower)
+  smd_combined <- get(smd_combined_var)
+  ess_combined <- get(ess_combined_var)
+  # Combine all SMD results
+  smd_all <- do.call(rbind, list(
     smd_matching,
     smd_trimming,
     smd_trunc,
     smd_weighting,
     smd_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
-  )
-  # combine all ESS results
-  ess_all <- rbind(
+  ))
+    # Combine all ESS results
+  ess_all <- do.call(rbind, list(
     ess_matching,
     ess_trimming,
     ess_trunc,
     ess_weighting,
     ess_combined[, c("Method", "Control", "Treated")]
-  )
-  # merge SMD and ESS results by method
+  ))
+  # Merge SMD and ESS results by Method
   final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
+  # Remove dataset suffixes like ".cps_plus" or ".psid_plus" from Method names for cleaner labels
+  final_df$Method <- gsub("\\.psid_plus", "", final_df$Method, ignore.case = TRUE)
+  final_df$Method <- gsub("\\.cps_plus", "", final_df$Method, ignore.case = TRUE)
+    # Reset row names
+  rownames(final_df) <- NULL
   return(final_df)
+}
+```
+
+`save_csv()` saves the tables into a csv file.
+```{r class.source = 'fold-hide'}
+save_csv <- function(data, filename) {
+  folder <- "../tables"
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  file_csv <- file.path(folder, paste0(filename, ".csv"))
+  write.csv(data, file = file_csv, row.names = FALSE)
 }
 ```
 
@@ -765,20 +824,33 @@ get_top_methods <- function(summary_df, top_n = 5) {
 
 `create_top5_datasets()` extracts datasets corresponding to the top five ranked methods for further analysis or presentation.
 ```{r class.source = 'fold-hide'}
-create_top5_datasets <- function(combined_methods_list, top5_method_names) {
-  lapply(top5_method_names, function(mname) {
-    if (!mname %in% names(combined_methods_list)) {
-      stop(paste0("Method '", mname, "' not found in combined methods list"))
+create_top5_datasets <- function(dataset_list, top5_method_names) {
+  lapply(top5_method_names, function(method_name) {
+    if (!method_name %in% names(dataset_list)) {
+      stop(paste0("Method '", method_name, "' not found in the dataset lookup list"))
     }
-    ds <- combined_methods_list[[mname]]
+    ds <- dataset_list[[method_name]]
     if (inherits(ds, "matchit")) {
-      df <- match.data(ds)
-      df <- as.data.frame(df)
-      return(df)
+      # for matchit class, extract matched data
+      return(as.data.frame(match.data(ds)))
     } else if (is.data.frame(ds)) {
+      # if already dataframe, return as is
       return(ds)
+    } else if (is.vector(ds)) {
+      # merge with original data
+      if (!"original" %in% names(dataset_list)) {
+        stop("Original dataset not found in dataset_list to merge weights")
+      }
+      original_df <- dataset_list[["original"]]
+      if (length(ds) != nrow(original_df)) {
+        stop(paste0("Length of weight vector for method '", method_name, "' does not match number of rows in original dataset"))
+      }
+      # create new data frame with weights appended
+      weighted_df <- original_df
+      weighted_df[["weights"]] <- ds
+      return(weighted_df)
     } else {
-      stop("Unsupported data type for method ", mname)
+      stop(paste("Unsupported data type for method", method_name))
     }
   })
 }
@@ -801,74 +873,8 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 }
 ```
 
-`load_top_method_dataset()` loads a saved dataset corresponding to a specified top method by rank and prefix.
-```{r class.source = 'fold-hide'}
-load_top_method_dataset <- function(rank, prefix) {
-  files <- list.files("data", pattern = paste0("^top", rank, "_", prefix, "_method_.*\\.RData$"), full.names = TRUE)
-  if(length(files) == 0) stop(paste("No file found for rank", rank, "and prefix", prefix))
-  load(files[1])  
-  if (inherits(dataset_to_save, "matchit")) {
-    dataset_to_save <- match.data(dataset_to_save)
-  }
-  # ensure data frame class (no data.table)
-  dataset_to_save <- as.data.frame(dataset_to_save)
-  return(dataset_to_save)
-}
-```
-
-`plot_att_panels()` produces panels of ATT estimates with confidence intervals for multiple methods and datasets.
-```{r class.source = 'fold-hide'}
-plot_att_panels <- function(all_outs, base_titles, top5_cps_methods, top5_psid_methods, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  top5_cps_titles  <- paste0("(", 4:(3 + length(top5_cps_methods)), ") Top CPS1: ", top5_cps_methods)
-  top5_psid_titles <- paste0("(", (4 + length(top5_cps_methods)):(3 + length(top5_cps_methods) +  length(top5_psid_methods)), ") Top PSID1: ", top5_psid_methods)
-  plot_titles <- c(base_titles, top5_cps_titles, top5_psid_titles)
-  num_pages <- ceiling(length(all_outs) / plots_per_page)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 1
-    end_idx   <- min(page * plots_per_page, length(all_outs))
-    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
-    for (i in start_idx:end_idx) {
-      out <- all_outs[[i]]
-      plot_coef(out, 
-                band = band, 
-                line = est,
-                ylim = ylim,
-                main = plot_titles[i],
-                ylab = ylab,
-                textsize = textsize)
-    }
-  }
-}
-```
-
-`create_matrix_results()` organizes estimation results into a formatted matrix suitable for reporting or tables.
-```{r class.source = 'fold-hide'}
-create_matrix_results <- function(all_outs, sample_names) {
-  n_samples <- length(sample_names)
-  n_estimators <- nrow(all_outs[[1]])
-  result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
-  # set up alternating column names
-  cnames <- character(n_samples * 2)
-  for (j in seq_along(sample_names)) {
-    cnames[(j-1)*2 + 1] <- sample_names[j]
-    cnames[(j-1)*2 + 2] <- "" # SE/parenthesis column
-  }
-  colnames(result_mat) <- cnames
-  estimator_names <- rownames(all_outs[[1]])
-  rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
-  # fill values
-  for (j in seq_along(all_outs)) {
-    out <- all_outs[[j]]
-    result_mat[1, (j-1)*2 + 1] <- sprintf("%.2f", out[1, 1])
-    result_mat[1, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[1, 2]), ")")
-    for (i in 2:(n_estimators+1)) {
-      result_mat[i, (j-1)*2 + 1] <- sprintf("%.2f", out[i-1, 1])
-      result_mat[i, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[i-1, 2]), ")")
-    }
-  }
-  return(result_mat)
-}
-```
+### Estimating 
+#### ATT
 
 <a name="estimate-all"></a>
 
@@ -900,6 +906,7 @@ om.reg <- function(data, Y, treat, covar) {
   out <- summary(lm_robust(Y ~ treat, data = newdata, se_type = "stata"))$coefficients["treat", c(1, 2, 5, 6)]
   return(out)
 }
+
 # om.grf
 om.grf <- function(data, Y, treat, covar) {
   tr <- which(data[, treat] == 1)
@@ -967,7 +974,14 @@ ebal <- function(data, Y, treat, covar) {
   return(out)
 }
 
-#dml
+# hbal
+# hbal <- function(data, Y, treat, covar) {
+#   hbal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 2, # cv = TRUE)
+#   out <- hbal::att(hbal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
+#   return(out)
+# }
+
+# dml
 dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_l = lrn("regr.lm"), ml_m = lrn("regr.lm")){
   if(is.null(covar)){
     stop("No controls in specification.")
@@ -1000,9 +1014,9 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
                                       use_other_treat_as_covariate = FALSE,
                                       x_cols = covar)
   }
-  # Set active treatment treatment
+  # set active treatment treatment
   dml_dat$set_data_model(treat)
-  # Estimate with DML
+  # estimate with DML
   set.seed(pi)
   dml_mod = DoubleMLPLR$new(dml_dat, ml_l=ml_l, ml_m=ml_m)
   quiet(dml_mod$fit())
@@ -1011,9 +1025,9 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
   
 }
 
-#aipw_grf
+# aipw_grf
 aipw <- function(data, Y, treat, covar) {
-  #library("grf")
+  # library("grf")
   for (var in c(Y, treat, covar)) {
     data[, var] <- as.vector(data[, var])
   }
@@ -1033,14 +1047,38 @@ aipw.match <- function(data, Y, treat, covar) {
   ks <- mb$AfterMatching[[1]]$ks$ks$statistic
   s <- data[c(m.out$index.treated, m.out$index.control), ]
   out <- aipw(s, Y, treat, covar)
-  #return(out)
+  # return(out)
   return(c(out, ks))
 }
 
+aipw_ow <- function(data, Y, treat, covar) {
+  # data prep as before
+  for (var in c(Y, treat, covar)) {
+    data[, var] <- as.vector(data[, var])
+  }
+  X <- data[, covar, drop = FALSE]
+  Y_vec <- data[, Y]
+  W_vec <- data[, treat]
+  # run dml_with_smoother with AIPW_ATT
+  dml_fit <- dml_with_smoother(Y = Y_vec, D = W_vec, X = X,
+                               estimators = c("AIPW_ATT"),
+                               smoother = "honest_forest",
+                               n_cf_folds = 5,
+                               n_reps = 1)
+  # extract estimate and SE from summary
+  summ <- summary(dml_fit, quiet = TRUE)
+  est <- summ["AIPW-ATT", "Estimate"]
+  se <- summ["AIPW-ATT", "SE"]
+  ci_lower <- est - 1.96 * se
+  ci_upper <- est + 1.96 * se
+  return(c(est, se, ci_lower, ci_upper))
+}
+
+# execute all estimators
 estimate_all <- function(data, Y, treat, covar, 
                          methods = c("diff", "reg", "om.reg", "om.grf",
                                      "matching", "psm", "ipw", "cbps", "ebal", 
-                                     "dml", "aipw_grf")) {
+                                     "dml", "aipw_grf", "aipw_ow")) {
   
   results <- as.data.frame(matrix(NA, length(methods), 4))
   rownames(results) <- methods
@@ -1092,6 +1130,10 @@ estimate_all <- function(data, Y, treat, covar,
   }
   if ("aipw_grf" %in% methods) {
     results[m, ] <- aipw(data, Y, treat, covar) 
+    m <- m + 1
+  }
+  if ("aipw_ow" %in% methods) {
+    results[m, ] <- aipw_ow(data, Y, treat, covar)
     m <- m + 1
   }
   return(results)
@@ -1167,14 +1209,105 @@ plot_coef <- function(out,
 }
 ```
 
+`plot_att_panels()` produces panels of ATT estimates with confidence intervals for multiple methods and datasets.
+```{r class.source = 'fold-hide'}
+plot_att_panels <- function(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
+  num_pages <- ceiling(length(all_outs) / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx   <- min(page * plots_per_page, length(all_outs))
+    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
+    for (i in start_idx:end_idx) {
+      out <- all_outs[[i]]
+      plot_coef(out, 
+                band = band, 
+                line = est,
+                ylim = ylim,
+                main = plot_titles[i],
+                ylab = ylab,
+                textsize = textsize)
+    }
+  }
+}
+```
+
+`save_att_panels()` generates and saves paginated pdf plots that display ATT estimates and their confidence bands from multiple methods.
+```{r class.source = 'fold-hide'}
+save_att_panels <- function(
+    all_outs, plot_titles, band, est, prefix,
+    plots_per_page = 4, ylab = "Estimate", textsize = 1) {
+  folder <- "../graphs/lalonde"
+  ylim   <- c(-15500, 5500)
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  num_pages <- ceiling(length(all_outs) / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
+    pdf(file_name, width = 8, height = 11)
+    par(mfrow = c(plots_per_page, 1), mar = c(3,4,3,2))
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx <- min(page * plots_per_page, length(all_outs))
+    for (i in start_idx:end_idx) {
+      plot_coef(all_outs[[i]],
+                band = band, line = est, ylim = ylim,
+                main = plot_titles[i], ylab = ylab, textsize = textsize)
+    }
+    dev.off()
+  }
+}
+```
+
+`create_matrix_results()` organizes estimation results into a formatted matrix suitable for reporting or tables.
+```{r class.source = 'fold-hide'}
+create_matrix_results <- function(all_outs, sample_names) {
+  n_samples <- length(sample_names)
+  n_estimators <- nrow(all_outs[[1]])
+  result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
+  # Set up alternating column names
+  cnames <- character(n_samples * 2)
+  for (j in seq_along(sample_names)) {
+    cnames[(j-1)*2 + 1] <- sample_names[j]
+    cnames[(j-1)*2 + 2] <- "" # SE/parenthesis column
+  }
+  colnames(result_mat) <- cnames
+  estimator_names <- rownames(all_outs[[1]])
+  rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
+  # Fill values
+  for (j in seq_along(all_outs)) {
+    out <- all_outs[[j]]
+    result_mat[1, (j-1)*2 + 1] <- sprintf("%.2f", out[1, 1])
+    result_mat[1, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[1, 2]), ")")
+    for (i in 2:(n_estimators+1)) {
+      result_mat[i, (j-1)*2 + 1] <- sprintf("%.2f", out[i-1, 1])
+      result_mat[i, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[i-1, 2]), ")")
+    }
+  }
+  return(result_mat)
+}
+```
+
+`summarize_att()` computes summary statistics of the treatment effect estimates. 
+```{r class.source = 'fold-hide'}
+summarize_att <- function(result) {
+  data.frame(
+    Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error across all estimator results
+    Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate of all estimator results
+    Max_Estimate = max(result[, "Estimate"], na.rm = TRUE), # minimum estimate of all estimator results
+    Diff_Estimate = max(result[, "Estimate"], na.rm = TRUE) - min(result[, "Estimate"], na.rm = TRUE)
+  )
+}
+```
+
+#### CATT
+
 `plot_catt_panels()` visualizes conditional average treatment effects on the treated (CATT) comparing multiple methods.
 ```{r class.source = 'fold-hide'}
 plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
   num_pages <- ceiling((length(all_catt) - 1) / plots_per_page)
-  # experimental reference (first panel)
+  # Experimental reference (first panel)
   catt_ldw <- all_catt[[1]]$catt
   att_ldw  <- all_catt[[1]]$att[1]
   id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
+  
   for (page in seq_len(num_pages)) {
     start_idx <- (page - 1) * plots_per_page + 2 # skip experimental vs itself
     end_idx   <- min(page * plots_per_page + 1, length(all_catt))
@@ -1205,6 +1338,72 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
 }
 ```
 
+`save_catt_panels()`generates and saves multi-page pdf plots comparing CATT estimates across different methods.
+```{r class.source = 'fold-hide'}
+save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), prefix = "model_a", plots_per_page = 4) {
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  catt_ldw <- all_catt[[1]]$catt
+  att_ldw  <- all_catt[[1]]$att[1]
+  id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
+  num_panels <- length(all_catt) - 1   # skip experimental on page
+  num_pages  <- ceiling(num_panels / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * plots_per_page + 2  # always skip all_catt[[1]]
+    end_idx   <- min(page * plots_per_page + 1, length(all_catt))
+    plots_this_page <- end_idx - start_idx + 1
+    file_name <- sprintf("../graphs/lalonde/%s_catt_estimates_%d.pdf", prefix, page)
+    pdf(file = file_name, width = 10, height = 12)
+    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
+    for (i in start_idx:end_idx) {
+      other <- all_catt[[i]]
+      main_label <- plot_titles[i]
+      catt2 <- other$catt
+      att2  <- other$att[1]
+      id2   <- if (!is.null(other$id)) other$id else seq_along(catt2)
+      common_ids <- intersect(id_ldw, id2)
+      idx_ldw    <- match(common_ids, id_ldw)
+      idx_other  <- match(common_ids, id2)
+      catt1_plot <- catt_ldw[idx_ldw]
+      catt2_plot <- catt2[idx_other]
+      plot_catt(
+        catt1 = catt1_plot,
+        catt2 = catt2_plot,
+        att1  = att_ldw,
+        att2  = att2,
+        xlab  = "CATT (Experimental)",
+        ylab  = main_label,
+        main  = main_label,
+        axes.range = range
+      )
+    }
+    # blanks if fewer than 4 plots on last page
+    if (plots_this_page < plots_per_page) {
+      for (k in seq_len(plots_per_page - plots_this_page)) plot.new()
+    }
+    dev.off()
+  }
+}
+```
+
+`eval_catt()` computes summary statistics of CATT vectors for each method, returning the minimum, maximum, mean, and range (difference) of the CATT estimates.
+```{r class.source = 'fold-hide'}
+eval_catt <- function(all_catt, plot_titles) {
+  do.call(rbind, lapply(seq_along(all_catt), function(i) {
+    catt_vec <- all_catt[[i]]$catt
+    data.frame(
+      Method = plot_titles[i],
+      Min_Catt = min(catt_vec, na.rm = TRUE),
+      Max_Catt = max(catt_vec, na.rm = TRUE),
+      Mean_Catt = mean(catt_vec, na.rm = TRUE),
+      Diff_Catt = max(catt_vec, na.rm = TRUE) - min(catt_vec, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    )
+  }))
+}
+```
+
+#### QTET
+
 `plot_qtet_panels()` plots quantile treatment effect on the treated (QTET) panels for comparison against an experimental benchmark.
 ```{r class.source = 'fold-hide'}
 plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000)) {
@@ -1233,7 +1432,7 @@ plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
         )
       }
     }
-    # in case the last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
+    # if last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
     plots_this_page <- end_idx - start_idx + 1
     if (plots_this_page < panels_per_page) {
       for (k in seq_len(panels_per_page - plots_this_page)) {
@@ -1244,7 +1443,49 @@ plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
 }
 ```
 
+`save_qtet_panels()` generates and saves multi-page pdf plots comparing QTET estimates across different estimation methods.
+```{r class.source = 'fold-hide'}
+save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_a") {
+  panels_per_page <- 4  # for 2x2 grid
+  num_panels <- length(all_qtet)
+  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
+  dir.create("../figures", showWarnings = FALSE, recursive = TRUE)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * panels_per_page + 2  # skip experimental reference itself
+    end_idx   <- min(page * panels_per_page + 1, num_panels)
+    plots_this_page <- end_idx - start_idx + 1
+    file_name <- sprintf("../figures/%s_qtet_estimates_%d.pdf", prefix, page)
+    pdf(file = file_name, width = 12, height = 10)
+    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
+    for (i in start_idx:end_idx) {
+      comp_qte <- all_qtet[[i]]
+      if (!is.null(comp_qte)) {
+        plot_qte(
+          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
+          bm = experimental_qte, # blue reference line (always the experimental)
+          main = plot_titles[i],
+          ylim = ylim
+        )
+        legend("bottomleft",
+               legend = c("Experimental", "Method"),
+               lty = 1,
+               pch = c(16, 16),
+               col = c(4, 1),
+               bty = "n")
+      }
+    }
+    # Fill remaining spots on the page if fewer than 4 actual panels
+    if (plots_this_page < panels_per_page) {
+      for (k in seq_len(panels_per_page - plots_this_page)) plot.new()
+    }
+    dev.off()
+  }
+}
+```
+
 <a name="sensitivity"></a>
+
+## Sensitivity Analysis
 
 `check_filter_datasets()` filters a list of datasets to retain only those with all required variables, no missing data, binary treatment, and sufficient baseline/covariate variation.
 ```{r class.source = 'fold-hide'}
@@ -1283,6 +1524,24 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
 }
 ```
 
+`save_sensitivity_plots()` generates sensitivity analysis plots for a series of filtered datasets, saving each as a pdf file.
+```{r class.source = 'fold-hide'}
+save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_titles, prefix) {
+  folder <- "../graphs/lalonde"
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  for (i in seq_along(filtered_datasets)) {
+    idx <- i
+    file_name <- file.path(folder, paste0(prefix, "_sensitivity_", idx, ".pdf"))
+    pdf(file_name, width = 8, height = 8)
+    sens_ana(filtered_datasets[[i]], Y, treat, covar, bm, kd = 1:3)
+    if (!missing(plot_titles) && length(plot_titles) >= idx) {
+      title(main = plot_titles[idx])
+    }
+    dev.off()
+ }
+}
+```
+
 ::: callout-note
-Please refer to the accompanying paper for a detailed explanation of the metrics used in the analysis, including absolute standardized mean differences (SMDs), effective sample sizes (ESS), and the composite scoring approach employed to evaluate overlap across multiple methods. 
+Please refer to the accompanying paper for a detailed explanation of the metrics used in the analysis, including absolute standardized mean differences (SMDs), effective sample sizes (ESS), and the composite scoring approach employed to evaluate covariate balance and overlap across multiple methods. 
 :::

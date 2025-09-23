@@ -26,12 +26,12 @@ This section (2) covers model A, which includes the outcome variable 1978 earnin
 #| code-fold: show
 # source functions
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-source("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/functions.R")
+source("functions.R")
 ```
 
 ```{r}
 # load data
-load("/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/replication/tutorial/data/lalonde.RData")
+load("data/lalonde.RData")
 ```
 
 ## Inspect data
@@ -779,6 +779,7 @@ plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefi
 # visualize covariate balance
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
+### Getting top methods and datasets
 
 Across all combined methods, the overlap plots for model A show highly comparable distributions of propensity score log odds across the various trimming and weighting strategies. 
 ```{r, message=FALSE, warning=FALSE}
@@ -797,7 +798,6 @@ save_csv(all_cps_plus, "CPS1_PLUS_all_results_model_a")
 save_csv(all_psid_plus, "PSID1_PLUS_all_results_model_a")
 ```
 
-### Getting top methods and datasets
 Assess all methods and create score
 - smd_score rescales Mean_Abs_SMD to a 0-1 range where lower Mean_Abs_SMD leads to a higher score
 - ess_score measures sample size effectiveness by combining effective sample sizes (Control + Treated) and normalizing between 0 and 1
@@ -968,7 +968,8 @@ save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "mo
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "model_a_psid")
 ```
 
-## Estimate the ATT
+## Estimating
+### ATT
 
 Next we proceed with the estimation of the ATT using both the LDW-Experimental sample and the newly constructed top 5 samples for each observational dataset, LDW-CPS1 and LDW-PSID1, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
@@ -1066,7 +1067,7 @@ save_csv(result_mat, "LDW_att_estimates_model_a")
 Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors due to reduced effective sample size. This highlights the importance of balancing bias reduction with precision, and the need to carefully select methods that optimize this trade-off for robust causal inference.
 :::
 
-## Alternative Estimands: CATT and QTET
+## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
 
 Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.
