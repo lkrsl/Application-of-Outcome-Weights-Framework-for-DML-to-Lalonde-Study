@@ -33,7 +33,7 @@ library(WeightIt)
 
 #### source files for aipw_ow extension
 skripte <- list.files(
-  "/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/outcome_weights/R", 
+  "../package/OutcomeWeights/R",  
   pattern = "\\.R$", 
   full.names = TRUE)
 for (f in skripte) source(f, local = knitr::knit_global())
@@ -57,12 +57,12 @@ inspect_data <- function(data_list) {
 ## 2.1 Matching
 ### 2.1.1 Profile matching
 #### matchit_profile()
-matchit_profile <- function(data, treat_var, covars) {
-  overall_means <- colMeans(data[, covars], na.rm = TRUE) 
-  cov_matrix <- as.matrix(data[, covars])   
+matchit_profile <- function(data, treat, covar) {
+  overall_means <- colMeans(data[, covar], na.rm = TRUE) 
+  cov_matrix <- as.matrix(data[, covar])   
   dist_from_target <- apply(cov_matrix, 1, function(x) sqrt(sum((x - overall_means)^2)))
   data$dist_from_target <- dist_from_target 
-  formula <- as.formula(paste(treat_var, "~", paste(c(covars, "dist_from_target"), collapse = "+")))
+  formula <- as.formula(paste(treat, "~", paste(c(covar, "dist_from_target"), collapse = "+")))
   match_out <- matchit(formula, data = data, method = "nearest", distance = "glm")
   return(match_out)
 }
@@ -247,11 +247,10 @@ plot_matchit <- function(match_list, dataset_name) {
 ## 3.2 Weighting
 ### 3.2.1 SMD
 #### compute_abs_smd_weight()
-compute_abs_smd_weight <- function(data_list, treat_var, covars, weight_cols) {
+compute_abs_smd_weight <- function(data, treat, covar, weight_cols) {
   smd_list <- lapply(weight_cols, function(wcol) {
-    data <- data_list
     bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
       weights = data[[wcol]],
       un = TRUE,
@@ -272,10 +271,10 @@ compute_abs_smd_weight <- function(data_list, treat_var, covars, weight_cols) {
 
 ### 3.2.2 ESS
 #### compute_ess_weight()
-compute_ess_weight <- function(data, treat_var, covars, weight_cols) {
+compute_ess_weight <- function(data, treat, covar, weight_cols) {
   ess_list <- lapply(weight_cols, function(wcol) {
     bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
       weights = data[[wcol]],
       un = FALSE
@@ -295,10 +294,10 @@ compute_ess_weight <- function(data, treat_var, covars, weight_cols) {
 
 ### 3.2.3 Visuals
 #### plot_weighting_methods()
-plot_weighting_methods <- function(data, treat_var, covars, weight_list, dataset_name = NULL) {
+plot_weighting_methods <- function(data, treat, covar, weight_list, dataset_name = NULL) {
   for (wcol in names(weight_list)) {
     bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
       weights = weight_list[[wcol]],
       un = TRUE,
@@ -320,14 +319,14 @@ plot_weighting_methods <- function(data, treat_var, covars, weight_list, dataset
 ## 3.3 Truncation
 ### 3.3.1 SMD
 #### compute_abs_smd_trunc()
-compute_abs_smd_trunc <- function(trunc_list, treat_var, covars, weight_cols) {
+compute_abs_smd_trunc <- function(trunc_list, treat, covar, weight_cols) {
   all_smd <- list()
   for(trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
     smd_list <- lapply(weight_cols, function(wcol) {
       if (wcol %in% names(dataset)) {
         bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
           data = dataset,
           weights = dataset[[wcol]],
           un = TRUE,
@@ -353,14 +352,14 @@ compute_abs_smd_trunc <- function(trunc_list, treat_var, covars, weight_cols) {
 
 ### 3.3.2 ESS
 #### compute_ess_trunc()
-compute_ess_trunc <- function(trunc_list, treat_var, covars, weight_cols) {
+compute_ess_trunc <- function(trunc_list, treat, covar, weight_cols) {
   all_ess <- list()
   for(trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
     ess_list <- lapply(weight_cols, function(wcol) {
       if (wcol %in% names(dataset)) {
         bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
           data = dataset,
           weights = dataset[[wcol]],
           un = FALSE,
@@ -394,13 +393,13 @@ compute_ess_trunc <- function(trunc_list, treat_var, covars, weight_cols) {
 
 ### 3.3.3 Visuals
 #### plot_truncation_methods()
-plot_truncation_methods <- function(trunc_list, treat_var, covars, weight_cols, dataset_name = NULL) {
+plot_truncation_methods <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL) {
   for(trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
     for(wcol in weight_cols) {
       if(wcol %in% names(dataset)) {
         bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
           data = dataset,
           weights = dataset[[wcol]],
           un = TRUE,
@@ -428,11 +427,11 @@ plot_truncation_methods <- function(trunc_list, treat_var, covars, weight_cols, 
 ## 3.4 Trimming
 ### 3.4.1 SMD
 #### compute_abs_smd_trim()
-compute_abs_smd_trim <- function(trimming_list, treat_var, covars) {
+compute_abs_smd_trim <- function(trimming_list, treat, covar) {
   smd_list <- lapply(names(trimming_list), function(name) {
     data <- trimming_list[[name]]
     bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
       un = TRUE, 
       s.d.denom = "treated"
@@ -454,9 +453,9 @@ compute_abs_smd_trim <- function(trimming_list, treat_var, covars) {
 
 ### 3.4.2 ESS
 #### compute_ess_trim()
-compute_ess_trim <- function(trimming_list, treat_var, covars) {
+compute_ess_trim <- function(trimming_list, treat, covar) {
   ess_list <- lapply(trimming_list, function(data) {
-    bal_obj <- cobalt::bal.tab(as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+    bal_obj <- cobalt::bal.tab(as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
                                data = data, un = TRUE)
     samples <- bal_obj$Observations
     df <- as.data.frame(samples)[c("Control", "Treated")]
@@ -471,17 +470,17 @@ compute_ess_trim <- function(trimming_list, treat_var, covars) {
 
 ### 3.4.3 Visuals
 #### plot_trim()
-plot_trim <- function(ldw_list, treat, covar) {
+plot_trim <- function(data_list, treat, covar) {
   par(mfrow = c(2,3))
-  for (ldw_obj in ldw_list) {
-    assess_overlap(ldw_obj, treat = treat, cov = covar)
+  for (data_obj in data_list) {
+    assess_overlap(data_obj, treat = treat, cov = covar)
   }
 }
 
 ## 3.5 Combined methods
 ### 3.5.1 SMD
 #### compute_smd_all_datasets()
-compute_smd_all_datasets <- function(combined_list, treat_var, covars) {
+compute_smd_all_datasets <- function(combined_list, treat, covar) {
   smd_list <- lapply(names(combined_list), function(weight_method) {
     method_list <- combined_list[[weight_method]]
     res <- lapply(names(method_list), function(trim_method) {
@@ -491,7 +490,7 @@ compute_smd_all_datasets <- function(combined_list, treat_var, covars) {
         data$weight <- rep(1, nrow(data))
       }
       bal_obj <- cobalt::bal.tab(
-        as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+        as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
         data = data,
         weights = data$weight,
         un = TRUE,
@@ -515,7 +514,7 @@ compute_smd_all_datasets <- function(combined_list, treat_var, covars) {
 
 ### 3.5.2 ESS
 #### compute_ess_all_datasets()
-compute_ess_all_datasets <- function(combined_list, treat_var, covars) {
+compute_ess_all_datasets <- function(combined_list, treat, covar) {
   ess_list <- lapply(names(combined_list), function(weight_method) {
     method_list <- combined_list[[weight_method]]
     res <- lapply(names(method_list), function(trim_method) {
@@ -525,7 +524,7 @@ compute_ess_all_datasets <- function(combined_list, treat_var, covars) {
         data$weight <- rep(1, nrow(data))
       }
       bal_obj <- cobalt::bal.tab(
-        as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+        as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
         data = data,
         weights = data$weight,
         un = TRUE,
@@ -592,7 +591,7 @@ plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
 }
 
 #### plot_comb_love_plots()
-plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat_var, covars,
+plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
                                  prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
   all_datasets <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
   for (ds_name in names(all_datasets)) {
@@ -609,7 +608,7 @@ plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat_var, covar
         plot_counter <- plot_counter + 1
         if (!"weight" %in% names(df)) df$weight <- 1
         bal <- cobalt::bal.tab(
-          as.formula(paste(treat_var, "~", paste(covars, collapse = " + "))),
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
           data = df,
           weights = df$weight,
           un = TRUE,

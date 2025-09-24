@@ -1155,7 +1155,7 @@ Each plot displays three distinct series for every dataset analyzed: (1) The blu
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
-all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5.cps, qte.top5.psid)
+all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5_cps_plus, qte.top5_psid_plus)
 
 # plot results
 plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000))
