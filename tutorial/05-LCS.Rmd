@@ -944,7 +944,7 @@ ADD EXPLANATION HERE
 ```{r}
 #| code-fold: show
 # save results 
-save_csv(result_mat_pl, "LDW_att_estimates_pl")
+save_csv(result_mat_pl, "LCS_att_estimates_pl")
 ```
 
 ## Sensitivity Analyses
