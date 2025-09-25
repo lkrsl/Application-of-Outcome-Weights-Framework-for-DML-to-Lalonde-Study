@@ -133,6 +133,7 @@ love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
 love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
 love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")
 ```
+
 Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
 
 In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental dataset is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
@@ -482,7 +483,7 @@ ldw_cps_plus.walker   <- walker_trim(ldw_cps_plus.ps)
 ldw_psid_plus.walker  <- walker_trim(ldw_psid_plus.ps)
 ```
 
-### Combination of methods
+## Combination of methods
 
 The purpose of combining trimming and weighting methods is to leverage the strengths of both approaches for causal effect estimation. Trimming enhances overlap and reduces the influence of outliers by excluding units with extreme or non-comparable propensity scores, while weighting further adjusts for remaining covariate imbalance among the retained units. 
 

@@ -707,7 +707,7 @@ love.plot(nsw_psid_plus, nsw_psid_plus.stuermer, treat, covar, title = "NSW-PSID
 love.plot(nsw_psid_plus, nsw_psid_plus.walker,  treat, covar, title = "NSW-PSID1-PLUS - walker trimming")
 ```
 
-### Combined methods
+## Combined methods
 ```{r}
 # list all combined method results
 comb_meth.cps_plus <- list(

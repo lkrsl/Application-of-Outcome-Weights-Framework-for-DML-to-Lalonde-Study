@@ -718,7 +718,7 @@ love.plot(ldw_psid_plus, ldw_psid_plus.stuermer, treat, covar, title = "LDW-PSID
 love.plot(ldw_psid_plus, ldw_psid_plus.walker,  treat, covar, title = "LDW-PSID1-PLUS - walker trimming")
 ```
 
-### Combined methods
+## Combined methods
 ```{r}
 # list all combined method results
 comb_meth.cps_plus <- list(
