@@ -926,7 +926,8 @@ aipw_ow <- function(data, Y, treat, covar) {
   se <- summ["AIPW-ATT", "SE"]
   ci_lower <- est - 1.96 * se
   ci_upper <- est + 1.96 * se
-  return(c(est, se, ci_lower, ci_upper))
+  return(list(summary = c(est, se, ci_lower, ci_upper), dml_fit = dml_fit))
+  #return(c(est, se, ci_lower, ci_upper))
 }
 
 ### This script checks for robustness by estimating original model

@@ -20,7 +20,7 @@ In section 4, the analysis applies the same set of statistical tools to analyze 
 In the last section, the analysis applies a reduced set of statistical tools to analyze a fifth sample again as an additional demonstration:
 (5) LaLonde female samples (2017).
 
-This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods were applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked were identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets were used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporated the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, placebo tests were conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Additionally, sensitivity analyses were performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
+This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked are identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets are used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporates the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to each estimator.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
 
 # Set up
 ## Source functions and load data
@@ -777,7 +777,7 @@ love.plot(ldw_psid, ldw_psid_plus.stuermer, treat, covar, title = "LDW-PSID1-PLU
 love.plot(ldw_psid, ldw_psid_plus.walker,  treat, covar, title = "LDW-PSID1-PLUS - walker trimming")
 ```
 
-### Combined methods
+## Combination of methods
 ```{r}
 # list all combined method results
 comb_meth.cps_plus <- list(
@@ -822,7 +822,7 @@ plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, pr
 
 Across all combined methods, the overlap plots for model A show highly comparable distributions of propensity score log odds across the various trimming and weighting strategies. 
 
-### Getting top methods and datasets
+### Top methods and datasets
 
 To identify the top five methods for each observational dataset, we first combine all results for absolute mean SMDs and ESS into a single data frame for each dataset. This allows for a comprehensive comparison across all methods.
 ```{r, message=FALSE, warning=FALSE}
@@ -1108,7 +1108,7 @@ Improved overlap and covariate balance generally leads to estimates closer to th
 
 Next, we explore alternative estimands such as heterogeneous treatment effects and quantile treatment effects, which may provide deeper insights into the validity of the unconfoundedness assumption. 
 
-### Conditional Average Treatment Effect on the Treated (CATT)
+### Conditional average treatment effect on the treated (CATT)
 
 CATT enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. We estimate the CATT for the same samples previously considered in the ATT estimation by applying the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method via the `catt()` function from Imbens and Xu (2024).
 ```{r, warning=FALSE}
@@ -1161,7 +1161,7 @@ The CATT estimates for the PSID1 top-ranked subsamples reveal considerably more 
 
 This variation in range and averages across methods and samples reflects substantial heterogeneity in treatment effect estimation, indicating that while some samples or methods improve alignment with experimental benchmarks, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
 
-### Quantile Treatment Effect on the Treated (QTET)
+### Quantile treatment effect on the treated (QTET)
 
 QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by Firpo (2007). Implementation leverages the `qte()` function from Imbens and Xu (2024), while visualization employs a modified version of their `plot_qte()` function.
 ```{r, message=FALSE, warning=FALSE}
@@ -1215,7 +1215,55 @@ These figures display QTET estimates derived from both the LDW experimental and 
 
 ADD EXPLANATION HERE
 
-## Validation through Placebo Analyses
+### Assessing outcome weights (OW)
+```{r, warning=FALSE}
+#| code-fold: show
+# list all datasets
+all_datasets <- c(
+  list(ldw, ldw_cps, ldw_psid, ldw_cps.trim_match, ldw_psid.trim_match),
+  top5_datasets.cps_plus,
+  top5_datasets.psid_plus
+)
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+# get outcome weights for ATT
+res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
+ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+# get ow for each CATT estimator
+res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
+ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+# get ow for each QTET estimator
+res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
+ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
+```
+
+
+```{r, warning=FALSE}
+#plot results
+N <- length(outcome_weights)
+for (i in seq_along(outcome_weights)) {
+  # Extract weights for ATT
+  weights <- outcome_weights[[i]]$omega["AIPW-ATT", ]
+  hist(weights, breaks = 50,
+       main = plot_titles[i],
+       xlab = "Outcome Weight",
+       col = "skyblue")
+}
+par(mfrow = c(1,1))
+```
+
+
+## Validation through placebo analyses
 
 To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating 1975 earnings (re75) as the outcome variable and omitting both re75 and u75 from the list of covariates. The analysis utilizes all previously considered samples and recomputes the ATT via the function `estimate_all`, conditioning only on the remaining set of covariates.
 ```{r, warning=FALSE}
@@ -1301,7 +1349,7 @@ Across most estimators and observational top-ranked subsamples (F–O), except a
 save_csv(result_mat_pl, "LDW_att_estimates_pl_model_a")
 ```
 
-## Sensitivity Analyses
+## Sensitivity analyses
 
 Finally, a sensitivity analyses using the LDW data is conducted and results are depicted in contour plots using the function `sens_ana` of Imbens & Xu (2024).
 ```{r, warning=FALSE}
