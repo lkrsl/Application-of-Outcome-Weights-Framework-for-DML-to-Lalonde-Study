@@ -20,7 +20,7 @@ In section 4, the analysis applies the same set of statistical tools to analyze 
 In the last section, the analysis applies a reduced set of statistical tools to analyze a fifth sample again as an additional demonstration:
 (5) LaLonde female samples (2017).
 
-This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked are identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets are used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporates the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to each estimator.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
+This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked are identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets are used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporates the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
 
 # Set up
 ## Source functions and load data
@@ -1235,33 +1235,9 @@ ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
 
 ```{r, warning=FALSE}
 #| code-fold: show
-# get ow for each CATT estimator
-res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
-ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
-```
-
-```{r, warning=FALSE}
-#| code-fold: show
-# get ow for each QTET estimator
-res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
-ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
-```
-
-
-```{r, warning=FALSE}
 #plot results
-N <- length(outcome_weights)
-for (i in seq_along(outcome_weights)) {
-  # Extract weights for ATT
-  weights <- outcome_weights[[i]]$omega["AIPW-ATT", ]
-  hist(weights, breaks = 50,
-       main = plot_titles[i],
-       xlab = "Outcome Weight",
-       col = "skyblue")
-}
-par(mfrow = c(1,1))
+plot_ow(ow_att, plot_titles)
 ```
-
 
 ## Validation through placebo analyses
 

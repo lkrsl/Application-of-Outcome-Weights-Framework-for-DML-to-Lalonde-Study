@@ -1359,6 +1359,26 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
   }
 }
 
+## 4.4 Assessing outcome weights (OW)
+plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50, col = "#ff000080", xlab = "Outcome Weight", per_page = 4) {
+  N <- length(outcome_weights)
+  for (i in seq(1, N, by = per_page)) {
+    par(mfrow = c(2, 2))
+    for (j in 0:(per_page - 1)) {
+      idx <- i + j
+      if (idx <= N) {
+        weights <- outcome_weights[[idx]]$omega["AIPW-ATT", ]
+        main_title <- if (!is.null(plot_titles)) plot_titles[idx] else paste("Dataset", idx)
+        hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
+        mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
+      } else {
+        plot.new()
+      }
+    }
+  }
+  par(mfrow = c(1, 1))
+}
+
 # 5. Sensitivity Analysis
 #### check_filter_data()
 check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
