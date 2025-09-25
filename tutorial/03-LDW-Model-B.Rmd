@@ -5,12 +5,6 @@ date: "2025-05-08"
 ---
 
 # LaLonde-Dehejia-Wahba (LDW) Data
-LaLonde (1986) evaluated the effect of the National Supported Work Demonstration (NSW) program on both female and male participants. While the female participants were drawn from the Aid to Families with Dependent Children (AFDC) program, the male participants were drawn from three other groups: former drug addicts, ex-criminal offenders, and high-school dropouts. LaLonde relied on two main data sources:
-(1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
-(2) PSID-1, based on Panel Study of Income Dynamics for household heads under 55 from specific years who were not retired in 1975, adjusted for factors like employment status and poverty level, resulting in four additional comparison groups;
-
-Dehejia and Wahba (1999) constructed a subset of LaLonde's original data, retaining 62% of observations and restricting the focus to male participants based on their 1974 earnings. As the dataset was formed entirely on pretreatment information like employment records or month of assignment, treatment allocation was effectively independent of all pretreatment variables. Thus they concluded that this subset, known as the LaLonde-Dehejia-Wahba (LDW) data, constitutes a valid experimental sample.
-
 This section (3) covers Model B, which, similar to Model A, uses 1978 earnings (`re78`) as the outcome variable but adjusts for a slightly different set of covariates: age, education, race indicators (black, hispanic), marital status, lack of a high school degree, 1975 earnings (`re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`), explicitly excluding 1974 earnings (`re74`) to test the model’s robustness. The model is specified via a logistic regression formula based on these covariates. To enhance covariate balance between treated and control groups, the same comprehensive suite of methods is employed as in Model A, organized into five categories. From these approaches, the top 5 methods are selected based on absolute standardized mean differences and effective sample size, and their resulting datasets are used to estimate the Average Treatment Effect on the Treated (ATT). This estimation process also incorporates the Augmented Inverse Probability Weighting (AIPW) estimator from the `OutcomeWeights` R package. As with Model A, placebo analyses using 1975 earnings as an outcome and sensitivity analyses are performed to assess bias and the robustness of the causal inference assumptions.
 
 # Set up
@@ -101,28 +95,28 @@ Next, we examine the overlap of the expanded datasets.
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
 ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar) 
 ```
-### Covariate balance
-```{r, message=FALSE, warning=FALSE}
-love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
-love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
-love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
-love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")
-
-bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_cps, treat = "treat")
-bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_cps_plus, treat = "treat")
-bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_psid, treat = "treat")
-bal.tab(treat ~ age + education + black + hispanic + married + nodegree + re74 + re75 + u74 + u75, data = ldw_psid_plus, treat = "treat")
-```
-
-Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
-
-In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
-
 For the following analysis, we set up a model formula.
 ```{r}
 #| code-fold: show
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
+
+### Covariate balance
+```{r, message=FALSE, warning=FALSE}
+love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
+love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
+love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
+love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")         
+
+bal.tab(model, data = ldw_cps, treat = "treat")
+bal.tab(model, data = ldw_cps_plus, treat = "treat")
+bal.tab(model, data = ldw_psid, treat = "treat")
+bal.tab(model, data = ldw_psid_plus, treat = "treat")
+```
+
+Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
+
+In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
 
 ## Improving primarily covariate balance
 ### Matching 
@@ -1137,40 +1131,42 @@ qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-#qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
-#qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
-#qte.ldw_cps.trim <- est_qte(Y, treat, covar, data = ldw_cps.trim_match)
-#qte.ldw_psid.trim <- est_qte(Y, treat, covar, data = ldw_psid.trim_match) 
+qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
+qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
+qte.ldw_cps.trimm <- est_qte(Y, treat, covar, data = ldw_cps.trim_match)
+qte.ldw_psid.trimm <- est_qte(Y, treat, covar, data = ldw_psid.trim_match) 
+qte.ldw_cps.trim <- est_qte(Y, treat, covar, data = ldw_cps_trim)
+qte.ldw_psid.trim <- est_qte(Y, treat, covar, data = ldw_psid_trim) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#qte.top5_cps_plus  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, covar, data = d))
-#qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps_plus  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#qte.ldw0 <- est_qte(Y, treat, NULL, data = ldw)
-#qte.ldw.cps0 <- est_qte(Y, treat, NULL, data = ldw_cps)
-#qte.ldw.psid0 <- est_qte(Y, treat, NULL, data = ldw_psid)
-#qte.ldw_cps.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps.trim_match)
-#qte.ldw_psid.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid.trim_match)
-#qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, NULL, data = d))
-#qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
+qte.ldw0 <- est_qte(Y, treat, NULL, data = ldw)
+qte.ldw.cps0 <- est_qte(Y, treat, NULL, data = ldw_cps)
+qte.ldw.psid0 <- est_qte(Y, treat, NULL, data = ldw_psid)
+qte.ldw_cps.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps.trim_match)
+qte.ldw_psid.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid.trim_match)
+qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
 Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The pink line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
-#all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5.cps, qte.top5.psid)
+all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5_cps_plus, qte.top5_psid_plus)
 
 # plot results
-#plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000))
+plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000))
 
 # save results
-#save_qtet_panels(all_qtet, plot_titles, qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+save_qtet_panels(all_qtet, plot_titles, qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
 ```
 
 These figures display QTET estimates derived from both the LDW experimental and various non-experimental samples. The QTETs estimated from the original and trimmed LDW-CPS1 samples generally correspond well with the true QTET, although the estimates often suffer from low power. In contrast, QTET estimates from the original and trimmed LDW-PSID1 samples show clear biases when compared to the experimental benchmark, which clusters near zero. The QTET estimates derived from the top-ranked subsamples ...

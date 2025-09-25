@@ -5,10 +5,6 @@ date: "2025-05-08"
 ---
 
 # LaLonde (NSW) Data 
-LaLonde (1986) evaluated the effect of the National Supported Work Demonstration (NSW) program on both female and male participants. While the female participants were drawn from the Aid to Families with Dependent Children (AFDC) program, the male participants were drawn from three other groups: former drug addicts, ex-criminal offenders, and high-school dropouts. LaLonde relied on two main data sources:
-(1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
-(2) PSID-1, based on Panel Study of Income Dynamics for household heads under 55 from specific years who were not retired in 1975, adjusted for factors like employment status and poverty level, resulting in four additional comparison groups;
-
 This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as lcs below, similar to Imbens & Xu). 
 
 # Set up
