@@ -5,7 +5,9 @@ date: "2025-05-08"
 ---
 
 # LaLonde (NSW) Data 
-This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 in the original LaLonde dataset (loaded as nsw below, similar to Imbens & Xu). 
+This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 in the original LaLonde dataset (loaded as `nsw` below, similar to Imbens & Xu). 
+
+For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the nsw–specific results.
 
 # Set up
 ## Source functions and load data
@@ -27,7 +29,7 @@ load("data/lalonde.RData")
 treat <- "treat"
 nsw_co$treat <- 1
 
-# drop re74, u74, tau from cps1 and psid1 and merge data
+# drop re74, u74, tau from CPS1 and PSID1 and merge data
 cps1a <- subset(cps1, select =  -c(re74, u74))
 nsw_cps <- rbind.data.frame(nsw_tr, cps1a)
 
@@ -50,9 +52,6 @@ covar <- c("age", "education", "black", "hispanic", "married",
 
 ## Assessing overlap and covariate balance
 ### Overlap
-To identify the average causal effect under unconfoundedness (that ensures that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and control units (meaning that for every combination of covariates, there are both treated and control units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess the overlaps in the propensity scores and to visualize results via histograms.
-
-In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable overlap.
 ```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
@@ -63,18 +62,18 @@ nsw_psid.ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar)
 
 As anticipated, the NSW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets NSW-CPS1 and NSW-PSID1 display weak overlap. 
 
-Next, we examine the overlap of the expanded datasets. 
 ```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureA:NSW-CPS1-PLUS. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 #| code-fold: show
 # assess overlap
 nsw_cps_plus.ps <- assess_overlap(data = nsw_cps_plus, treat = treat, cov = covar) 
 nsw_psid_plus.ps <- assess_overlap(data = nsw_psid_plus, treat = treat, cov = covar) 
 ```
+
 With the expanded datasets NSW-CPS1 and NSW-PSID1, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater spread of log-odds densities across both samples.
 
-For the following analysis, we set up a model formula.
 ```{r}
 #| code-fold: show
+# set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
@@ -322,8 +321,6 @@ for (wcol in weight_columns) {
 ```
 
 #### Adaptive weight truncation
-
-We first inspect the variance of the estimated weights. If variance is zero, adaptive weight truncation is not meaningful. 
 ```{r}
 #| code-fold: sh
 # inspect variance of weights 
@@ -538,7 +535,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = nsw_psid_plus, un = TRUE, weights
 #### SMD
 ```{r}
 #| code-fold: show
-# compute absolute standardized mean differences (SMD)
+# compute absolute SMD
 smd_matchit.cps_plus <- compute_abs_smd_matchit(methods.cps_plus)
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
@@ -546,7 +543,7 @@ smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 #### Effective Sample Sizes 
 ```{r}
 #| code-fold: show
-# compute effective sample sizes (ESS)
+# compute ESS
 ess_matchit.cps_plus <- compute_ess_matchit(bal.cps_plus)
 ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
@@ -583,7 +580,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD 
+# compute absolute SMD 
 smd_weight.cps_plus <- compute_abs_smd_weight(nsw_cps_plus, "treat", covar, weight_columns)
 smd_weight.psid_plus <- compute_abs_smd_weight(nsw_psid_plus, "treat", covar, weight_columns)
 ```
@@ -625,7 +622,7 @@ trunc.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMD
 smd_trunc.cps_plus <- compute_abs_smd_trunc(trunc.cps_plus, "treat", covar, weight_columns)
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
@@ -673,7 +670,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMD
 smd_trim.cps_plus <- compute_abs_smd_trim(trim.cps_plus, "treat", covar)
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
@@ -730,7 +727,7 @@ comb_meth.psid_plus <- list(
 
 #### SMD
 ```{r}
-# compute SMD
+# compute absolute SMD
 smd_all_comb_meth.cps_plus <- compute_smd_all_datasets(comb_meth.cps_plus, "treat", covar)
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
@@ -772,15 +769,11 @@ save_csv(all_cps_plus, "CPS1_PLUS_all_results_nsw")
 save_csv(all_psid_plus, "PSID1_PLUS_all_results_nsw")
 ```
 
-Assess all methods and create score
-- smd_score rescales Mean_Abs_SMD to a 0-1 range where lower Mean_Abs_SMD leads to a higher score
-- ess_score measures sample size effectiveness by combining effective sample sizes (Control + Treated) and normalizing between 0 and 1
 ```{r}
 ranked_cps_plus  <- assess_methods(all_cps_plus)
 ranked_psid_plus <- assess_methods(all_psid_plus)
 ```
 
-Rank the results and get only the top 5
 ```{r}
 # get top 5 methods for each dataset
 top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
@@ -790,13 +783,12 @@ top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 save_csv(top5_methods.cps_plus, "CPS1_PLUS_top5_methods_nsw")
 save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_nsw")
 ```
-The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 
+The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 ```{r}
 dataset_list_cps <- list(
   "All" = nsw_cps_plus,
   "original" = nsw_cps_plus,
-  ## Matching
   "nn" = m.out.cps_plus.nearest, 
   "caliper" = m.out.cps_plus.caliper,
   "card" = m.out.cps_plus.card,
@@ -812,13 +804,11 @@ dataset_list_cps <- list(
   "exact" = m.out.cps_plus.exact,
   "subcl" = m.out.cps_plus.subcl,
   "profile"  = m.out.cps_plus.profile,
-  ## Weighting
   "ipw_weight" = nsw_cps_plus$ipw_weight, 
   "smr_weight" = nsw_cps_plus$smr_weight,
   "opt_weight" = nsw_cps_plus$opt_weight,
   "overlap_weight" = nsw_cps_plus$overlap_weight,
   "ebal_weight" = nsw_cps_plus$ebal_weight,
-  ## Truncation
   "fix_max_value_trunc_ebal_weight" = nsw_cps_plus.fixed,
   "fix_max_value_trunc_ipw_weight" = nsw_cps_plus.fixed,
   "fix_max_value_trunc_opt_weight" = nsw_cps_plus.fixed,
@@ -834,13 +824,11 @@ dataset_list_cps <- list(
   "adap_weight_trunc_opt_weight" = nsw_cps_plus.adapt,
   "adap_weight_trunc_overlap_weight" = nsw_cps_plus.adapt,
   "adap_weight_trunc_smr_weight" = nsw_cps_plus.adapt,
-  ##Trimming
   "ps_threshold" = nsw_cps.trim_match,
   "common_range" = nsw_cps_plus.common,
   "stuermer" = nsw_cps_plus.stuermer,
   "walker" = nsw_cps_plus.walker,
   "crump" = nsw_cps_plus.crump,
-  ##Combined methods
   "ipw_common_range" = ipw_comb.cps_plus[[1]],
   "ipw_crump" = ipw_comb.cps_plus[[2]],
   "ipw_ps_threshold" = ipw_comb.cps_plus[[3]],
@@ -882,13 +870,11 @@ dataset_list_psid <- list(
   "exact" = m.out.psid_plus.exact,
   "subcl" = m.out.psid_plus.subcl,
   "profile" = m.out.psid_plus.profile,
-  ## Weighting
   "ipw_weight" = nsw_psid_plus$ipw_weight, 
   "smr_weight" = nsw_psid_plus$smr_weight,
   "opt_weight" = nsw_psid_plus$opt_weight,
   "overlap_weight" = nsw_psid_plus$overlap_weight,
   "ebal_weight" = nsw_psid_plus$ebal_weight,
-  ## Truncation
   "fix_max_value_trunc_ebal_weight" = nsw_psid_plus.fixed,
   "fix_max_value_trunc_ipw_weight" = nsw_psid_plus.fixed,
   "fix_max_value_trunc_opt_weight" = nsw_psid_plus.fixed,
@@ -904,13 +890,11 @@ dataset_list_psid <- list(
   "adap_weight_trunc_opt_weight" = nsw_psid_plus.adapt,
   "adap_weight_trunc_overlap_weight" = nsw_psid_plus.adapt,
   "adap_weight_trunc_smr_weight" = nsw_psid_plus.adapt,
-  ##Trimming
   "ps_threshold" = nsw_psid.trim_match,
   "common_range" = nsw_psid_plus.common,
   "stuermer" = nsw_psid_plus.stuermer,
   "walker" = nsw_psid_plus.walker,
   "crump" = nsw_psid_plus.crump,
-  ##Combined methods
   "ipw_common_range" = ipw_comb.psid_plus[[1]],
   "ipw_crump"= ipw_comb.psid_plus[[2]],
   "ipw_ps_threshold"= ipw_comb.psid_plus[[3]],
@@ -934,21 +918,19 @@ dataset_list_psid <- list(
 ```
 
 ```{r}
-# create the datasets from combined lists for your top 5 methods:
+# create datasets corresponding to the top 5 methods for each dataset
 top5_datasets.cps_plus <- create_top5_datasets(dataset_list_cps, top5_methods.cps_plus)
 top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.psid_plus)
 ```
 
 ```{r}
-# save them into .RData files
+# save datasets into .RData files
 save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "nsw_cps")
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "nsw_psid")
 ```
 
 ## Estimating
 ### ATT
-
-Next we proceed with the estimation of the ATT using both the NSW-Experimental sample and the newly constructed top 5 samples for each observational dataset, NSW-CPS1 and NSW-PSID1, that had highest score results. 
 ```{r, message=FALSE, warning=FALSE}
 out1 <- estimate_all(nsw, "re78", "treat", covar)
 out2 <- estimate_all(nsw_cps, "re78", "treat", covar)
@@ -1024,10 +1006,6 @@ result_mat <- create_matrix_results(all_outs, plot_titles)
 knitr::kable(result_mat, booktabs = TRUE, caption = "NSW ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-::: callout-tip
-The first value in each cell represents the point estimate from the respective estimator and sample. The number in brackets directly following it is the robust standard error (SE) associated with that estimate, indicating the uncertainty or variability around the point estimate.
-:::
-
 ADD EXPLANATION HERE
 
 ```{r}
@@ -1035,16 +1013,8 @@ ADD EXPLANATION HERE
 save_csv(result_mat, "NSW_att_estimates")
 ```
 
-::: callout-tip
-Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors due to reduced effective sample size. This highlights the importance of balancing bias reduction with precision, and the need to carefully select methods that optimize this trade-off for robust causal inference.
-:::
-
 ## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
-
-Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.
-
-The Conditional Average Treatment Effect on the Treated (CATT) enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. In the following, we estimate the CATT using causal forests via the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method for the same samples previously considered in the ATT estimation. This estimation is performed using the `catt()` function from Imbens and Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
 catt.nsw <- catt(nsw, Y, treat, covar)
@@ -1060,11 +1030,6 @@ catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, trea
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-Then, we employ a modified version of the function `plot_catt()` from Imbens & Xu (2024) to visualize the results. In the subsequent figures, we plot the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
-
-::: callout-tip
-Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
-:::
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates using NSW Data"}
 #| code-fold: show
 # combine all catt objects 
@@ -1089,56 +1054,51 @@ eval_catt(all_catt, plot_titles)
 ADD EXPLANATION HERE
 
 ### Quantile Treatment Effect on the Treated (QTET)
-
-QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by Firpo (2007). Implementation leverages the function `qte()` from Imbens and Xu (2024), while visualization employs a modified version of their function `plot_qte()`.
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-#qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
+qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-#qte.nsw_cps <- est_qte(Y, treat, covar, data = nsw_cps)
-#qte.nsw_psid <- est_qte(Y, treat, covar, data = nsw_psid)
-#qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps.trim_match)
-#qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid.trim_match) 
+qte.nsw_cps <- est_qte(Y, treat, covar, data = nsw_cps)
+qte.nsw_psid <- est_qte(Y, treat, covar, data = nsw_psid)
+qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps.trim_match)
+qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid.trim_match) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#qte.top5_cps_plus  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, covar, data = d))
-#qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps_plus  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#qte.nsw0 <- est_qte(Y, treat, NULL, data = nsw)
-#qte.nsw.cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
-#qte.nsw.psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
-#qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps.trim_match)
-#qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid.trim_match)
-#qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, NULL, data = d))
-#qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
+qte.nsw0 <- est_qte(Y, treat, NULL, data = nsw)
+qte.nsw.cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
+qte.nsw.psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
+qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps.trim_match)
+qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid.trim_match)
+qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The pink line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
-#all_qtet <- c(list(qte.nsw, qte.nsw_cps, qte.nsw_psid, qte.nsw_cps.trim, qte.nsw_psid.trim), qte.top5.cps, qte.top5.psid)
+all_qtet <- c(list(qte.nsw, qte.nsw_cps, qte.nsw_psid, qte.nsw_cps.trim, qte.nsw_psid.trim), qte.top5.cps, qte.top5.psid)
 
 # plot results
-#plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000))
+plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000))
 
 # save results
-#save_qtet_panels(all_qtet, plot_titles, qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+save_qtet_panels(all_qtet, plot_titles, qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
 ```
 
 ADD EXPLANATION HERE
 
 ## Sensitivity Analyses
-
-Finally, a sensitivity analyses using the NSW data is conducted and results are depicted in contour plots below using the function `sens_ana` of Imbens & Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
 # define variables
@@ -1171,9 +1131,5 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 ```
 
 ADD EXPLANATION HERE
-
-::: callout-tip
-The analyses suggest that some samples maintain stable treatment effect estimates despite increasing confounder strength, while others show greater sensitivity. This highlights the importance of assessing robustness across different samples (respectively methods used to derive specific samples) to account for potential unobserved bias.
-:::
 
 # Summary

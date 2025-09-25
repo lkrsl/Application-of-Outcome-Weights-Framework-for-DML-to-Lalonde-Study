@@ -5,7 +5,9 @@ date: "2025-05-08"
 ---
 
 # LaLonde (NSW) Data 
-This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as lcs below, similar to Imbens & Xu). 
+This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as `lcs` below, similar to Imbens & Xu). 
+
+For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the lcs–specific results.
 
 # Set up
 ## Source functions and load data
@@ -26,7 +28,7 @@ load("data/lcs.RData")
 #| code-fold: show
 # expc = 0: experimental treated; 
 # expc = 1: experimental control; 
-# expc = 2: psid control.
+# expc = 2: psid control;
 
 lcs_psid$expc <- 0 
 lcs_psid[lcs_psid$treat==0, ]$expc <- 2 
@@ -47,11 +49,12 @@ covar <- c("age", "educ", "nodegree", "married", "black", "hisp",
            "re75", "u75")
 ```
 
+NOTE THAT WE ONLY CONSIDER HERE ONE DATASET -----
+
+Note that we only consider only one dataset that in the following we only consider 
+
 ## Assessing overlap and covariate balance
 ### Overlap
-To identify the average causal effect under unconfoundedness (that ensures that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and control units (meaning that for every combination of covariates, there are both treated and control units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess the overlaps in the propensity scores and to visualize results via histograms.
-
-In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable overlap.
 ```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LCS-Experimental. SubfigureB:LCS-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
@@ -60,8 +63,6 @@ lcs_psid.ps <- assess_overlap(data = lcs_psid, treat = treat, cov = covar, xlim 
 ```
 
 As anticipated, the LCS-Experimental data exhibit an almost perfect overlap. In contrast, the observational dataset LCS-PSID1 displays weak overlap. 
-
-Next, we examine the overlap of the expanded dataset. 
 ```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureC:LCS-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 #| code-fold: show
 # assess overlap
@@ -70,9 +71,9 @@ lcs_psid_plus.ps <- assess_overlap(data = lcs_psid_plus, treat = treat, cov = co
 
 With the expanded dataset LCS-PSID1, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater spread of log-odds densities across both samples.
 
-For the following analysis, we set up a model formula.
 ```{r}
 #| code-fold: show
+# set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
@@ -277,8 +278,6 @@ for (wcol in weight_columns) {
 ```
 
 #### Adaptive weight truncation
-
-We first inspect the variance of the estimated weights. If variance is zero, adaptive weight truncation is not meaningful. 
 ```{r}
 #| code-fold: sh
 # inspect variance of weights 
@@ -429,7 +428,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = lcs_psid_plus, un = TRUE, weights
 #### SMD
 ```{r}
 #| code-fold: show
-# compute absolute standardized mean differences (SMD)
+# compute absolute SMD
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
 
@@ -463,7 +462,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD 
+# compute absolute SMD 
 smd_weight.psid_plus <- compute_abs_smd_weight(lcs_psid_plus, "treat", covar, weight_columns)
 ```
 
@@ -496,7 +495,7 @@ trunc.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMD
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
 
@@ -532,7 +531,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMD
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
 
@@ -573,7 +572,7 @@ comb_meth.psid_plus <- list(
 
 #### SMD
 ```{r}
-# compute SMD
+# compute absolute SMD
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
 
@@ -589,7 +588,7 @@ ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "tr
 #plot_comb_love_plots(comb_meth.psid_plus, "treat", covar)
 ```
 
-ADD EXPLANATION HERE
+ADD EXPLANATION HERE -----
 
 ### Getting top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
@@ -602,16 +601,13 @@ all_psid_plus <- combine_results("psid_plus")
 save_csv(all_psid_plus, "PSID1_PLUS_all_results_lcs")
 ```
 
-Assess all methods and create score
-- smd_score rescales Mean_Abs_SMD to a 0-1 range where lower Mean_Abs_SMD leads to a higher score
-- ess_score measures sample size effectiveness by combining effective sample sizes (Control + Treated) and normalizing between 0 and 1
 ```{r}
 ranked_psid_plus <- assess_methods(all_psid_plus)
 ```
 
 Rank the results and get only the top 5
 ```{r}
-# get top 5 methods for each dataset
+# get top 5 methods 
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
 # save results 
@@ -638,13 +634,11 @@ dataset_list_psid <- list(
   #"exact" = m.out.psid_plus.exact,
   "subcl" = m.out.psid_plus.subcl,
   "profile" = m.out.psid_plus.profile,
-  ## Weighting
   "ipw_weight" = lcs_psid_plus$ipw_weight, 
   "smr_weight" = lcs_psid_plus$smr_weight,
   "opt_weight" = lcs_psid_plus$opt_weight,
   "overlap_weight" = lcs_psid_plus$overlap_weight,
   "ebal_weight" = lcs_psid_plus$ebal_weight,
-  ## Truncation
   "fix_max_value_trunc_ebal_weight" = lcs_psid_plus.fixed,
   "fix_max_value_trunc_ipw_weight" = lcs_psid_plus.fixed,
   "fix_max_value_trunc_opt_weight" = lcs_psid_plus.fixed,
@@ -660,13 +654,11 @@ dataset_list_psid <- list(
   "adap_weight_trunc_opt_weight" = lcs_psid_plus.adapt,
   "adap_weight_trunc_overlap_weight" = lcs_psid_plus.adapt,
   "adap_weight_trunc_smr_weight" = lcs_psid_plus.adapt,
-  ##Trimming
   "ps_threshold" = lcs_psid.trim_match,
   "common_range" = lcs_psid_plus.common,
   "stuermer" = lcs_psid_plus.stuermer,
   "walker" = lcs_psid_plus.walker,
   "crump" = lcs_psid_plus.crump,
-  ##Combined methods
   "ipw_common_range" = ipw_comb.psid_plus[[1]],
   "ipw_crump"= ipw_comb.psid_plus[[2]],
   "ipw_ps_threshold"= ipw_comb.psid_plus[[3]],
@@ -700,9 +692,7 @@ save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "
 ```
 
 ## Estimating
-### ATT
-
-Next we proceed with the estimation of the ATT using both the LCS-Experimental sample and the newly constructed top 5 samples for each observational dataset, LCS-PSID, that had highest score results. 
+### Average treatment effect on the treated (ATT)
 ```{r, message=FALSE, warning=FALSE}
 out1 <- estimate_all(lcs, "re79", "treat", covar)
 out2 <- estimate_all(lcs_psid, "re79", "treat", covar)
@@ -747,10 +737,9 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "lcs")
 ```
 
-ADD EXPLANATION HERE
+ADD EXPLANATION HERE ----
 
 ```{r, warning=FALSE}
-
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
@@ -766,27 +755,15 @@ result_mat <- create_matrix_results(all_outs, plot_titles)
 knitr::kable(result_mat, booktabs = TRUE, caption = "LCS ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-::: callout-tip
-The first value in each cell represents the point estimate from the respective estimator and sample. The number in brackets directly following it is the robust standard error (SE) associated with that estimate, indicating the uncertainty or variability around the point estimate.
-:::
-
-ADD EXPLANATION HERE
+ADD EXPLANATION HERE ----
 
 ```{r}
 # save results 
 save_csv(result_mat, "LCS_att_estimates")
 ```
 
-::: callout-tip
-Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors due to reduced effective sample size. This highlights the importance of balancing bias reduction with precision, and the need to carefully select methods that optimize this trade-off for robust causal inference.
-:::
-
 ## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
-
-Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.
-
-The Conditional Average Treatment Effect on the Treated (CATT) enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. In the following, we estimate the CATT using causal forests via the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method for the same samples previously considered in the ATT estimation. This estimation is performed using the `catt()` function from Imbens and Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
 catt.lcs <- catt(lcs, Y, treat, covar)
@@ -799,11 +776,6 @@ catt.psid.trim <- catt(lcs_psid.trim_match, Y, treat, covar)
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-Then, we employ a modified version of the function `plot_catt()` from Imbens & Xu (2024) to visualize the results. In the subsequent figures, we plot the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
-
-::: callout-tip
-Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
-:::
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates using LCS Data"}
 #| code-fold: show
 # combine all catt objects 
@@ -818,7 +790,7 @@ plot_catt_panels(all_catt, plot_titles)
 save_catt_panels(all_catt, plot_titles, prefix = "lcs")
 ```
 
-ADD EXPLANATION HERE
+ADD EXPLANATION HERE ----
 
 ```{r, warning=FALSE}
 #| code-fold: show
@@ -828,51 +800,46 @@ eval_catt(all_catt, plot_titles)
 ADD EXPLANATION HERE
 
 ### Quantile Treatment Effect on the Treated (QTET)
-
-QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by Firpo (2007). Implementation leverages the function `qte()` from Imbens and Xu (2024), while visualization employs a modified version of their function `plot_qte()`.
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-#qte.lcs <- est_qte(Y, treat, covar, data = lcs, cores = 4)
+qte.lcs <- est_qte(Y, treat, covar, data = lcs, cores = 4)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-#qte.lcs_cps <- est_qte(Y, treat, covar, data = lcs_cps)
-#qte.lcs_psid <- est_qte(Y, treat, covar, data = lcs_psid)
-#qte.lcs_psid.trim <- est_qte(Y, treat, covar, data = lcs_psid.trim_match) 
+qte.lcs_cps <- est_qte(Y, treat, covar, data = lcs_cps)
+qte.lcs_psid <- est_qte(Y, treat, covar, data = lcs_psid)
+qte.lcs_psid.trim <- est_qte(Y, treat, covar, data = lcs_psid.trim_match) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#qte.lcs0 <- est_qte(Y, treat, NULL, data = lcs)
-#qte.lcs.psid0 <- est_qte(Y, treat, NULL, data = lcs_psid)
-#qte.lcs_psid.trim0 <- est_qte(Y, treat, NULL, data = lcs_psid.trim_match)
-#qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
+qte.lcs0 <- est_qte(Y, treat, NULL, data = lcs)
+qte.lcs.psid0 <- est_qte(Y, treat, NULL, data = lcs_psid)
+qte.lcs_psid.trim0 <- est_qte(Y, treat, NULL, data = lcs_psid.trim_match)
+qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The pink line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates using LCS Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
-#all_qtet <- c(list(qte.lcs, qte.lcs_psid, qte.lcs_psid.trim), qte.top5.cps, qte.top5.psid)
+all_qtet <- c(list(qte.lcs, qte.lcs_psid, qte.lcs_psid.trim), qte.top5.cps, qte.top5.psid)
 
 # plot results
-#plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.lcs, plots_per_page = 4, ylim = c(-25000, 15000))
+plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.lcs, plots_per_page = 4, ylim = c(-25000, 15000))
 
 # save results
-#save_qtet_panels(all_qtet, plot_titles, qte.lcs, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+save_qtet_panels(all_qtet, plot_titles, qte.lcs, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
 ```
 
-ADD EXPLANATION HERE
+ADD EXPLANATION HERE ----
 
 ## Validation through Placebo Analyses
-
-To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating the number of children in 1975—a variable not included in LaLonde’s original dataset - as the outcome variable. The analysis utilizes all previously considered samples. The ATT is then recomputed with the function `estimate_all`, conditioning only on the remaining set of covariates.
 ```{r, warning=FALSE}
 # define variables
 Y_pl <- "nchildren75"
@@ -926,7 +893,6 @@ plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
 save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "lcs_placebo")
 ```
 
-The *Placebo* ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
 #| code-fold: show
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
@@ -934,8 +900,7 @@ knitr::kable(result_mat_pl, booktabs = TRUE, caption = "LCS Placebo ATT Estimate
 ```
 
 The placebo analysis reveals that the 
-
-ADD EXPLANATION HERE
+ADD EXPLANATION HERE ----
 
 ```{r}
 #| code-fold: show
@@ -944,8 +909,6 @@ save_csv(result_mat_pl, "LCS_att_estimates_pl")
 ```
 
 ## Sensitivity Analyses
-
-Finally, a sensitivity analyses using the LCS data is conducted and results are depicted in contour plots below using the function `sens_ana` of Imbens & Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
 # define variables
@@ -979,10 +942,6 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "lcs")
 ```
 
-ADD EXPLANATION HERE
-
-::: callout-tip
-The analyses suggest that some samples maintain stable treatment effect estimates despite increasing confounder strength, while others show greater sensitivity. This highlights the importance of assessing robustness across different samples (respectively methods used to derive specific samples) to account for potential unobserved bias.
-:::
+ADD EXPLANATION HERE ----
 
 # Summary

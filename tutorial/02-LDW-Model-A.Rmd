@@ -117,6 +117,7 @@ However, the expanded observational datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS sh
 For the following analysis, we set up a model formula.
 ```{r}
 #| code-fold: show
+# set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
@@ -277,7 +278,7 @@ m.out.psid_plus.profile <- matchit_profile(ldw_psid_plus, treat, covar)
 
 ### Weighting
 
-The purpose of weighting is to reweight the sample units in order to create a synthetic population in which the  distributions of covariates is balanced between treatment and control groups. In the following, several weighting methods are applied.
+The purpose of weighting is to reweight the sample units in order to create a synthetic population in which the distributions of covariates is balanced between treatment and control groups. In the following, several weighting methods are applied.
 
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
@@ -603,7 +604,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = ldw_psid_plus, un = TRUE, weights
 #### SMD
 ```{r}
 #| code-fold: show
-# compute absolute standardized mean differences (SMD)
+# compute absolute SMDs
 smd_matchit.cps_plus <- compute_abs_smd_matchit(methods.cps_plus)
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
@@ -611,7 +612,7 @@ smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 #### Effective Sample Sizes 
 ```{r}
 #| code-fold: show
-# compute effective sample sizes (ESS)
+# compute ESS
 ess_matchit.cps_plus <- compute_ess_matchit(bal.cps_plus)
 ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
@@ -648,7 +649,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD 
+# compute absolute SMDs
 smd_weight.cps_plus <- compute_abs_smd_weight(ldw_cps_plus, "treat", covar, weight_columns)
 smd_weight.psid_plus <- compute_abs_smd_weight(ldw_psid_plus, "treat", covar, weight_columns)
 ```
@@ -690,7 +691,7 @@ trunc.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMDs
 smd_trunc.cps_plus <- compute_abs_smd_trunc(trunc.cps_plus, "treat", covar, weight_columns)
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
@@ -738,7 +739,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMDs
 smd_trim.cps_plus <- compute_abs_smd_trim(trim.cps_plus, "treat", covar)
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
@@ -795,7 +796,7 @@ comb_meth.psid_plus <- list(
 
 #### SMD
 ```{r}
-# compute SMD
+# compute absolute SMDs
 smd_all_comb_meth.cps_plus <- compute_smd_all_datasets(comb_meth.cps_plus, "treat", covar)
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
@@ -1276,9 +1277,10 @@ plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
 save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "model_a_placebo")
 ```
 
-The *Placebo* ATT results are presented in the table below:
+The placebo ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
 #| code-fold: show
+# print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
 knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model A Placebo ATT Estimates and SEs for All Samples and Estimators")
 ```
@@ -1303,6 +1305,7 @@ save_csv(result_mat_pl, "LDW_att_estimates_pl_model_a")
 Finally, a sensitivity analyses using the LDW data is conducted and results are depicted in contour plots using the function `sens_ana` of Imbens & Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
+# define variables
 Y <- "re78"
 treat <- "treat"
 covar <- c("age", "education", "black", "hispanic", "married", "nodegree", "re74", "re75", "u74", "u75")

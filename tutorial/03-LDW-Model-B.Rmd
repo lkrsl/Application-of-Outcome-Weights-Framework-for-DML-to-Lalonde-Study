@@ -5,7 +5,9 @@ date: "2025-05-08"
 ---
 
 # LaLonde-Dehejia-Wahba (LDW) Data
-This section (3) covers Model B, which, similar to Model A, uses 1978 earnings (`re78`) as the outcome variable but adjusts for a slightly different set of covariates: age, education, race indicators (black, hispanic), marital status, lack of a high school degree, 1975 earnings (`re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`), explicitly excluding 1974 earnings (`re74`) to test the model’s robustness. The model is specified via a logistic regression formula based on these covariates. To enhance covariate balance between treated and control groups, the same comprehensive suite of methods is employed as in Model A, organized into five categories. From these approaches, the top 5 methods are selected based on absolute standardized mean differences and effective sample size, and their resulting datasets are used to estimate the Average Treatment Effect on the Treated (ATT). This estimation process also incorporates the Augmented Inverse Probability Weighting (AIPW) estimator from the `OutcomeWeights` R package. As with Model A, placebo analyses using 1975 earnings as an outcome and sensitivity analyses are performed to assess bias and the robustness of the causal inference assumptions.
+This section (3) covers model B, which, similar to model A, uses 1978 earnings (`re78`) as the outcome variable but adjusts for a slightly different set of covariates: age, education, race indicators (black, hispanic), marital status, lack of a high school degree, 1975 earnings (`re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`), explicitly excluding 1974 earnings (`re74`) to test the model’s robustness. The model is specified via a logistic regression formula based on these covariates. To enhance covariate balance between treated and control groups, the same comprehensive suite of methods is employed as in model A, organized into five categories. From these approaches, the top 5 ranked methods are selected based on absolute standardized mean differences (SMDs) and effective sample size (ESS), and their resulting datasets are used to estimate the Average Treatment Effect on the Treated (ATT). This estimation process also incorporates the Augmented Inverse Probability Weighting (AIPW) estimator from the `OutcomeWeights` R package. As with model A, placebo analyses using 1975 earnings as an outcome and sensitivity analyses are performed to assess bias and the robustness of the causal inference assumptions.
+
+For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the model B–specific results.
 
 # Set up
 ## Source functions and load data
@@ -27,11 +29,11 @@ load("data/lalonde.RData")
 # collect datasets in a list
 data <- list(lalonde = lalonde, ldw_tr = ldw_tr, ldw_co = ldw_co, ldw_cps = ldw_cps, ldw_psid = ldw_psid)
 
-# inspect each dataset's summary statistics
+# inspect key metrics of each dataset
 summary_stats <- inspect_data(data)
 print(summary_stats)
 
-# display few rows of each dataset
+# display few observations of each dataset
 lapply(data, head, 5)
 ```
 
@@ -43,14 +45,14 @@ ldw_co$treat <- 1
 
 # merge experimental data with CPS1 data
 ldw_cps_plus <- rbind.data.frame(
-  ldw_co,    # experimental controls (260 obs)
-  ldw_cps    # CPS1 data (16177 obs)
+  ldw_co,    # experimental controls (260 observations)
+  ldw_cps    # CPS1 data (16177 observations)
 )
 
 # merge experimental data with PSID1 data
 ldw_psid_plus <- rbind.data.frame(
-  ldw_co,    # experimental controls (260 obs)
-  ldw_psid   # PSID1 data (2675 obs)
+  ldw_co,    # experimental controls (260 observations)
+  ldw_psid   # PSID1 data (2675 observations)
 )
 
 datasets <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
@@ -75,9 +77,6 @@ covar <- c("age", "education", "black", "hispanic", "married",
 
 ## Assessing overlap and covariate balance
 ### Overlap
-To identify the average causal effect under unconfoundedness (that ensures that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and control units (meaning that for every combination of covariates, there are both treated and control units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess the overlaps in the propensity scores and to visualize results via histograms.
-
-In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable overlap.
 ```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
@@ -86,18 +85,16 @@ ldw_cps.ps <- assess_overlap(data = ldw_cps, treat = treat, cov = covar)
 ldw_psid.ps <- assess_overlap(data = ldw_psid, treat = treat, cov = covar) 
 ```
 
-As anticipated, the LDW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets LDW-CPS1 and LDW-PSID1 display weak overlap. In particular, many treated units have propensity scores outside the range of the controls, while a large share of control units are concentrated at very low log-odds.
-
-Next, we examine the overlap of the expanded datasets. 
 ```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureA:LDW-CPS1-PLUS. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 #| code-fold: show
 # assess overlap
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
 ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar) 
 ```
-For the following analysis, we set up a model formula.
+
 ```{r}
 #| code-fold: show
+# set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
@@ -113,10 +110,6 @@ bal.tab(model, data = ldw_cps_plus, treat = "treat")
 bal.tab(model, data = ldw_psid, treat = "treat")
 bal.tab(model, data = ldw_psid_plus, treat = "treat")
 ```
-
-Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
-
-In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
 
 ## Improving primarily covariate balance
 ### Matching 
@@ -302,7 +295,7 @@ ldw_psid_plus$ebal_weight <- w.out.psid_plus.ebal$weights
 ### Truncation
 ```{r}
 #| code-fold: show
-# list of weight columns to apply truncation 
+# list weight columns to apply truncation 
 weight_columns <- c("ipw_weight", "smr_weight", "opt_weight", "overlap_weight", "ebal_weight")
 ```
 
@@ -345,8 +338,6 @@ for (wcol in weight_columns) {
 ```
 
 #### Adaptive weight truncation
-
-We first inspect the variance of the estimated weights. If variance is zero, adaptive weight truncation is not meaningful. 
 ```{r}
 #| code-fold: sh
 # inspect variance of weights 
@@ -367,18 +358,12 @@ for (wcol in weight_columns) {
 }
 ```
 
-Regarding these results we only apply adaptive weight truncation to `ipw, smr, overlap` and `ebal` weights, where it may help mitigate the influence of extreme weights. 
-```{r}
-#| code-fold: show
-# list weights that are valid 
-weight_columns_at <- c("ipw_weight", "smr_weight", "overlap_weight", "ebal_weight")
-```
-
+Regarding these results we can apply adaptive weight truncation to all considered weights, where it may help mitigate the influence of extreme weights. 
 ```{r}
 #| code-fold: show
 # truncate adaptively at mean + 3 standard deviations 
 ldw_cps_plus.adapt <- ldw_cps_plus
-for (wcol in weight_columns_at) {
+for (wcol in weight_columns) {
   if (wcol %in% names(ldw_cps_plus.adapt)) {
     ldw_cps_plus.adapt <- truncate_weights_adaptive(ldw_cps_plus.adapt, weight_col = wcol, c = 3)
   }
@@ -561,7 +546,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = ldw_psid_plus, un = TRUE, weights
 #### SMD
 ```{r}
 #| code-fold: show
-# compute absolute standardized mean differences (SMD)
+# compute absolute SMD
 smd_matchit.cps_plus <- compute_abs_smd_matchit(methods.cps_plus)
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
@@ -569,7 +554,7 @@ smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 #### Effective Sample Sizes 
 ```{r}
 #| code-fold: show
-# compute effective sample sizes (ESS)
+# compute ESS
 ess_matchit.cps_plus <- compute_ess_matchit(bal.cps_plus)
 ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
@@ -606,7 +591,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD 
+# compute absolute SMD
 smd_weight.cps_plus <- compute_abs_smd_weight(ldw_cps_plus, "treat", covar, weight_columns)
 smd_weight.psid_plus <- compute_abs_smd_weight(ldw_psid_plus, "treat", covar, weight_columns)
 ```
@@ -648,7 +633,7 @@ trunc.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMD
 smd_trunc.cps_plus <- compute_abs_smd_trunc(trunc.cps_plus, "treat", covar, weight_columns)
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
@@ -696,7 +681,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute SMD
+# compute absolute SMD
 smd_trim.cps_plus <- compute_abs_smd_trim(trim.cps_plus, "treat", covar)
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
@@ -753,7 +738,7 @@ comb_meth.psid_plus <- list(
 
 #### SMD
 ```{r}
-# compute SMD
+# compute absolute SMD
 smd_all_comb_meth.cps_plus <- compute_smd_all_datasets(comb_meth.cps_plus, "treat", covar)
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
@@ -776,9 +761,10 @@ plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefi
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
+Across all combined methods, the overlap plots for model B also show highly comparable distributions of propensity score log odds across the various trimming and weighting strategies. 
+
 ### Getting top methods and datasets
 
-Across all combined methods, the overlap plots for model B show highly comparable distributions of propensity score log odds across the various trimming and weighting strategies. 
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps_plus <- combine_results("cps_plus")
@@ -795,17 +781,13 @@ save_csv(all_cps_plus, "CPS1_PLUS_all_results_model_b")
 save_csv(all_psid_plus, "PSID1_PLUS_all_results_model_b")
 ```
 
-Assess all methods and create score
-- smd_score rescales Mean_Abs_SMD to a 0-1 range where lower Mean_Abs_SMD leads to a higher score
-- ess_score measures sample size effectiveness by combining effective sample sizes (Control + Treated) and normalizing between 0 and 1
 ```{r}
 ranked_cps_plus  <- assess_methods(all_cps_plus)
 ranked_psid_plus <- assess_methods(all_psid_plus)
 ```
 
-Rank the results and get only the top 5
 ```{r}
-# get top 5 methods for each dataset
+# get top 5 methods 
 top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
@@ -819,7 +801,6 @@ The table shows that CPS1 and PSID1 share the same top five methods, with the ex
 dataset_list_cps <- list(
   "All" = ldw_cps_plus,
   "original" = ldw_cps_plus,
-  ## Matching
   "nn" = m.out.cps_plus.nearest, 
   "caliper" = m.out.cps_plus.caliper,
   "card" = m.out.cps_plus.card,
@@ -835,13 +816,11 @@ dataset_list_cps <- list(
   "exact" = m.out.cps_plus.exact,
   "subcl" = m.out.cps_plus.subcl,
   "profile"  = m.out.cps_plus.profile,
-  ## Weighting
   "ipw_weight" = ldw_cps_plus$ipw_weight, 
   "smr_weight" = ldw_cps_plus$smr_weight,
   "opt_weight" = ldw_cps_plus$opt_weight,
   "overlap_weight" = ldw_cps_plus$overlap_weight,
-  "ebal_weight" = ldw_cps_plus$ebal_weight,
-  ## Truncation
+  "ebal_weight" = ldw_cps_plus$ebal_weight, 
   "fix_max_value_trunc_ebal_weight" = ldw_cps_plus.fixed,
   "fix_max_value_trunc_ipw_weight" = ldw_cps_plus.fixed,
   "fix_max_value_trunc_opt_weight" = ldw_cps_plus.fixed,
@@ -857,13 +836,11 @@ dataset_list_cps <- list(
   "adap_weight_trunc_opt_weight" = ldw_cps_plus.adapt,
   "adap_weight_trunc_overlap_weight" = ldw_cps_plus.adapt,
   "adap_weight_trunc_smr_weight" = ldw_cps_plus.adapt,
-  ##Trimming
   "ps_threshold" = ldw_cps.trim_match,
   "common_range" = ldw_cps_plus.common,
   "stuermer" = ldw_cps_plus.stuermer,
   "walker" = ldw_cps_plus.walker,
   "crump" = ldw_cps_plus.crump,
-  ##Combined methods
   "ipw_common_range" = ipw_comb.cps_plus[[1]],
   "ipw_crump" = ipw_comb.cps_plus[[2]],
   "ipw_ps_threshold" = ipw_comb.cps_plus[[3]],
@@ -905,13 +882,11 @@ dataset_list_psid <- list(
   "exact" = m.out.psid_plus.exact,
   "subcl" = m.out.psid_plus.subcl,
   "profile" = m.out.psid_plus.profile,
-  ## Weighting
   "ipw_weight" = ldw_psid_plus$ipw_weight, 
   "smr_weight" = ldw_psid_plus$smr_weight,
   "opt_weight" = ldw_psid_plus$opt_weight,
   "overlap_weight" = ldw_psid_plus$overlap_weight,
   "ebal_weight" = ldw_psid_plus$ebal_weight,
-  ## Truncation
   "fix_max_value_trunc_ebal_weight" = ldw_psid_plus.fixed,
   "fix_max_value_trunc_ipw_weight" = ldw_psid_plus.fixed,
   "fix_max_value_trunc_opt_weight" = ldw_psid_plus.fixed,
@@ -927,13 +902,11 @@ dataset_list_psid <- list(
   "adap_weight_trunc_opt_weight" = ldw_psid_plus.adapt,
   "adap_weight_trunc_overlap_weight" = ldw_psid_plus.adapt,
   "adap_weight_trunc_smr_weight" = ldw_psid_plus.adapt,
-  ##Trimming
   "ps_threshold" = ldw_psid.trim_match,
   "common_range" = ldw_psid_plus.common,
   "stuermer" = ldw_psid_plus.stuermer,
   "walker" = ldw_psid_plus.walker,
   "crump" = ldw_psid_plus.crump,
-  ##Combined methods
   "ipw_common_range" = ipw_comb.psid_plus[[1]],
   "ipw_crump"= ipw_comb.psid_plus[[2]],
   "ipw_ps_threshold"= ipw_comb.psid_plus[[3]],
@@ -957,21 +930,19 @@ dataset_list_psid <- list(
 ```
 
 ```{r}
-# create the datasets from combined lists for your top 5 methods:
+# create datasets corresponding to the top 5 methods for each dataset
 top5_datasets.cps_plus <- create_top5_datasets(dataset_list_cps, top5_methods.cps_plus)
 top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.psid_plus)
 ```
 
 ```{r}
-# save them into .RData files
+# save datasets into .RData files
 save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "model_b_cps")
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "model_b_psid")
 ```
 
 ## Estimating
-### ATT
-
-Next we proceed with the estimation of the ATT using both the LDW-Experimental sample and the newly constructed top 5 samples for each observational dataset, LDW-CPS1 and LDW-PSID1, that had highest score results. 
+### Average treatment effect on the treated (ATT)
 ```{r, message=FALSE, warning=FALSE}
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
@@ -1034,7 +1005,6 @@ Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yiel
 
 For LDW-PSID1 and its subsamples, the estimates continue to exhibit greater dispersion and considerably larger standard errors compared to LDW-CPS1 samples. Most ATT estimates remain negative, although closer to the benchmark than in model A, highlighting persistent methodological uncertainty. Positive estimates are limited to the  `overlap_crump` and `fix_max_value_trunc_overlap_weight` subsamples.
 ```{r, warning=FALSE}
-
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
@@ -1050,10 +1020,6 @@ result_mat <- create_matrix_results(all_outs, plot_titles)
 knitr::kable(result_mat, booktabs = TRUE, caption = "Model B ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-::: callout-tip
-The first value in each cell represents the point estimate from the respective estimator and sample. The number in brackets directly following it is the robust standard error (SE) associated with that estimate, indicating the uncertainty or variability around the point estimate.
-:::
-
 As in model A, the tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. 
 
 In model B, most CPS1-based samples yield estimates that are closer to the experimental benchmark than in model A, with still modest variance. By contrast, the PSID1-based estimates, while somewhat closer to the experimental benchmark than in model A, continue to exhibit substantially larger standard errors. This again reflects the greater challenge of achieving balance and overlap in this observational dataset for PSID1 compared to CPS1.
@@ -1064,16 +1030,8 @@ Overall, figures and table jointly demonstrate that ATT estimates from observati
 save_csv(result_mat, "LDW_att_estimates_model_b")
 ```
 
-::: callout-tip
-Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors due to reduced effective sample size. This highlights the importance of balancing bias reduction with precision, and the need to carefully select methods that optimize this trade-off for robust causal inference.
-:::
-
 ## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
-
-Analyzing causal estimates for alternative estimands such as heterogeneous treatment effects and quantile treatment effects may provide valuable insight into the validity of the unconfoundedness assumption.
-
-The Conditional Average Treatment Effect on the Treated (CATT) enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. In the following, we estimate the CATT using causal forests via the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method for the same samples previously considered in the ATT estimation. This estimation is performed using the `catt()` function from Imbens and Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
 catt.ldw <- catt(ldw, Y, treat, covar)
@@ -1089,11 +1047,6 @@ catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, trea
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-Then, we employ a modified version of the function `plot_catt()` from Imbens & Xu (2024) to visualize the results. In the subsequent figures, we plot the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
-
-::: callout-tip
-Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
-:::
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates Model B using LDW Data"}
 #| code-fold: show
 # combine all catt objects 
@@ -1108,11 +1061,12 @@ plot_catt_panels(all_catt, plot_titles)
 save_catt_panels(all_catt, plot_titles, prefix = "model_b")
 ```
 
-Although the AIPW estimator can produce ATT estimates closely aligned with the experimental benchmark using LDW data, its performance for revealing the true CATT is considerably worse. 
+Although the AIPW estimator can produce ATT estimates closely aligned with the experimental benchmark using LDW data, its performance also in model B for revealing the true CATT is considerably worse. 
 ```{r, warning=FALSE}
 #| code-fold: show
 eval_catt(all_catt, plot_titles)
 ```
+
 In model B, using LDW-CPS1, the CATT estimates range from $-3,572.23 to $6,962.43. This span is much narrower than in model A, but still performs worse when contrasted with the experimental benchmark, where CATT estimates range from $-152.53 to $3,822.17 with a mean of $1,767.79. The experimental mean CATT remains closer to its corresponding ATT estimate, as already observed for model A. By contrast, LDW-PSID1 shows an even wider CATT range, from $-7,386.39 to	$4,515.71. Although narrower than in model A, its mean CATT estimate of about $646.13 lies further away from the experimental benchmark, indicating weaker performance.
 
 For trimmed and top-ranked CPS1 subsamples, CATT ranges vary considerably, yet the mean estimates are generally closer to the experimental benchmark, as in model A. Moreover, the minimum CATT values are less negative, which reduces the spread between minimum and maximum estimates.
@@ -1122,8 +1076,6 @@ Top-ranked PSID1 subsamples, on the other hand, again yield more negative mean C
 Hence as in model A, these results show that the variation in ranges and averages across methods and samples reflects substantial heterogeneity in treatment effect estimation. While subsampling and trimming strategies can sometimes improve consistency with experimental benchmarks, they may also introduce notable discrepancies and variability in estimated heterogeneous effects. 
 
 ### Quantile Treatment Effect on the Treated (QTET)
-
-QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by Firpo (2007). Implementation leverages the function `qte()` from Imbens and Xu (2024), while visualization employs a modified version of their function `plot_qte()`.
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
@@ -1156,7 +1108,6 @@ qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, tr
 qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The pink line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
@@ -1174,8 +1125,6 @@ These figures display QTET estimates derived from both the LDW experimental and 
 ADD EXPLANATION HERE
 
 ## Validation through Placebo Analyses
-
-To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating 1975 earnings (re75) as the outcome variable and omitting both re75 and u75 from the list of covariates. The analysis utilizes all previously considered samples, excluding re75 and u75 from the model. The ATT is then recomputed with the function `estimate_all`, conditioning only on the remaining set of covariates.
 ```{r, warning=FALSE}
 #| code-fold: show
 # define variables
@@ -1236,9 +1185,9 @@ plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
 save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "model_b_placebo")
 ```
 
-The *Placebo* ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
 #| code-fold: show
+# print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
 knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model B Placebo ATT Estimates and SEs for All Samples and Estimators")
 ```
@@ -1257,10 +1206,9 @@ save_csv(result_mat_pl, "LDW_att_estimates_pl_model_b")
 ```
 
 ## Sensitivity Analyses
-
-Finally, a sensitivity analyses using the LDW data is conducted and results are depicted in contour plots below using the function `sens_ana` of Imbens & Xu (2024).
 ```{r, warning=FALSE}
 #| code-fold: show
+# define variables
 Y <- "re78"
 treat <- "treat"
 covar <- c("age", "education", "black", "hispanic", "married", "nodegree", "re74", "re75", "u74", "u75")
@@ -1292,9 +1240,5 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 The sensitivity analysis demonstrates for LDW-Experimental, LDW-CPS1 and LDW-PSID1 identical results as in model A, once again indicating that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of re75, though it is important to note that, in comparison to model A, these values tend to be more negative, indicating a shift downward in effect estimates across these variant. 
 
 Notably, some samples such as LDW-PSID1 exhibit also in model B greater sensitivity with more pronounced swings including negative estimates at higher confounder strengths, contrasting with consistent positive effects in LDW-CPS1 variants. This stresses  sample-specific differences in robustness against potential unobserved confounding.
-
-::: callout-tip
-The analyses suggest that some samples maintain stable treatment effect estimates despite increasing confounder strength, while others show greater sensitivity. This highlights the importance of assessing robustness across different samples (respectively methods used to derive specific samples) to account for potential unobserved bias.
-:::
 
 # Summary
