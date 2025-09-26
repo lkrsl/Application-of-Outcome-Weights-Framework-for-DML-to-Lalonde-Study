@@ -1360,6 +1360,7 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
 }
 
 ## 4.4 Assessing outcome weights (OW)
+#### plot_ow()
 plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50, col = "#ff000080", xlab = "Outcome Weight", per_page = 4) {
   N <- length(outcome_weights)
   for (i in seq(1, N, by = per_page)) {
@@ -1375,6 +1376,34 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50, col = "#ff
         plot.new()
       }
     }
+  }
+  par(mfrow = c(1, 1))
+}
+
+#### save_ow()
+save_ow <- function(outcome_weights, plot_titles = NULL,
+                    breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
+                    per_page = 4, prefix = "model_a") {
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  N <- length(outcome_weights)
+  num_pages <- ceiling(N / per_page)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * per_page + 1
+    end_idx <- min(page * per_page, N)
+    plots_this_page <- end_idx - start_idx + 1
+    file_name <- sprintf("../graphs/lalonde/%s_outcomewt_%d.pdf", prefix, page)
+    pdf(file = file_name, width = 10, height = 12)
+    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
+    for (idx in start_idx:end_idx) {
+      weights <- outcome_weights[[idx]]$omega["AIPW-ATT", ]
+      main_title <- if (!is.null(plot_titles)) plot_titles[idx] else paste("Dataset", idx)
+      hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
+      mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
+    }
+    if (plots_this_page < per_page) {
+      for (k in seq_len(per_page - plots_this_page)) plot.new()
+    }
+    dev.off()
   }
   par(mfrow = c(1, 1))
 }

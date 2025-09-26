@@ -1230,13 +1230,22 @@ all_datasets <- c(
 #| code-fold: show
 # get outcome weights for ATT
 res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
-ow_att <- lapply(results_ow, function(res) get_outcome_weights(res$dml_fit))
+ow_att <- lapply(res_ow_att, function(res) get_outcome_weights(res$dml_fit))
 ```
+
 
 ```{r, warning=FALSE}
 #| code-fold: show
 #plot results
 plot_ow(ow_att, plot_titles)
+```
+
+ADD EXPLANATION HERE
+
+```{r}
+#| code-fold: show
+# save results
+save_ow(ow_att, plot_titles)
 ```
 
 ## Validation through placebo analyses
@@ -1298,6 +1307,7 @@ plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
 ```
 
 ```{r}
+#| code-fold: show
 # save results
 save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "model_a_placebo")
 ```
