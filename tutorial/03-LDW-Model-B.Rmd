@@ -650,8 +650,8 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```{r, class.source = "fold-show", fig.cap='FIGURE5.'}
 #| code-fold: show
 # visualize covariate balance
-plot_truncation_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
-plot_truncation_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
+plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
+plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
 ```
 
 ### Trimming

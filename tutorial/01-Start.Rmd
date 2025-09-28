@@ -72,7 +72,7 @@ If you are using RStudio, you should now see the functions in the environment se
 
 | `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`, `truncate_weights_fixed()`, `truncate_weights_percentile()`, `check_weights()`, `truncate_weights_adaptive()`, `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()` and `trim_attach_weights()` | Implements methods to improve covariate balancing and overlap. | [More](#impl-cov-bal-overl-mthds) |
 
-`get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_truncation_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()` and `save_top5_individual_files()` 
+`get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_trunc_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()` and `save_top5_individual_files()` 
 | Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#eval-mthds) |
 
 | `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `eval_catt()`, `plot_qtet_panels()` and `save_qtet_panels()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#est-and-plot-att-catt-qtet) |
@@ -613,9 +613,9 @@ compute_ess_trunc <- function(trunc_list, treat, covar, weight_cols) {
 - `covar`: A vector of covariate names.
 - `weight_cols`: The name of the columns holding the weights.
 
-`plot_truncation_methods()` produces love plots for various truncation methods and weight types, visualizing covariate balance before and after truncation.
+`plot_trunc_methods()` produces love plots for various truncation methods and weight types, visualizing covariate balance before and after truncation.
 ```{r class.source = 'fold-hide'}
-plot_truncation_methods <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL) {
+plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL) {
   for(trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
     for(wcol in weight_cols) {

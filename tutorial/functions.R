@@ -392,8 +392,8 @@ compute_ess_trunc <- function(trunc_list, treat, covar, weight_cols) {
 }
 
 ### 3.3.3 Visuals
-#### plot_truncation_methods()
-plot_truncation_methods <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL) {
+#### plot_trunc_methods()
+plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL) {
   for(trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
     for(wcol in weight_cols) {
@@ -907,15 +907,14 @@ aipw.match <- function(data, Y, treat, covar) { # match on ps
 }
 
 aipw_ow <- function(data, Y, treat, covar) {
-  # data prep as before
   for (var in c(Y, treat, covar)) {
     data[, var] <- as.vector(data[, var])
   }
   X <- data[, covar, drop = FALSE]
-  Y_vec <- data[, Y]
-  W_vec <- data[, treat]
+  Y <- data[, Y]
+  W <- data[, treat]
   # run dml_with_smoother with AIPW_ATT
-  dml_fit <- dml_with_smoother(Y = Y_vec, D = W_vec, X = X,
+  dml_fit <- dml_with_smoother(Y = Y, D = W, X = X,
                                estimators = c("AIPW_ATT"),
                                smoother = "honest_forest",
                                n_cf_folds = 5,
@@ -926,8 +925,7 @@ aipw_ow <- function(data, Y, treat, covar) {
   se <- summ["AIPW-ATT", "SE"]
   ci_lower <- est - 1.96 * se
   ci_upper <- est + 1.96 * se
-  return(list(summary = c(est, se, ci_lower, ci_upper), dml_fit = dml_fit))
-  #return(c(est, se, ci_lower, ci_upper))
+  return(c(est, se, ci_lower, ci_upper))
 }
 
 ### This script checks for robustness by estimating original model
@@ -1285,127 +1283,112 @@ eval_catt <- function(all_catt, plot_titles) {
 
 ## 4.3 QTET
 #### plot_qtet_panels()
-plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000)) {
-  panels_per_page <- 4  # for 2x2 grid
-  num_panels <- length(all_qtet)
-  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * panels_per_page + 2  # skip the experimental reference itself
-    end_idx   <- min(page * panels_per_page + 1, num_panels)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
-    for (i in start_idx:end_idx) {
-      comp_qte <- all_qtet[[i]]
-      if (!is.null(comp_qte)) {
-        plot_qte(
-          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
-          bm = experimental_qte, # blue reference line (always the experimental)
-          main = plot_titles[i],
-          ylim = ylim
-        )
-        legend("bottomleft",
-               legend = c("Experimental", "Method"),
-               lty = 1,
-               pch = c(16, 16),
-               col = c(4, 1),
-               bty = "n"
-        )
-      }
-    }
-    # if last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
-    plots_this_page <- end_idx - start_idx + 1
-    if (plots_this_page < panels_per_page) {
-      for (k in seq_len(panels_per_page - plots_this_page)) {
-        plot.new()
-      }
-    }
+plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, ylim = NULL, col = NULL) {
+  n <- length(qtet_top)
+  for (i in 1:n) {
+    main_title <- plot_titles[main_start + i - 1]
+    mod <- qtet_top[[i]]
+    mod2 <- qtet_top0[[i]]
+    plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
+    
+    # Add legend on each plot if desired
+    legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
+           lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
   }
 }
 
 #### save_qtet_panels()
-save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_a") {
-  panels_per_page <- 4  # for 2x2 grid
-  num_panels <- length(all_qtet)
-  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
+save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
+                                ylim = NULL, col = NULL, prefix = "model_a_top") {
+  n <- length(qtet_top)
   dir.create("../figures", showWarnings = FALSE, recursive = TRUE)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * panels_per_page + 2  # skip experimental reference itself
-    end_idx   <- min(page * panels_per_page + 1, num_panels)
-    plots_this_page <- end_idx - start_idx + 1
-    file_name <- sprintf("../figures/%s_qtet_estimates_%d.pdf", prefix, page)
-    pdf(file = file_name, width = 12, height = 10)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
-    for (i in start_idx:end_idx) {
-      comp_qte <- all_qtet[[i]]
-      if (!is.null(comp_qte)) {
-        plot_qte(
-          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
-          bm = experimental_qte, # blue reference line (always the experimental)
-          main = plot_titles[i],
-          ylim = ylim
-        )
-        legend("bottomleft",
-               legend = c("Experimental", "Method"),
-               lty = 1,
-               pch = c(16, 16),
-               col = c(4, 1),
-               bty = "n")
-      }
-    }
-    # Fill remaining spots on the page if fewer than 4 actual panels
-    if (plots_this_page < panels_per_page) {
-      for (k in seq_len(panels_per_page - plots_this_page)) plot.new()
-    }
+  for (i in seq_len(n)) {
+    mod <- qtet_top[[i]]
+    mod2 <- qtet_top0[[i]]
+    main_title <- plot_titles[main_start + i - 1]
+    file_name <- sprintf("../figures/%s_qte_estimates_%s.pdf", prefix, main_title)
+    pdf(file = file_name, width = 7, height = 5)
+    plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
+    legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
+           lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
     dev.off()
   }
 }
 
 ## 4.4 Assessing outcome weights (OW)
+#### get_att_results()
+get_res_att <- function(dataset_list, Y, treat, covar,
+                            estimators = "AIPW_ATT",
+                            smoother = "honest_forest",
+                            n_cf_folds = 5,
+                            n_reps = 1) {
+  lapply(
+    dataset_list,
+    function(data) {
+      dml_with_smoother(
+        Y = data[[Y]],
+        D = data[[treat]],
+        X = data[, covar, drop = FALSE],
+        estimators = estimators,
+        smoother = smoother,
+        n_cf_folds = n_cf_folds,
+        n_reps = n_reps
+      )
+    }
+  )
+}
+
+#### derive_ow()
+derive_ow <- function(results_list) {
+lapply(results_list, function(res) get_outcome_weights(res))
+}
+
 #### plot_ow()
-plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50, col = "#ff000080", xlab = "Outcome Weight", per_page = 4) {
+plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50, 
+                    col = "#ff000080", xlab = "Outcome Weight", 
+                    estimand = "AIPW-ATT") {
   N <- length(outcome_weights)
-  for (i in seq(1, N, by = per_page)) {
-    par(mfrow = c(2, 2))
-    for (j in 0:(per_page - 1)) {
-      idx <- i + j
-      if (idx <= N) {
-        weights <- outcome_weights[[idx]]$omega["AIPW-ATT", ]
-        main_title <- if (!is.null(plot_titles)) plot_titles[idx] else paste("Dataset", idx)
-        hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
-        mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
-      } else {
-        plot.new()
-      }
+  for (i in seq_len(N)) {
+    weights <- outcome_weights[[i]]$omega[estimand, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
+    mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
+    # Pause between plots in interactive mode
+    if (interactive() && i < N) {
+      readline(prompt = "Press [Enter] to continue to next plot...")
     }
   }
   par(mfrow = c(1, 1))
 }
 
+#### check_ow_prop()
+check_ow_prop <- function(outcome_weights_list, dataset_list, treat_var = "treat", estimand = "AIPW-ATT") {
+  sapply(seq_along(outcome_weights_list), function(i) {
+    ow <- outcome_weights_list[[i]]$omega[estimand, ]
+    treat <- dataset_list[[i]][[treat_var]]
+    sum_treated <- sum(ow[treat == 1])
+    sum_untreated <- sum(ow[treat == 0])
+    c(sum_treated = sum_treated, sum_untreated = sum_untreated)
+  }) %>% t() %>% as.data.frame()
+}
+
+
 #### save_ow()
 save_ow <- function(outcome_weights, plot_titles = NULL,
                     breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
-                    per_page = 4, prefix = "model_a") {
+                    prefix = "model_a", estimand = "AIPW-ATT") {
   dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   N <- length(outcome_weights)
-  num_pages <- ceiling(N / per_page)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * per_page + 1
-    end_idx <- min(page * per_page, N)
-    plots_this_page <- end_idx - start_idx + 1
-    file_name <- sprintf("../graphs/lalonde/%s_outcomewt_%d.pdf", prefix, page)
-    pdf(file = file_name, width = 10, height = 12)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
-    for (idx in start_idx:end_idx) {
-      weights <- outcome_weights[[idx]]$omega["AIPW-ATT", ]
-      main_title <- if (!is.null(plot_titles)) plot_titles[idx] else paste("Dataset", idx)
-      hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
-      mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
-    }
-    if (plots_this_page < per_page) {
-      for (k in seq_len(per_page - plots_this_page)) plot.new()
-    }
+  
+  for (i in seq_len(N)) {
+    file_name <- sprintf("../graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
+    pdf(file = file_name, width = 8, height = 6)
+    weights <- outcome_weights[[i]]$omega[estimand, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
+    mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
     dev.off()
   }
-  par(mfrow = c(1, 1))
 }
 
 # 5. Sensitivity Analysis

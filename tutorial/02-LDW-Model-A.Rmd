@@ -397,30 +397,24 @@ for (wcol in weight_columns) {
   if (wcol %in% names(ldw_psid_plus)) {
     check_weights(ldw_psid_plus, wcol)
   } else {
-    cat("Column", wcol, "not found in ldw_cps.plus\n")
+    cat("Column", wcol, "not found in ldw_psid.plus\n")
   }
 }
 ```
 
-Regarding these results we only apply adaptive weight truncation to `ipw, smr, overlap` and `ebal` weights, where it may help mitigate the influence of extreme weights. 
-```{r}
-#| code-fold: show
-# list weights that are valid 
-weight_columns_at <- c("ipw_weight", "smr_weight", "overlap_weight", "ebal_weight")
-```
-
+Regarding these results we apply adaptive weight truncation to all weights, where it may help mitigate the influence of extreme weights. 
 ```{r}
 #| code-fold: show
 # truncate adaptively at mean + 3 standard deviations 
 ldw_cps_plus.adapt <- ldw_cps_plus
-for (wcol in weight_columns_at) {
+for (wcol in weight_columns) {
   if (wcol %in% names(ldw_cps_plus.adapt)) {
     ldw_cps_plus.adapt <- truncate_weights_adaptive(ldw_cps_plus.adapt, weight_col = wcol, c = 3)
   }
 }
 
 ldw_psid_plus.adapt <- ldw_psid_plus
-for (wcol in weight_columns_at) {
+for (wcol in weight_columns) {
   if (wcol %in% names(ldw_psid_plus.adapt)) {
     ldw_psid_plus.adapt <- truncate_weights_adaptive(ldw_psid_plus.adapt, weight_col = wcol, c = 3)
   }
@@ -709,8 +703,8 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```{r, class.source = "fold-show", fig.cap='FIGURE5.'}
 #| code-fold: show
 # visualize covariate balance
-plot_truncation_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
-plot_truncation_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
+plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
+plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
 ```
 
 ### Trimming
@@ -1201,14 +1195,41 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The pink line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
-# combine all qte objects in order 
-all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5_cps_plus, qte.top5_psid_plus)
+# CPS
+plot_qte(qte.ldw_cps, qte.ldw.cps0, qte.ldw, main = "LDW-CPS", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# plot results
-plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000))
+# PSID
+plot_qte(qte.ldw_psid, qte.ldw.psid0, qte.ldw, main = "LDW-PSID", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
+## CPS trimmed
+plot_qte(qte.ldw_cps.trim, qte.ldw_cps.trim0, qte.ldw_cps, main = "LDW-CPS (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# PSID trimmed
+plot_qte(qte.ldw_psid.trim, qte.ldw_psid.trim0, qte.ldw_psid, main = "LDW-PSID (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+```
+
+```{r, warning=FALSE}
+# CPS top methods
+plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000))
+
+# PSID top methods
+plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
+```
+
+```{r, warning=FALSE}
 # save results
-save_qtet_panels(all_qtet, plot_titles, qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+save_qtet()
+save_qtet()
+
+save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, 
+                    main_start = 6, ylim = c(-25000, 15000), prefix = "model_a_top_cps")
+save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, 
+                    main_start = 11, ylim = c(-25000, 15000), prefix = "model_a_top_psid")
 ```
 
 These figures display QTET estimates derived from both the LDW experimental and various non-experimental samples. The QTETs estimated from the original and trimmed LDW-CPS1 samples generally correspond well with the true QTET, although the estimates often suffer from low power. In contrast, QTET estimates from the original and trimmed LDW-PSID1 samples show clear biases when compared to the experimental benchmark, which clusters near zero. The QTET estimates derived from the top-ranked subsamples ...
@@ -1228,24 +1249,29 @@ all_datasets <- c(
 
 ```{r, warning=FALSE}
 #| code-fold: show
-# get outcome weights for ATT
-res_ow_att <- lapply(all_datasets, function(d) aipw_ow(d, Y, treat, covar))
-ow_att <- lapply(res_ow_att, function(res) get_outcome_weights(res$dml_fit))
+# estimate ATT 
+res_att <- get_res_att(all_datasets, Y, treat, covar)
+# extract outcome weights
+ow_att <- derive_ow(res_att)
 ```
-
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#plot results
-plot_ow(ow_att, plot_titles)
+plot_ow(ow_att, plot_titles) 
 ```
 
 ADD EXPLANATION HERE
 
-```{r}
+```{r, warning=FALSE}
 #| code-fold: show
-# save results
-save_ow(ow_att, plot_titles)
+#save results
+check_ow_prop(ow_att, all_datasets, treat_var = treat, estimand = "AIPW-ATT")
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+#save results
+save_ow(ow_att, plot_titles, prefix = "model_a")
 ```
 
 ## Validation through placebo analyses
