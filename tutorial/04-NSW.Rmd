@@ -7,7 +7,7 @@ date: "2025-05-08"
 # LaLonde (NSW) Data 
 This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 in the original LaLonde dataset (loaded as `nsw` below, similar to Imbens & Xu). 
 
-For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the nsw–specific results.
+For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only explain the nsw–specific results.
 
 # Set up
 ## Source functions and load data
@@ -21,6 +21,11 @@ source("functions.R")
 ```{r}
 # load data
 load("data/lalonde.RData")
+```
+
+```{r}
+# set seed
+set.seed(42)
 ```
 
 ## Load and preprocess data (LaLonde (NSW))

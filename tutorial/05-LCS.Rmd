@@ -23,6 +23,11 @@ source("functions.R")
 load("data/lcs.RData")
 ```
 
+```{r}
+# set seed
+set.seed(42)
+```
+
 ## Load and preprocess data 
 ```{r}
 #| code-fold: show

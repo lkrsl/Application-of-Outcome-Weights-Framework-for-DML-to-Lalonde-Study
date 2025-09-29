@@ -5,9 +5,9 @@ date: "2025-05-08"
 ---
 
 # LaLonde-Dehejia-Wahba (LDW) Data
-This section (3) covers model B, which, similar to model A, uses 1978 earnings (`re78`) as the outcome variable but adjusts for a slightly different set of covariates: age, education, race indicators (black, hispanic), marital status, lack of a high school degree, 1975 earnings (`re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`), explicitly excluding 1974 earnings (`re74`) to test the model’s robustness. The model is specified via a logistic regression formula based on these covariates. To enhance covariate balance between treated and control groups, the same comprehensive suite of methods is employed as in model A, organized into five categories. From these approaches, the top 5 ranked methods are selected based on absolute standardized mean differences (SMDs) and effective sample size (ESS), and their resulting datasets are used to estimate the Average Treatment Effect on the Treated (ATT). This estimation process also incorporates the Augmented Inverse Probability Weighting (AIPW) estimator from the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify patterns in the contribution of individual observations to each estimator. Placebo tests are then conducted using 1975 earnings (`re75`) as the outcome variable to assess potential biases and the validity of the unconfoundedness assumption. Finally, sensitivity analyses are performed to evaluate the robustness of the treatment effect estimates to violations of these assumptions.
+This section (3) covers model B, which, similar to model A, uses 1978 earnings (`re78`) as the outcome variable but adjusts for a slightly different set of covariates: age, education, race indicators (black, hispanic), marital status, lack of a high school degree, 1975 earnings (`re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`), explicitly excluding 1974 earnings (`re74`) to test the model’s robustness. The model is specified via a logistic regression formula based on these covariates. To enhance covariate balance between treated and untreated groups, the same comprehensive suite of methods is employed as in model A, organized into five categories. From these approaches, the top 5 ranked methods are selected based on absolute standardized mean differences (SMDs) and effective sample size (ESS), and their resulting datasets are used to estimate the average treatment effect on the treated (ATT). This estimation process also incorporates the augmented inverse probability weighting (AIPW) estimator from the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify patterns in the contribution of individual observations to the ATT. Placebo tests are then conducted using 1975 earnings (`re75`) as the outcome variable to assess potential biases and the validity of the unconfoundedness assumption. Finally, sensitivity analyses are performed to evaluate the robustness of the treatment effect estimates to violations of these assumptions.
 
-For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the model B–specific results.
+For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only explain the model B–specific results.
 
 # Set up
 ## Source functions and load data
@@ -21,6 +21,11 @@ source("functions.R")
 ```{r}
 # load data
 load("data/lalonde.RData")
+```
+
+```{r}
+# set seed
+set.seed(42)
 ```
 
 ## Inspect data
@@ -77,7 +82,7 @@ covar <- c("age", "education", "black", "hispanic", "married",
 
 ## Assessing overlap and covariate balance
 ### Overlap
-```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
+```{r, class.source = "fold-show", fig.cap='FIGURE B1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
 ldw.ps <- assess_overlap(data = ldw, treat = treat, cov = covar)
@@ -85,11 +90,11 @@ ldw_cps.ps <- assess_overlap(data = ldw_cps, treat = treat, cov = covar)
 ldw_psid.ps <- assess_overlap(data = ldw_psid, treat = treat, cov = covar) 
 ```
 
-```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureA:LDW-CPS1-PLUS. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, class.source = "fold-show", fig.cap='FIGURE B2. SubfigureD:LDW-CPS1-PLUS. SubfigureE:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 #| code-fold: show
 # assess overlap
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
-ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar) 
+ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar)
 ```
 
 ```{r}
@@ -99,16 +104,16 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
 ### Covariate balance
-```{r, message=FALSE, warning=FALSE}
-love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
-love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
-love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
-love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")         
-
+```{r, class.source = "fold-show", fig.cap='FIGURE B3. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 bal.tab(model, data = ldw_cps, treat = "treat")
 bal.tab(model, data = ldw_cps_plus, treat = "treat")
 bal.tab(model, data = ldw_psid, treat = "treat")
 bal.tab(model, data = ldw_psid_plus, treat = "treat")
+
+love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
+love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
+love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
+love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")
 ```
 
 ## Improving primarily covariate balance
@@ -198,7 +203,6 @@ m.out.psid_plus.genetic <- matchit(model, data = ldw_psid_plus, method = "geneti
 
 #### Stratum matching
 ##### Exact matching (exact)
-Strata = unique covariate profiles (raw covariates)
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # match units exactly by raw covariate profiles 
@@ -207,7 +211,6 @@ m.out.psid_plus.exact <- matchit(model, data = ldw_psid_plus, method = "exact")
 ```
 
 ##### Coarsened matching (cem)
-Strata = coarsened versions of covariates
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # match units exactly within coarse strata 
@@ -216,7 +219,6 @@ m.out.psid_plus.cem <- matchit(model, data = ldw_psid_plus, method = "cem")
 ```
 
 ##### Subclassification 
-Strata = bins of the propensity score
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # partition sample into fixed number of bins based on propensity score 
@@ -430,7 +432,7 @@ ldw_cps_plus.walker   <- walker_trim(ldw_cps_plus.ps)
 ldw_psid_plus.walker  <- walker_trim(ldw_psid_plus.ps)
 ```
 
-### Combination of methods
+### Integrated methods
 ```{r}
 #| code-fold: show
 # list trimming methods
@@ -546,7 +548,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = ldw_psid_plus, un = TRUE, weights
 #### SMD
 ```{r}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_matchit.cps_plus <- compute_abs_smd_matchit(methods.cps_plus)
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
@@ -560,7 +562,7 @@ ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE3.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE B4.'}
 #| code-fold: show
 # visualize covariate balance 
 plot_matchit(methods.cps_plus, "LDW-CPS1-PLUS")
@@ -591,7 +593,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_weight.cps_plus <- compute_abs_smd_weight(ldw_cps_plus, "treat", covar, weight_columns)
 smd_weight.psid_plus <- compute_abs_smd_weight(ldw_psid_plus, "treat", covar, weight_columns)
 ```
@@ -605,11 +607,11 @@ ess_weight.psid_plus <- compute_ess_weight(ldw_psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE4.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE B5.'}
 #| code-fold: show
 # visualize covariate balance
-plot_weighting_methods(ldw_cps_plus, "treat", covar, weight.cps_plus, "LDW-CPS1-PLUS") 
-plot_weighting_methods(ldw_psid_plus, "treat", covar, weight.psid_plus, "LDW-PSID1-PLUS")
+#plot_weighting_methods(ldw_cps_plus, "treat", covar, weight.cps_plus, "LDW-CPS1-PLUS") 
+#plot_weighting_methods(ldw_psid_plus, "treat", covar, weight.psid_plus, "LDW-PSID1-PLUS")
 ```
 
 ### Truncation
@@ -647,11 +649,11 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE5.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE B6.'}
 #| code-fold: show
 # visualize covariate balance
-plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
-plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
+#plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
+#plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
 ```
 
 ### Trimming
@@ -681,7 +683,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_trim.cps_plus <- compute_abs_smd_trim(trim.cps_plus, "treat", covar)
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
@@ -695,14 +697,14 @@ ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE6.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE B7.'}
 #| code-fold: show
 # visualize overlap
 plot_trim(trim.cps_plus, treat, covar)
 plot_trim(trim.psid_plus, treat, covar)
 ```
 
-```{r, class.source = "fold-show", fig.cap='FIGURE7.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE B8.'}
 #| code-fold: show
 # visualize covariate balance
 love.plot(ldw_cps, ldw_cps.trim_match, treat, covar = covar, title = "LDW-CPS1-PLUS - propensity threshold trimming")
@@ -718,7 +720,7 @@ love.plot(ldw_psid_plus, ldw_psid_plus.stuermer, treat, covar, title = "LDW-PSID
 love.plot(ldw_psid_plus, ldw_psid_plus.walker,  treat, covar, title = "LDW-PSID1-PLUS - walker trimming")
 ```
 
-## Combined methods
+## Integrated methods
 ```{r}
 # list all combined method results
 comb_meth.cps_plus <- list(
@@ -751,20 +753,17 @@ ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "tr
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE8.'}
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE B9.'}
 # visualize overlap
 plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE9.'} 
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE B10.'} 
 # visualize covariate balance
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
-Across all combined methods, the overlap plots for model B also show highly comparable distributions of propensity score log odds across the various trimming and weighting strategies. 
-
-### Getting top methods and datasets
-
+### Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps_plus <- combine_results("cps_plus")
@@ -795,7 +794,6 @@ top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 save_csv(top5_methods.cps_plus, "CPS1_PLUS_top5_methods_model_b")
 save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_model_b")
 ```
-The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 
 ```{r}
 dataset_list_cps <- list(
@@ -944,6 +942,7 @@ save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "
 ## Estimating
 ### Average treatment effect on the treated (ATT)
 ```{r, message=FALSE, warning=FALSE}
+# estimate ATT
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
@@ -1001,9 +1000,11 @@ save_att_panels(all_outs, plot_titles, band, est, "model_b")
 
 As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples for both LDW-CPS1 and LDW-PSID1 based on various matching and trimming criteria. Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational estimators. Figures (B) and C3) show results for the observational samples, LDW-CPS1 and LDW-PSID1, respectively, while figures (D) and (E) present those for the trimmed versions. Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
 
-Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yield ATT estimates that cluster near the experimental benchmark, overall slightly closer than in model A but with greater standard errors. Notable deviations remain for the `overlap_crump` and `ps_threshold` subsamples, while the `optimal_pair` and `overlap_crump` subsamples yield occasional negative estimates. By contrast, all estimates for the `mahvars` subsample are now positive.
+For LDW-CPS1, the top-ranked samples are based on the same methods as in model A. However, for the LDW-PSID1, the top-ranked samples are based on different methods in two instances.
 
-For LDW-PSID1 and its subsamples, the estimates continue to exhibit greater dispersion and considerably larger standard errors compared to LDW-CPS1 samples. Most ATT estimates remain negative, although closer to the benchmark than in model A, highlighting persistent methodological uncertainty. Positive estimates are limited to the  `overlap_crump` and `fix_max_value_trunc_overlap_weight` subsamples.
+Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yield ATT estimates that cluster near the experimental benchmark, overall slightly closer than in model A but with greater standard errors. Notable deviations from the experimental benchmark remain for the `optimal_pair` and `overlap_crump` subsamples.
+
+For LDW-PSID1 and its subsamples, the estimates continue to exhibit greater dispersion and considerably larger standard errors compared to LDW-CPS1 sample, but closer to the benchmark than in model A. 
 ```{r, warning=FALSE}
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
@@ -1022,7 +1023,7 @@ knitr::kable(result_mat, booktabs = TRUE, caption = "Model B ATT Estimates and S
 
 As in model A, the tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. 
 
-In model B, most CPS1-based samples yield estimates that are closer to the experimental benchmark than in model A, with still modest variance. By contrast, the PSID1-based estimates, while somewhat closer to the experimental benchmark than in model A, continue to exhibit substantially larger standard errors. This again reflects the greater challenge of achieving balance and overlap in this observational dataset for PSID1 compared to CPS1.
+In model B, most CPS1-based samples yield estimates that are closer to the experimental benchmark than in model A, with still modest variance. By contrast, the PSID1-based estimates, while somewhat closer to the experimental benchmark than in model A, continue to exhibit substantially larger standard errors. This again reflects the greater challenge of obtaining reliable estimates from the observational PSID1 dataset compared to CPS1.
 
 Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that trimming samples can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r}

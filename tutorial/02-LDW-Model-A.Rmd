@@ -20,7 +20,7 @@ In section 4, the analysis applies the same set of statistical tools to analyze 
 In the last section, the analysis applies a reduced set of statistical tools to analyze a fifth sample again as an additional demonstration:
 (5) LaLonde female samples (2017).
 
-This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked are identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets are used to estimate the Average Treatment effect on the Treated (ATT). Notably, the estimation incorporates the recently introduced Augmented Inverse Probability Weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
+This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked are identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets are used to estimate the average treatment effect on the treated (ATT). Notably, the estimation incorporates the recently introduced augmented inverse probability weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
 
 # Set up
 ## Source functions and load data
@@ -100,7 +100,7 @@ covar <- c("age", "education", "black", "hispanic", "married",
 To identify the average causal effect under unconfoundedness (that asserts that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and untreated units (meaning that for every combination of covariates, there are both treated and untreated units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess overlaps in the propensity scores and to visualize results using histograms of their log-odds.
 
 In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable coverage.
-```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
+```{r, class.source = "fold-show", fig.cap='FIGURE A1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
 ldw.ps <- assess_overlap(data = ldw, treat = treat, cov = covar)
@@ -111,7 +111,7 @@ ldw_psid.ps <- assess_overlap(data = ldw_psid, treat = treat, cov = covar)
 As anticipated, LDW-Experimental exhibits an almost perfect overlap. In contrast, the observational datasets LDW-CPS1 and LDW-PSID1 show weak overlap. In particular, many treated units have propensity scores outside the range of the controls, while a large share of control units have propensity scores concentrated at very low log-odds.
 
 Next, we examine the overlap of the expanded observational datasets. 
-```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureA:LDW-CPS1-PLUS. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, class.source = "fold-show", fig.cap='FIGURE A2. SubfigureD:LDW-CPS1-PLUS. SubfigureE:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 #| code-fold: show
 # assess overlap
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
@@ -129,7 +129,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ### Covariate balance
 
 Initial covariate balance checks reveal the degree to which treatment and control groups differ on observed characteristics. We employ the `bal.tab()` function from the cobalt package to generate detailed balance statistics, complemented by visual summaries using `love.plot()`, which depicts standardized mean differences across covariates before and after adjustment.
-```{r, message=FALSE, warning=FALSE}
+```{r, class.source = "fold-show", fig.cap='FIGURE A3. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 bal.tab(model, data = ldw_cps, treat = "treat")
 bal.tab(model, data = ldw_cps_plus, treat = "treat")
 bal.tab(model, data = ldw_psid, treat = "treat")
@@ -613,7 +613,7 @@ ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE3.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE A4.'}
 #| code-fold: show
 # visualize covariate balance 
 plot_matchit(methods.cps_plus, "LDW-CPS1-PLUS")
@@ -658,7 +658,7 @@ ess_weight.psid_plus <- compute_ess_weight(ldw_psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE4.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE A5.'}
 #| code-fold: show
 # visualize covariate balance
 #plot_weighting_methods(ldw_cps_plus, "treat", covar, weight.cps_plus, "LDW-CPS1-PLUS") 
@@ -700,7 +700,7 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE5.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE A6.'}
 #| code-fold: show
 # visualize covariate balance
 #plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
@@ -748,14 +748,14 @@ ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE6.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE A7.'}
 #| code-fold: show
 # visualize overlap
 plot_trim(trim.cps_plus, treat, covar)
 plot_trim(trim.psid_plus, treat, covar)
 ```
 
-```{r, class.source = "fold-show", fig.cap='FIGURE7.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE A8.'}
 #| code-fold: show
 # visualize covariate balance
 love.plot(ldw_cps, ldw_cps.trim_match, treat, covar = covar, title = "LDW-CPS1-PLUS - propensity threshold trimming")
@@ -804,12 +804,12 @@ ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "tr
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE8.'}
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE A9.'}
 # visualize overlap
 plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE9.'} 
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE A10.'} 
 # visualize covariate balance
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
@@ -1010,6 +1010,7 @@ We employ a broad set of estimators, including difference-in-means, regression, 
 
 We utilize the `estimate_all()` and `plot_coef()` functions as defined by Imbens & Xu (2024).
 ```{r, message=FALSE, warning=FALSE}
+# estimate ATT
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
@@ -1055,7 +1056,7 @@ plot_titles <- c(base_titles, top5_titles.cps_plus, top5_titles.psid_plus)
 all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 10. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A11. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
@@ -1133,7 +1134,7 @@ Then, we employ a modified version of the function `plot_catt()` from Imbens & X
 ::: callout-tip
 Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
 :::
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates Model A using LDW Data"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A12. CATT Estimates Model A using LDW Data"}
 #| code-fold: show
 # combine all catt objects 
 all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
@@ -1194,7 +1195,7 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 ```
 
 Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The red line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A13. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # CPS
 plot_qte(qte.ldw_cps, qte.ldw.cps0, qte.ldw, main = "(B) LDW-CPS", ylim = c(-25000, 15000))
@@ -1212,9 +1213,7 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty =
 plot_qte(qte.ldw_psid.trim, qte.ldw_psid.trim0, qte.ldw_psid, main = "(E) LDW-PSID (Trimmed)", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
-```
 
-```{r, warning=FALSE}
 # CPS top methods
 plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000))
 
@@ -1250,7 +1249,7 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, warning=FALSE}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A14. Outcome Weights Model A using LDW Data"}
 #| code-fold: show
 plot_ow(ow_att, plot_titles) 
 ```
@@ -1322,7 +1321,7 @@ out15_pl <- out.psid_pl[[5]]
 all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl), out.cps_pl, out.psid_pl)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 13. Placebo Test Model B: '75 Earnings as the Outcome"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A15. Placebo Test Model B: '75 Earnings as the Outcome"}
 #| code-fold: show
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
@@ -1377,7 +1376,7 @@ datasets_sens <- c(list(ldw, ldw_cps, ldw_psid), top5_datasets.cps_plus, top5_da
 filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 14. Sensitivity Analyses Model A"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A16. Sensitivity Analyses Model A"}
 #| code-fold: show
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
