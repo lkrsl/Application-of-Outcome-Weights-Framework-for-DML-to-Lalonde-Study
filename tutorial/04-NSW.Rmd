@@ -5,7 +5,7 @@ date: "2025-05-08"
 ---
 
 # LaLonde (NSW) Data 
-This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 in the original LaLonde dataset (loaded as `nsw` below, similar to Imbens & Xu). 
+This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde dataset (loaded as `nsw` below, similar to Imbens & Xu). 
 
 For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only explain the nsw–specific results.
 
@@ -57,7 +57,7 @@ covar <- c("age", "education", "black", "hispanic", "married",
 
 ## Assessing overlap and covariate balance
 ### Overlap
-```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
+```{r, class.source = "fold-show", fig.cap='FIGURE C1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
 nsw.ps <- assess_overlap(data = nsw, treat = treat, cov = covar)
@@ -67,14 +67,14 @@ nsw_psid.ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar)
 
 As anticipated, the NSW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets NSW-CPS1 and NSW-PSID1 display weak overlap. 
 
-```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureA:NSW-CPS1-PLUS. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, class.source = "fold-show", fig.cap='FIGURE C1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 #| code-fold: show
 # assess overlap
 nsw_cps_plus.ps <- assess_overlap(data = nsw_cps_plus, treat = treat, cov = covar) 
 nsw_psid_plus.ps <- assess_overlap(data = nsw_psid_plus, treat = treat, cov = covar) 
 ```
 
-With the expanded datasets NSW-CPS1 and NSW-PSID1, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater spread of log-odds densities across both samples.
+With the expanded datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater coverage of log-odds densities across both samples.
 
 ```{r}
 #| code-fold: show
@@ -83,7 +83,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
 ### Covariate balance
-```{r, message=FALSE, warning=FALSE}
+```{r, class.source = "fold-show", fig.cap='FIGURE C2. SubfigureA:NSW-CPS1. SubfigureB:NSW-CPS1-PLUS. SubfigureC:NSW-PSID1. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 love.plot(nsw, nsw_cps, treat, covar = covar, title = "NSW-CPS1")
 love.plot(nsw, nsw_cps_plus, treat, covar = covar, title = "NSW-CPS1-PLUS")
 love.plot(nsw, nsw_psid, treat, covar = covar, title = "NSW-PSID1")
@@ -97,7 +97,7 @@ bal.tab(model, data = nsw_psid_plus, treat = "treat")
 
 Neither NSW-CPS1-PLUS nor NSW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
 
-In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS are used. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS are considered. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
 
 ## Improving primarily covariate balance
 ### Matching 
@@ -372,7 +372,7 @@ for (wcol in weight_columns) {
 ```
 
 ### Trimming 
-#### Propensity score threshold trimming (analogous to tutorial of Imbens & Xu (2024))
+#### Propensity score threshold trimming (analogous to Imbens & Xu (2024))
 ```{r}
 #| code-fold: show
 # apply trimming with thresholds 0.85 
@@ -424,7 +424,7 @@ nsw_cps_plus.walker   <- walker_trim(nsw_cps_plus.ps)
 nsw_psid_plus.walker  <- walker_trim(nsw_psid_plus.ps)
 ```
 
-### Combination of methods
+### Integrated methods
 ```{r}
 #| code-fold: show
 # list trimming methods
@@ -554,7 +554,7 @@ ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE3.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE C3.'}
 #| code-fold: show
 # visualize covariate balance 
 plot_matchit(methods.cps_plus, "NSW-CPS1-PLUS")
@@ -599,7 +599,7 @@ ess_weight.psid_plus <- compute_ess_weight(nsw_psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE4.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE C4.'}
 #| code-fold: show
 # visualize covariate balance
 plot_weighting_methods(nsw_cps_plus, "treat", covar, weight.cps_plus, "NSWW-CPS1-PLUS") 
@@ -641,7 +641,7 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE5.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE C5.'}
 #| code-fold: show
 # visualize covariate balance
 plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "NSW-CPS1-PLUS")
@@ -689,14 +689,14 @@ ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE6.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE C6.'}
 #| code-fold: show
 # visualize overlap
 plot_trim(trim.cps_plus, treat, covar)
 plot_trim(trim.psid_plus, treat, covar)
 ```
 
-```{r, class.source = "fold-show", fig.cap='FIGURE7.'}
+```{r, class.source = "fold-show", fig.cap='FIGURE C7.'}
 #| code-fold: show
 # visualize covariate balance
 love.plot(nsw_cps, nsw_cps.trim_match, treat, covar = covar, title = "NSW-CPS1-PLUS - propensity threshold trimming")
@@ -745,19 +745,19 @@ ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "tr
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE8.'}
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE C8.'}
 # visualize overlap
 plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE9.'} 
+```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE C9.'} 
 # visualize covariate balance
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ADD EXPLANATION HERE
 
-### Getting top methods and datasets
+### Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps_plus <- combine_results("cps_plus")
@@ -980,7 +980,7 @@ plot_titles <- c(base_titles, top5_titles.cps_plus, top5_titles.psid_plus)
 all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 10. ATT Estimates Given Unconfoundedness using NSW Samples"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C10. ATT Estimates Given Unconfoundedness using NSW Samples"}
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
@@ -995,7 +995,6 @@ save_att_panels(all_outs, plot_titles, band, est, "nsw")
 ADD EXPLANATION HERE
 
 ```{r, warning=FALSE}
-
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
@@ -1003,7 +1002,6 @@ rownames(att_summary) <- plot_titles
 att_summary
 ```
 
-The ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
 #| code-fold: show
 # get result matrix
@@ -1035,7 +1033,7 @@ catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, trea
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates using NSW Data"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C11. CATT Estimates using NSW Data"}
 #| code-fold: show
 # combine all catt objects 
 all_catt <- c(list(catt.nsw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
@@ -1089,7 +1087,7 @@ qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, tr
 qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 # combine all qte objects in order 
 all_qtet <- c(list(qte.nsw, qte.nsw_cps, qte.nsw_psid, qte.nsw_cps.trim, qte.nsw_psid.trim), qte.top5.cps, qte.top5.psid)
@@ -1099,6 +1097,44 @@ plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.nsw, plots_per_pa
 
 # save results
 save_qtet_panels(all_qtet, plot_titles, qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+```
+
+ADD EXPLANATION HERE
+
+### Assessing outcome weights (OW)
+```{r, warning=FALSE}
+#| code-fold: show
+# list all datasets
+all_datasets <- c(
+  list(ldw, ldw_cps, ldw_psid, ldw_cps.trim_match, ldw_psid.trim_match),
+  top5_datasets.cps_plus,
+  top5_datasets.psid_plus
+)
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+# estimate ATT 
+res_att <- get_res_att(all_datasets, Y, treat, covar)
+# extract outcome weights
+ow_att <- derive_ow(res_att)
+```
+
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B13. Outcome Weights using NSW Data"}
+#| code-fold: show
+plot_ow(ow_att, plot_titles) 
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+#save results
+eval_ow_prop(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+#save results
+save_ow(ow_att, plot_titles, prefix = "nsw")
 ```
 
 ADD EXPLANATION HERE
@@ -1120,7 +1156,7 @@ datasets_sens <- c(list(nsw, nsw_cps, nsw_psid), top5_datasets.cps_plus, top5_da
 filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 14. Sensitivity Analyses NSW"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C13. Sensitivity Analyses NSW"}
 #| code-fold: show
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {

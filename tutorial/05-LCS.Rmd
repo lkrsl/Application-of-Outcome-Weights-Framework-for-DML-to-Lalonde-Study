@@ -4,7 +4,7 @@ output: html_document
 date: "2025-05-08"
 ---
 
-# LaLonde (NSW) Data 
+# LaLonde-Calónico-Smith (LCS) Data 
 This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as `lcs` below, similar to Imbens & Xu). 
 
 For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the lcs–specific results.
@@ -54,9 +54,9 @@ covar <- c("age", "educ", "nodegree", "married", "black", "hisp",
            "re75", "u75")
 ```
 
-NOTE THAT WE ONLY CONSIDER HERE ONE DATASET -----
-
-Note that we only consider only one dataset that in the following we only consider 
+::: callout-tip
+In the following analysis, only PSID1 data is used as the original LaLonde study and its reconstruction by Calónico and Smith (2017) designate PSID1 as the appropriate nonexperimental control group for women, providing a comparable observational dataset that aligns with the experimental sample’s characteristics.
+:::
 
 ## Assessing overlap and covariate balance
 ### Overlap
@@ -564,7 +564,7 @@ love.plot(lcs_psid, lcs_psid_plus.stuermer, treat, covar, title = "LCS-PSID1-PLU
 love.plot(lcs_psid, lcs_psid_plus.walker,  treat, covar, title = "LCS-PSID1-PLUS - walker trimming")
 ```
 
-## Combined methods
+## Integrated methods
 ```{r}
 # list all combined method results
 comb_meth.psid_plus <- list(
@@ -595,7 +595,7 @@ ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "tr
 
 ADD EXPLANATION HERE -----
 
-### Getting top methods and datasets
+### Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_psid_plus <- combine_results("psid_plus") 
@@ -610,7 +610,6 @@ save_csv(all_psid_plus, "PSID1_PLUS_all_results_lcs")
 ranked_psid_plus <- assess_methods(all_psid_plus)
 ```
 
-Rank the results and get only the top 5
 ```{r}
 # get top 5 methods 
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
@@ -618,8 +617,8 @@ top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 # save results 
 save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_lcs")
 ```
-The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 
+The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 ```{r}
 dataset_list_psid <- list(
   "All" = lcs_psid_plus, 
@@ -694,6 +693,44 @@ top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.
 ```{r}
 # save them into .RData files
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "lcs_psid")
+```
+
+### Assessing outcome weights (OW)
+```{r, warning=FALSE}
+#| code-fold: show
+# list all datasets
+all_datasets <- c(
+  list(lcs, lcs_cps, lcs_psid, lcs_cps.trim_match, lcs_psid.trim_match),
+  top5_datasets.cps_plus,
+  top5_datasets.psid_plus
+)
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+# estimate ATT 
+res_att <- get_res_att(all_datasets, Y, treat, covar)
+# extract outcome weights
+ow_att <- derive_ow(res_att)
+```
+
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A14. Outcome Weights Model A using LCS Data"}
+#| code-fold: show
+plot_ow(ow_att, plot_titles) 
+```
+
+```{r, warning=FALSE}
+#| code-fold: show
+#save results
+eval_ow_prop(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+```
+
+ADD EXPLANATION HERE
+
+```{r, warning=FALSE}
+#| code-fold: show
+#save results
+save_ow(ow_att, plot_titles, prefix = "lcs")
 ```
 
 ## Estimating
