@@ -1379,17 +1379,19 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
 }
 
 #### save_qtet()
-save_qtet <- function(prefix = "model_a_qtet", ylim = c(-25000, 15000), col = NULL) {
-  dir.create("../graphs", showWarnings = FALSE, recursive = TRUE)
+save_qtet <- function(prefix = "model_a", ylim = c(-25000, 15000), col = NULL) {
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   plots <- list(
-    list(mod = qte.ldw_cps, mod0 = qte.ldw.cps0, bm = qte.ldw, main = "LDW-CPS"),
-    list(mod = qte.ldw_psid, mod0 = qte.ldw.psid0, bm = qte.ldw, main = "LDW-PSID"),
-    list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.ldw_cps, main = "LDW-CPS (Trimmed)"),
-    list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.ldw_psid, main = "LDW-PSID (Trimmed)")
+    list(mod = qte.ldw_cps, mod0 = qte.ldw.cps0, bm = qte.ldw, main = "(A) LDW CPS1"),
+    list(mod = qte.ldw_psid, mod0 = qte.ldw.psid0, bm = qte.ldw, main = "(B) LDW PSID1"),
+    list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.ldw_cps, main = "(C) LDW CPS1 (Trimmed)"),
+    list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.ldw_psid, main = "(D) LDW PSID1 (Trimmed)")
   )
   for (i in seq_along(plots)) {
     p <- plots[[i]]
-    file_name <- sprintf("../graphs/%s_%s.pdf", prefix, gsub(" ", "_", p$main))
+    clean_title <- gsub("[()]", "", p$main)
+    clean_title <- gsub(" ", "_", clean_title)
+    file_name <- sprintf("../graphs/lalonde/%s_qtet_estimates_%s.pdf", prefix, clean_title)
     pdf(file = file_name, width = 7, height = 5)
     plot_qte(p$mod, p$mod0, p$bm, main = p$main, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
@@ -1407,7 +1409,8 @@ save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
     main_title <- plot_titles[main_start + i - 1]
-    file_name <- sprintf("../graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, main_title)
+    clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
+    file_name <- sprintf("../graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
     pdf(file = file_name, width = 7, height = 5)
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),

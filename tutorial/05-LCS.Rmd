@@ -433,7 +433,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = lcs_psid_plus, un = TRUE, weights
 #### SMD
 ```{r}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
 
@@ -467,7 +467,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD 
+# compute SMDs 
 smd_weight.psid_plus <- compute_abs_smd_weight(lcs_psid_plus, "treat", covar, weight_columns)
 ```
 
@@ -500,7 +500,7 @@ trunc.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
 
@@ -536,7 +536,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
 
@@ -577,7 +577,7 @@ comb_meth.psid_plus <- list(
 
 #### SMD
 ```{r}
-# compute absolute SMD
+# compute SMDs
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
 

@@ -565,8 +565,8 @@ ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```{r, class.source = "fold-show", fig.cap='FIGURE B3.'}
 #| code-fold: show
 # visualize covariate balance 
-#plot_matchit(methods.cps_plus, "LDW-CPS1-PLUS")
-#plot_matchit(methods.psid_plus, "LDW-PSID1-PLUS")
+plot_matchit(methods.cps_plus, "LDW-CPS1-PLUS")
+plot_matchit(methods.psid_plus, "LDW-PSID1-PLUS")
 ```
 
 ### Weighting
@@ -652,8 +652,8 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```{r, class.source = "fold-show", fig.cap='FIGURE B5.'}
 #| code-fold: show
 # visualize covariate balance
-#plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
-#plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
+plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
+plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
 ```
 
 ### Trimming
@@ -1013,7 +1013,6 @@ rownames(att_summary) <- plot_titles
 att_summary
 ```
 
-The ATT results are presented in the table below:
 ```{r class.source = 'fold-hide'}
 #| code-fold: show
 # get result matrix
@@ -1023,7 +1022,7 @@ knitr::kable(result_mat, booktabs = TRUE, caption = "Model B ATT Estimates and S
 
 As in model A, the tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. 
 
-In model B, most CPS1-based samples yield estimates that are closer to the experimental benchmark than in model A, with still modest variance. By contrast, the PSID1-based estimates, while somewhat closer to the experimental benchmark than in model A, continue to exhibit substantially larger standard errors. This again reflects the greater challenge of obtaining reliable estimates from the observational PSID1 dataset compared to CPS1.
+In model B, most CPS1-based samples yield estimates that are closer to the experimental benchmark than in model A, with still modest variance. By contrast, the PSID1-based estimates, while somewhat closer to the experimental benchmark than in model A, continue to exhibit substantially larger standard errors compared to CPS1. This again reflects the greater challenge of obtaining reliable estimates from the observational PSID1 dataset.
 
 Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that trimming samples can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r}
@@ -1062,17 +1061,16 @@ plot_catt_panels(all_catt, plot_titles)
 save_catt_panels(all_catt, plot_titles, prefix = "model_b")
 ```
 
-Although the AIPW estimator can produce ATT estimates closely aligned with the experimental benchmark using LDW data, its performance also in model B for revealing the true CATT is considerably worse. 
 ```{r, warning=FALSE}
 #| code-fold: show
 eval_catt(all_catt, plot_titles)
 ```
 
-In model B, using LDW-CPS1, the CATT estimates range from $-3,868.54 to $7,128.42. This span is considerably narrower than in model A, but still performs worse when contrasted with the experimental benchmark, where CATT estimates range from $-213.93 to $3,858.52 with a mean of $1,720.13. The experimental mean CATT remains closer to its corresponding ATT estimate, as already observed for model A. By contrast, LDW-PSID1 shows an narrower CATT range, from $-6,772.16 to	$5,032.30, compared to model A, with a mean CATT estimate of about $557.39 which is closer to the experimental benchmark, indicating better performance.
+In model B, using LDW-CPS1, the CATT estimates range from $-3,868.54 to $7,128.42. This span is considerably narrower than in model A, but still performs worse when contrasted with the experimental benchmark, where CATT estimates range from $-213.93 to $3,858.52 with a mean of $1,720.13. The experimental mean CATT remains closer to its corresponding ATT estimate, as already observed for model A. By contrast, LDW-PSID1 shows a narrower CATT range, from $-6,772.16 to	$5,032.30, compared to model A, with a mean CATT estimate of about $557.39 which is closer to the experimental benchmark, indicating better performance.
 
 For trimmed and top-ranked CPS1 subsamples, CATT ranges vary considerably, yet the mean estimates are generally closer to the experimental benchmark, as in model A. Moreover, the minimum CATT values are less negative, which reduces the spread between minimum and maximum estimates.
 
-Top-ranked PSID1 subsamples, on the other hand, again yield more negative mean CATTs and wider ranges compared to their CPS1 counterparts, signaling persistent difficulties in generating robust treatment effect estimates. Still, compared to model A, the minimum CATT values are less strongly negative, though the mean CATTs only improve marginally in their proximity to the experimental benchmark.
+Top-ranked PSID1 subsamples, on the other hand, again yield more negative mean CATT estimates and wider ranges compared to their CPS1 counterparts, signaling persistent difficulties in generating reliable treatment effect estimates. Still, compared to model A, the minimum CATT estimates are less strongly negative, though the mean CATTs only improve marginally in their proximity to the experimental benchmark.
 
 Hence, alike model A, these results show that the variation in ranges and averages across methods and samples reflects substantial heterogeneity in treatment effect estimation. While subsampling and trimming strategies can sometimes improve consistency with experimental benchmarks, they may also introduce notable discrepancies and variability in estimated heterogeneous effects. 
 
@@ -1111,14 +1109,35 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B12. QTET Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
-# combine all qte objects in order 
-all_qtet <- c(list(qte.ldw, qte.ldw_cps, qte.ldw_psid, qte.ldw_cps.trim, qte.ldw_psid.trim), qte.top5_cps_plus, qte.top5_psid_plus)
+# CPS
+plot_qte(qte.ldw_cps, qte.ldw.cps0, qte.ldw, main = "(B) LDW-CPS", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# plot results
-plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000))
+# PSID
+plot_qte(qte.ldw_psid, qte.ldw.psid0, qte.ldw, main = "(C) LDW-PSID", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
+## CPS trimmed
+plot_qte(qte.ldw_cps.trim, qte.ldw_cps.trim0, qte.ldw_cps, main = "(D) LDW-CPS (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# PSID trimmed
+plot_qte(qte.ldw_psid.trim, qte.ldw_psid.trim0, qte.ldw_psid, main = "(E) LDW-PSID (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# CPS top methods
+plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000))
+
+# PSID top methods
+plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
+```
+
+```{r, warning=FALSE}
 # save results
-save_qtet_panels(all_qtet, plot_titles, qte.ldw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+save_qtet(prefix = "model_b", ylim = c(-25000, 15000))
+save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "model_b_top")
+save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "model_b_top")
 ```
 
 These figures display QTET estimates derived from both the LDW experimental and various non-experimental samples. The QTETs estimated from the original and trimmed LDW-CPS1 samples generally correspond well with the true QTET, although the estimates often suffer from low power. In contrast, QTET estimates from the original and trimmed LDW-PSID1 samples show clear biases when compared to the experimental benchmark, which clusters near zero. The QTET estimates derived from the top-ranked subsamples ...
@@ -1231,13 +1250,13 @@ result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
 knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model B Placebo ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-The placebo analysis shows that the experimental benchmark (first row, first column) for 1975 earnings is again close to zero and statistically insignificant, and that the results for the benchmark, LDW-CPS1, and LDW-PSID1 are identical to those in model A. By contrast, most estimators applied to the observational datasets LDW-CPS1 and PSID1 produce substantially negative ATT estimates.
+The placebo analysis shows that the experimental benchmark estimates remain close to zero and statistically insignificant, closely mirroring the results in model A. The results for LDW-CPS1 and LDW-PSID1 are identical to those observed in model A.
 
-For LDW-CPS1 under model B, all ATT estimates remain negative. The trimmed version (D) shows modest improvement toward the benchmark. Further gains are observed with the `overlap_crump` trimming, while the `card` (F), `ps_threshold` (I), and `optimal_pair` (J) procedures yield again even closer alignment with the benchmark. The `mahvars` (G) method provides the best performance, producing ATT estimates most consistent with the experimental result. However, compared with model A, no clear pattern emerges: some methods perform better, while others produce less accurate estimates.
+For LDW-CPS1 samples (B and F through J), ATT estimates remain consistently negative. The `overlap_crump` estimates show modest improvement toward the benchmark. Further gains are observed with the trimmed sample (D), `ps_threshold` (I), `card` (G) and `optimal_pair`. The `mahvars` (G) sample performs best, producing ATT estimates most consistent with the experimental results. However, compared to model A, no clear pattern emerges: some methods perform better, while others produce less accurate estimates.
 
-For LDW-PSID1, the (O) sample applying `fix_max_value_truncation_overlap_weight` shows again no improvement relative to the original sample — like in model A, where it had. By contrast, the `card`, `mahvars`, `ps_threshold` and `overlap_crump` methods yield improvements that bring estimates closer to the experimental benchmark. Still, their performance is not markedly better than in model A. 
+For LDW-PSID1, the sample (O) applying `fix_max_value_truncation_overlap_weight` shows improvement relative to the PSID1 sample (C) — unlike in model A. The `overlap_weight` sample also shows some improvement, while the `card`, `mahvars`, trimmed sample (E) and the`ps_threshold` further reduce discrepancies, drawing estimates closer to the experimental benchmark results. Still, their performance not markedly surpass that of model A. 
 
-Across most estimators and observational top-ranked subsamples (F–O), except a few exceptions, the placebo analysis continues to reveal substantial bias and deviation from the true effect, highlighting the persistent challenges in adjusting for confounding using observational data. This underscores the limitations of these methods in recovering unbiased ATT estimates outside of randomized experimental settings.
+Across most estimators and observational top-ranked subsamples (F–O) the placebo analysis continues to reveal substantial bias and deviation from the true effect, highlighting the persistent challenges in adjusting for confounding using observational data. This underscores the limitations of these methods in recovering unbiased ATT estimates outside of randomized experimental settings.
 ```{r}
 #| code-fold: show
 # save results 
@@ -1253,6 +1272,7 @@ treat <- "treat"
 covar <- c("age", "education", "black", "hispanic", "married", "nodegree", "re74", "re75", "u74", "u75")
 bm <- c("re75") 
 ```
+
 
 ```{r, warning=FALSE}
 #| code-fold: show
@@ -1276,8 +1296,6 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "model_b")
 ```
 
-The sensitivity analysis demonstrates for LDW-Experimental, LDW-CPS1 and LDW-PSID1 identical results as in model A, once again indicating that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of re75, though it is important to note that, in comparison to model A, these values tend to be more negative, indicating a shift downward in effect estimates across these variant. 
-
-Notably, some samples such as LDW-PSID1 exhibit also in model B greater sensitivity with more pronounced swings including negative estimates at higher confounder strengths, contrasting with consistent positive effects in LDW-CPS1 variants. This stresses  sample-specific differences in robustness against potential unobserved confounding.
+The sensitivity analysis demonstrates identical results for LDW-Experimental, LDW-CPS1 and LDW-PSID1 as in model A and indicates once again that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of re75. However, compared to Model A, these estimates tend to shift downward, exhibiting somewhat more negative values across variants. Notably, some samples such as LDW-PSID1 exhibit also in model B greater sensitivity with more pronounced swings including negative estimates at higher confounder strengths, contrasting with consistent positive effects in LDW-CPS1 variants. This stresses  sample-specific differences in robustness against potential unobserved confounding.
 
 # Summary

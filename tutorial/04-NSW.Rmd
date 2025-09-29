@@ -585,7 +585,7 @@ weight.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD 
+# compute SMDs
 smd_weight.cps_plus <- compute_abs_smd_weight(nsw_cps_plus, "treat", covar, weight_columns)
 smd_weight.psid_plus <- compute_abs_smd_weight(nsw_psid_plus, "treat", covar, weight_columns)
 ```
@@ -602,8 +602,8 @@ ess_weight.psid_plus <- compute_ess_weight(nsw_psid_plus, "treat", covar, weight
 ```{r, class.source = "fold-show", fig.cap='FIGURE C4.'}
 #| code-fold: show
 # visualize covariate balance
-plot_weighting_methods(nsw_cps_plus, "treat", covar, weight.cps_plus, "NSWW-CPS1-PLUS") 
-plot_weighting_methods(nsw_psid_plus, "treat", covar, weight.psid_plus, "NSW-PSID1-PLUS")
+#plot_weighting_methods(nsw_cps_plus, "treat", covar, weight.cps_plus, "NSWW-CPS1-PLUS") 
+#plot_weighting_methods(nsw_psid_plus, "treat", covar, weight.psid_plus, "NSW-PSID1-PLUS")
 ```
 
 ### Truncation
@@ -627,7 +627,7 @@ trunc.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_trunc.cps_plus <- compute_abs_smd_trunc(trunc.cps_plus, "treat", covar, weight_columns)
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
@@ -675,7 +675,7 @@ trim.psid_plus <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-# compute absolute SMD
+# compute SMDs
 smd_trim.cps_plus <- compute_abs_smd_trim(trim.cps_plus, "treat", covar)
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
@@ -712,7 +712,7 @@ love.plot(nsw_psid_plus, nsw_psid_plus.stuermer, treat, covar, title = "NSW-PSID
 love.plot(nsw_psid_plus, nsw_psid_plus.walker,  treat, covar, title = "NSW-PSID1-PLUS - walker trimming")
 ```
 
-## Combined methods
+## Integrated methods
 ```{r}
 # list all combined method results
 comb_meth.cps_plus <- list(
@@ -732,7 +732,7 @@ comb_meth.psid_plus <- list(
 
 #### SMD
 ```{r}
-# compute absolute SMD
+# compute SMDs
 smd_all_comb_meth.cps_plus <- compute_smd_all_datasets(comb_meth.cps_plus, "treat", covar)
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
@@ -967,7 +967,7 @@ out15 <- out.psid_plus[[5]]
 ```{r}
 # build plot titles 
 base_titles <- c("(A) NSW-Experimental", "(B) NSW-CPS1" , "(C) NSW-PSID1", "(D) Trimmed NSW-CPS1 ", "(E) Trimmed NSW-PSID1")
-top_start <- 6 # F is 6th letter
+top_start <- 6 
 num_cps <- length(top5_methods.cps_plus)
 num_psid <- length(top5_methods.psid_plus)
 top_letters_cps <- LETTERS[top_start:(top_start + num_cps - 1)]
@@ -1087,16 +1087,37 @@ qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, tr
 qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
-# combine all qte objects in order 
-all_qtet <- c(list(qte.nsw, qte.nsw_cps, qte.nsw_psid, qte.nsw_cps.trim, qte.nsw_psid.trim), qte.top5.cps, qte.top5.psid)
+# CPS
+plot_qte(qte.nsw_cps, qte.nsw.cps0, qte.nsw, main = "(B) NSW-CPS", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# plot results
-plot_qtet_panels(all_qtet, plot_titles, experimental_qte = qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000))
+# PSID
+plot_qte(qte.nsw_psid, qte.nsw.psid0, qte.nsw, main = "(C) NSW-PSID", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
+## CPS trimmed
+plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw_cps, main = "(D) NSW-CPS (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# PSID trimmed
+plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw_psid, main = "(E) NSW-PSID (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# CPS top methods
+plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.nsw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000))
+
+# PSID top methods
+plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.nsw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
+```
+
+```{r, warning=FALSE}
 # save results
-save_qtet_panels(all_qtet, plot_titles, qte.nsw, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_b_qtet")
+save_qtet(prefix = "nsw", ylim = c(-25000, 15000))
+save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.nsw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "nsw_top")
+save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.nsw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "nsw_top")
 ```
 
 ADD EXPLANATION HERE
@@ -1120,7 +1141,7 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B13. Outcome Weights using NSW Data"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C13. Outcome Weights using NSW Data"}
 #| code-fold: show
 plot_ow(ow_att, plot_titles) 
 ```
@@ -1156,7 +1177,7 @@ datasets_sens <- c(list(nsw, nsw_cps, nsw_psid), top5_datasets.cps_plus, top5_da
 filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C13. Sensitivity Analyses NSW"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C14. Sensitivity Analyses NSW"}
 #| code-fold: show
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
