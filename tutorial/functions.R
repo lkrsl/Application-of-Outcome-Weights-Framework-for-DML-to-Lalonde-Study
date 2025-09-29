@@ -416,6 +416,7 @@ plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_na
           abs = TRUE,
           var.order = "unadjusted",
           thresholds = c(m = 0.1),
+          stars = c(raw = "*", std = ""),  
           title = title_text
         )
         print(lp)
@@ -629,6 +630,88 @@ plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
           title = title_text
         )
         print(lp)
+      }
+    }
+  }
+}
+
+#### save_comb_hist()
+save_comb_hist <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+                           prefix = "model_a",
+                           prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
+                           path = "../graphs/lalonde") {
+  dir.create(path, showWarnings = FALSE, recursive = TRUE)
+  all_combined_list <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  
+  file_index <- 1
+  for (ds_name in names(all_combined_list)) {
+    combined_list <- all_combined_list[[ds_name]]
+    method_names <- character()
+    plot_list <- list()
+    for (weight_method in names(combined_list)) {
+      for (trim_method in names(combined_list[[weight_method]])) {
+        full_method_name <- paste(weight_method, trim_method, sep = "_")
+        plot_list[[full_method_name]] <- combined_list[[weight_method]][[trim_method]]
+        method_names <- c(method_names, full_method_name)
+      }
+    }
+    total_plots <- length(plot_list)
+    for (i in seq_len(total_plots)) {
+      data <- plot_list[[i]]
+      pdf_file <- file.path(path, sprintf("%s_overlap_%d.pdf", prefix, file_index))
+      pdf(pdf_file, width = 8, height = 6)
+      assess_overlap(data, treat = treat, cov = covar)
+      prefix_str <- if (ds_name == "CPS") prefix_cps else prefix_psid
+      title(main = paste0(prefix_str, " - ", method_names[i]))
+      dev.off()
+      file_index <- file_index + 1
+    }
+  }
+}
+
+#### save_comb_loveplots()
+save_comb_loveplots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+                                prefix = "model_a",
+                                prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
+                                path = "../graphs/lalonde") {
+  dir.create(path, showWarnings = FALSE, recursive = TRUE)
+  all_datasets <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  file_index <- 1
+  for (ds_name in names(all_datasets)) {
+    method_list <- all_datasets[[ds_name]]
+    method_names <- unlist(lapply(names(method_list), function(weighting) {
+      trimmed_list <- method_list[[weighting]]
+      sapply(names(trimmed_list), function(trim) paste(weighting, trim, sep = "_"))
+    }))
+    for (weighting in names(method_list)) {
+      trimmed_list <- method_list[[weighting]]
+      for (trim in names(trimmed_list)) {
+        df <- trimmed_list[[trim]]
+        if (!"weight" %in% names(df)) df$weight <- 1
+        bal <- cobalt::bal.tab(
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
+          data = df,
+          weights = df$weight,
+          un = TRUE,
+          s.d.denom = "treated"
+        )
+        method_name <- paste(weighting, trim, sep = "_")
+        prefix_str <- ""
+        if (ds_name == "CPS") prefix_str <- prefix_cps
+        if (ds_name == "PSID") prefix_str <- prefix_psid
+        pdf_file <- file.path(path, sprintf("%s_balance_%d.pdf", prefix, file_index))
+        pdf(pdf_file, width = 8, height = 6)
+        lp <- cobalt::love.plot(
+          bal,
+          stats = "mean.diffs",
+          absolute = TRUE,
+          var.order = "unadjusted",
+          thresholds = c(m = .1),
+          title = paste(prefix_str, method_name, sep = " - ")
+        )
+        print(lp)
+        dev.off()
+        file_index <- file_index + 1
       }
     }
   }
@@ -1282,7 +1365,7 @@ eval_catt <- function(all_catt, plot_titles) {
 }
 
 ## 4.3 QTET
-#### plot_qtet_panels()
+#### plot_qte_top()
 plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, ylim = NULL, col = NULL) {
   n <- length(qtet_top)
   for (i in 1:n) {
@@ -1290,23 +1373,41 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
-    
-    # Add legend on each plot if desired
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
            lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
   }
 }
 
-#### save_qtet_panels()
+#### save_qtet()
+save_qtet <- function(prefix = "model_a_qtet", ylim = c(-25000, 15000), col = NULL) {
+  dir.create("../graphs", showWarnings = FALSE, recursive = TRUE)
+  plots <- list(
+    list(mod = qte.ldw_cps, mod0 = qte.ldw.cps0, bm = qte.ldw, main = "LDW-CPS"),
+    list(mod = qte.ldw_psid, mod0 = qte.ldw.psid0, bm = qte.ldw, main = "LDW-PSID"),
+    list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.ldw_cps, main = "LDW-CPS (Trimmed)"),
+    list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.ldw_psid, main = "LDW-PSID (Trimmed)")
+  )
+  for (i in seq_along(plots)) {
+    p <- plots[[i]]
+    file_name <- sprintf("../graphs/%s_%s.pdf", prefix, gsub(" ", "_", p$main))
+    pdf(file = file_name, width = 7, height = 5)
+    plot_qte(p$mod, p$mod0, p$bm, main = p$main, ylim = ylim, col = col)
+    legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
+           lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+    dev.off()
+  }
+}
+
+#### save_qte_top()
 save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
                                 ylim = NULL, col = NULL, prefix = "model_a_top") {
   n <- length(qtet_top)
-  dir.create("../figures", showWarnings = FALSE, recursive = TRUE)
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_len(n)) {
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
     main_title <- plot_titles[main_start + i - 1]
-    file_name <- sprintf("../figures/%s_qte_estimates_%s.pdf", prefix, main_title)
+    file_name <- sprintf("../graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, main_title)
     pdf(file = file_name, width = 7, height = 5)
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
@@ -1322,17 +1423,16 @@ get_res_att <- function(dataset_list, Y, treat, covar,
                             smoother = "honest_forest",
                             n_cf_folds = 5,
                             n_reps = 1) {
-  lapply(
-    dataset_list,
-    function(data) {
-      dml_with_smoother(
-        Y = data[[Y]],
-        D = data[[treat]],
-        X = data[, covar, drop = FALSE],
-        estimators = estimators,
-        smoother = smoother,
-        n_cf_folds = n_cf_folds,
-        n_reps = n_reps
+  lapply(dataset_list,
+      function(data) {
+        dml_with_smoother(
+          Y = data[[Y]],
+          D = data[[treat]],
+          X = data[, covar, drop = FALSE],
+          estimators = estimators,
+          smoother = smoother,
+          n_cf_folds = n_cf_folds,
+          n_reps = n_reps
       )
     }
   )
@@ -1353,25 +1453,27 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
     main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
-    # Pause between plots in interactive mode
-    if (interactive() && i < N) {
-      readline(prompt = "Press [Enter] to continue to next plot...")
-    }
   }
   par(mfrow = c(1, 1))
 }
 
 #### check_ow_prop()
-check_ow_prop <- function(outcome_weights_list, dataset_list, treat_var = "treat", estimand = "AIPW-ATT") {
-  sapply(seq_along(outcome_weights_list), function(i) {
+eval_ow_prop <- function(outcome_weights_list, dataset_list, plot_titles = NULL, treat_var = "treat", estimand = "AIPW-ATT") {
+  results <- lapply(seq_along(outcome_weights_list), function(i) {
     ow <- outcome_weights_list[[i]]$omega[estimand, ]
     treat <- dataset_list[[i]][[treat_var]]
+    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
     sum_treated <- sum(ow[treat == 1])
     sum_untreated <- sum(ow[treat == 0])
-    c(sum_treated = sum_treated, sum_untreated = sum_untreated)
-  }) %>% t() %>% as.data.frame()
+    data.frame(
+      Method = method,
+      Sum_Treated = sum_treated,
+      Sum_Untreated = sum_untreated,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, results)
 }
-
 
 #### save_ow()
 save_ow <- function(outcome_weights, plot_titles = NULL,
@@ -1379,7 +1481,6 @@ save_ow <- function(outcome_weights, plot_titles = NULL,
                     prefix = "model_a", estimand = "AIPW-ATT") {
   dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   N <- length(outcome_weights)
-  
   for (i in seq_len(N)) {
     file_name <- sprintf("../graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
     pdf(file = file_name, width = 8, height = 6)
