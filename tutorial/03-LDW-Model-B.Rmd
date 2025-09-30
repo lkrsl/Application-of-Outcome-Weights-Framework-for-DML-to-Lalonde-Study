@@ -763,6 +763,12 @@ plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefi
 plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
+```{r, message=FALSE, warning=FALSE}
+# save results
+save_comb_hist(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix = "model_b")
+save_comb_loveplots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix = "model_b")
+```
+
 ### Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
@@ -998,7 +1004,9 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "model_b")
 ```
 
-As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples for both LDW-CPS1 and LDW-PSID1 based on various matching and trimming criteria. Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational estimators. Figures (B) and C3) show results for the observational samples, LDW-CPS1 and LDW-PSID1, respectively, while figures (D) and (E) present those for the trimmed versions. Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
+As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples of both LDW-CPS1 and LDW-PSID1 based on various matching, weighting, truncation and trimming criteria. 
+
+Again, figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational results. Figures (B) and (C) show results for the observational samples, LDW-CPS1 and LDW-PSID1, respectively, while figures (D) and (E) present those for the trimmed versions. Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
 
 For LDW-CPS1, the top-ranked samples are based on the same methods as in model A. However, for the LDW-PSID1, the top-ranked samples are based on two different methods, `fix_max_value_trunc_overlap_weight` and `overlap_weight`.
 
@@ -1030,7 +1038,6 @@ Overall, figures and table jointly demonstrate that ATT estimates from observati
 save_csv(result_mat, "LDW_att_estimates_model_b")
 ```
 
-## Alternative Estimands
 ### Conditional Average Treatment Effect on the Treated (CATT)
 ```{r, warning=FALSE}
 #| code-fold: show
@@ -1133,16 +1140,23 @@ plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, ma
 plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
 ```
 
-```{r, warning=FALSE}
-# save results
-save_qtet(prefix = "model_b", ylim = c(-25000, 15000))
-save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "model_b_top")
-save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "model_b_top")
-```
-
 These figures display QTET estimates derived from both the LDW experimental and various non-experimental samples. The QTETs estimated from the original and trimmed LDW-CPS1 samples generally correspond well with the true QTET, although the estimates often suffer from low power. In contrast, QTET estimates from the original and trimmed LDW-PSID1 samples show clear biases when compared to the experimental benchmark, which clusters near zero. The QTET estimates derived from the top-ranked subsamples ...
 
-ADD EXPLANATION HERE
+```{r, warning=FALSE}
+#| code-fold: show
+# list results
+plots_ldw <- list(
+  list(mod = qte.ldw_cps, mod0 = qte.ldw.cps0, bm = qte.ldw, main = "(A) LDW CPS1"),
+  list(mod = qte.ldw_psid, mod0 = qte.ldw.psid0, bm = qte.ldw, main = "(B) LDW PSID1"),
+  list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.ldw_cps, main = "(C) LDW CPS1 (Trimmed)"),
+  list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.ldw_psid, main = "(D) LDW PSID1 (Trimmed)")
+)
+
+# save results
+save_qtet(plots_ldw, prefix = "ldw_model_b", ylim = c(-25000, 15000))
+save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "ldw_model_b_top")
+save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "ldw_model_b_top")
+```
 
 ### Assessing outcome weights (OW)
 ```{r, warning=FALSE}

@@ -1068,13 +1068,13 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "model_a")
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples for both LDW-CPS1 and LDW-PSID1 based on various matching and trimming criteria.
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples of both LDW-CPS1 and LDW-PSID1 based on various matching, weighting, truncation and trimming criteria.
 
-Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational estimators. Figures (B) and C3) show results for the observational samples, LDW-CPS1 and LDW-PSID1, while figures (D) and (E) present those for the trimmed versions, replicating the tutorial results of Imbens & Xu (2024). Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
+Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, LDW-CPS1 and LDW-PSID1, while figures (D) and (E) present those for the trimmed versions, replicating the tutorial results of Imbens & Xu (2024). Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
 
-Across the LDW-CPS1 and its top-ranked subsamples, all estimators generally yield ATT estimates that closely cluster around the experimental benchmark. However, there are slightly larger deviations for the `overlap_crump` and `overlap_pair` subsamples. While most estimates are positive, the  `overlap_crump` and `optimal_pair` subsamples include a few negative ATT estimates, and all ATT estimates for the `mahvars` subsample are negative.
+Across the LDW-CPS1 dataset and its top-ranked subsamples, all estimators generally produce ATT estimates that closely cluster around the experimental benchmark. However, the `overlap_crump` and `overlap_pair` methods exhibit somewhat larger deviations. While most estimates are positive, the `overlap_crump` and `optimal_pair` methods produce subsamples that include a few negative ATT estimates, and all ATT estimates for the `mahvars`-based subsample are consistently negative.
 
-In contrast, PSID1-based subsamples frequently exhibit greater dispersion and substantially higher standard errors compared to LDW-CPS1 samples. Most ATT estimates are negatively aligned, indicating increased methodological uncertainty in these samples. Positive ATT estimates emerge only for the `overlap_crump` subsample.
+In contrast, PSID1-based subsamples frequently exhibit greater dispersion and substantially higher standard errors compared to LDW-CPS1 samples. Most ATT estimates are negatively aligned, indicating increased methodological uncertainty in these samples. Positive ATT estimates emerge only for the subsample based on `overlap_crump`.
 ```{r, warning=FALSE}
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
@@ -1095,7 +1095,9 @@ knitr::kable(result_mat, booktabs = TRUE, caption = "Model A ATT Estimates and S
 The first value in each cell represents the point estimate from the respective estimator and sample. The number in brackets directly following it is the robust standard error (SE) associated with that estimate, indicating the uncertainty or variability around the point estimate.
 :::
 
-The tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. For most CPS1-based samples, estimates remain not only positive but also comparatively close to the experimental benchmark, with modest variance inflation. In contrast, the PSID1-based estimates exhibit greater variability, more frequently negative values, and larger standard errors, reflecting an increased challenge of achieving balance and overlap in this observational dataset.
+The tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. 
+
+For most CPS1-based samples, estimates remain not only positive but also comparatively close to the experimental benchmark, with modest variance inflation. In contrast, the PSID1-based estimates exhibit greater variability, more frequently negative values, and larger standard errors, reflecting an increased challenge of achieving balance and overlap in this observational dataset.
 
 Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that trimming samples can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r}
@@ -1221,14 +1223,21 @@ plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, ma
 plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
 ```
 
-```{r, warning=FALSE}
-# save results
-save_qtet(prefix = "model_a", ylim = c(-25000, 15000))
-save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "model_a_top")
-save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "model_a_top")
-```
-
 These figures display QTET estimates derived from both the LDW experimental and various observational samples. The QTETs estimated from the original and trimmed LDW-CPS1 sample (B and D) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the original and trimmed LDW-PSID1 sample (C and E) show clear biases when compared to the experimental benchmark, which clusters near zero. Among the top-ranked subsamples, CPS1-based QTETs (F - J) continue to track the true experimental effect well, whereas PSID1-based QTETs (K - O) display increased bias and noticeably wider confidence bands, indicating greater estimation uncertainty.
+```{r, warning=FALSE}
+# list results
+plots_ldw <- list(
+  list(mod = qte.ldw_cps, mod0 = qte.ldw.cps0, bm = qte.ldw, main = "(A) LDW CPS1"),
+  list(mod = qte.ldw_psid, mod0 = qte.ldw.psid0, bm = qte.ldw, main = "(B) LDW PSID1"),
+  list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.ldw_cps, main = "(C) LDW CPS1 (Trimmed)"),
+  list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.ldw_psid, main = "(D) LDW PSID1 (Trimmed)")
+)
+
+# save results
+save_qtet(plots_ldw, prefix = "ldw_model_a", ylim = c(-25000, 15000))
+save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.ldw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "ldw_model_a_top")
+save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.ldw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "ldw_model_a_top")
+```
 
 ### Assessing outcome weights (OW)
 ```{r, warning=FALSE}
@@ -1265,7 +1274,6 @@ The outcome weights are not obtained directly from the ATT point estimates due t
 :::
 
 The evaluation reveals that across each datasets the estimated outcome weights sum to one within the treated group and minus one within the untreated group, resulting in an overall sum of zero.
-
 ```{r, warning=FALSE}
 #| code-fold: show
 #save results

@@ -416,7 +416,7 @@ plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_na
           abs = TRUE,
           var.order = "unadjusted",
           thresholds = c(m = 0.1),
-          stars = c(raw = "*", std = ""),  
+          stars = "none",
           title = title_text
         )
         print(lp)
@@ -555,15 +555,15 @@ compute_ess_all_datasets <- function(combined_list, treat, covar) {
 
 ### 3.5.3 Visuals
 #### plot_comb_overlap()
-plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                               prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
-  all_combined_list <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
-  
+  all_combined_list <- list()
+  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
   for (ds_name in names(all_combined_list)) {
     combined_list <- all_combined_list[[ds_name]]
     plot_list <- list()
     method_names <- character()
-    # Build plots and exact method names list
     for (weight_method in names(combined_list)) {
       for (trim_method in names(combined_list[[weight_method]])) {
         full_method_name <- paste(weight_method, trim_method, sep = "_")
@@ -592,9 +592,11 @@ plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
 }
 
 #### plot_comb_love_plots()
-plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+plot_comb_love_plots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                                  prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
-  all_datasets <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  all_datasets <- list()
+  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
   for (ds_name in names(all_datasets)) {
     method_list <- all_datasets[[ds_name]]
     method_names <- unlist(lapply(names(method_list), function(weighting) {
@@ -616,7 +618,6 @@ plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
           s.d.denom = "treated"
         )
         method_name <- paste(weighting, trim, sep = "_")
-        
         prefix <- ""
         if (ds_name == "CPS" && plot_counter <= 25) prefix <- prefix_cps
         if (ds_name == "PSID" && plot_counter <= 25) prefix <- prefix_psid
@@ -636,12 +637,14 @@ plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
 }
 
 #### save_comb_hist()
-save_comb_hist <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                            prefix = "model_a",
                            prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
                            path = "../graphs/lalonde") {
   dir.create(path, showWarnings = FALSE, recursive = TRUE)
-  all_combined_list <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  all_combined_list <- list()
+  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
   
   file_index <- 1
   for (ds_name in names(all_combined_list)) {
@@ -670,12 +673,15 @@ save_comb_hist <- function(comb_meth_cps, comb_meth_psid, treat, covar,
 }
 
 #### save_comb_loveplots()
-save_comb_loveplots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                                 prefix = "model_a",
                                 prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
                                 path = "../graphs/lalonde") {
   dir.create(path, showWarnings = FALSE, recursive = TRUE)
-  all_datasets <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  all_datasets <- list()
+  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
+  
   file_index <- 1
   for (ds_name in names(all_datasets)) {
     method_list <- all_datasets[[ds_name]]
@@ -696,9 +702,7 @@ save_comb_loveplots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
           s.d.denom = "treated"
         )
         method_name <- paste(weighting, trim, sep = "_")
-        prefix_str <- ""
-        if (ds_name == "CPS") prefix_str <- prefix_cps
-        if (ds_name == "PSID") prefix_str <- prefix_psid
+        prefix_str <- ifelse(ds_name == "CPS", prefix_cps, prefix_psid)
         pdf_file <- file.path(path, sprintf("%s_balance_%d.pdf", prefix, file_index))
         pdf(pdf_file, width = 8, height = 6)
         lp <- cobalt::love.plot(
@@ -1379,21 +1383,16 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
 }
 
 #### save_qtet()
-save_qtet <- function(prefix = "model_a", ylim = c(-25000, 15000), col = NULL) {
+save_qtet <- function(plots, plot_titles = NULL, main_start = 1, ylim = NULL, col = NULL, prefix = "model_a") {
   dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
-  plots <- list(
-    list(mod = qte.ldw_cps, mod0 = qte.ldw.cps0, bm = qte.ldw, main = "(A) LDW CPS1"),
-    list(mod = qte.ldw_psid, mod0 = qte.ldw.psid0, bm = qte.ldw, main = "(B) LDW PSID1"),
-    list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.ldw_cps, main = "(C) LDW CPS1 (Trimmed)"),
-    list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.ldw_psid, main = "(D) LDW PSID1 (Trimmed)")
-  )
-  for (i in seq_along(plots)) {
+  n <- length(plots)
+  for (i in seq_len(n)) {
     p <- plots[[i]]
-    clean_title <- gsub("[()]", "", p$main)
-    clean_title <- gsub(" ", "_", clean_title)
+    main_title <- if (is.null(plot_titles)) p$main else plot_titles[main_start + i - 1]
+    clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
     file_name <- sprintf("../graphs/lalonde/%s_qtet_estimates_%s.pdf", prefix, clean_title)
     pdf(file = file_name, width = 7, height = 5)
-    plot_qte(p$mod, p$mod0, p$bm, main = p$main, ylim = ylim, col = col)
+    plot_qte(p$mod, p$mod0, p$bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
            lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
     dev.off()
@@ -1420,7 +1419,7 @@ save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
 }
 
 ## 4.4 Assessing outcome weights (OW)
-#### get_att_results()
+#### get_res_att()
 get_res_att <- function(dataset_list, Y, treat, covar,
                             estimators = "AIPW_ATT",
                             smoother = "honest_forest",
@@ -1460,10 +1459,10 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
   par(mfrow = c(1, 1))
 }
 
-#### check_ow_prop()
-eval_ow_prop <- function(outcome_weights_list, dataset_list, plot_titles = NULL, treat_var = "treat", estimand = "AIPW-ATT") {
-  results <- lapply(seq_along(outcome_weights_list), function(i) {
-    ow <- outcome_weights_list[[i]]$omega[estimand, ]
+#### eval_ow_prop()
+eval_ow_prop <- function(outcome_weights, dataset_list, plot_titles = NULL, treat_var = "treat", estimand = "AIPW-ATT") {
+  results <- lapply(seq_along(outcome_weights), function(i) {
+    ow <- outcome_weights[[i]]$omega[estimand, ]
     treat <- dataset_list[[i]][[treat_var]]
     method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
     sum_treated <- sum(ow[treat == 1])
