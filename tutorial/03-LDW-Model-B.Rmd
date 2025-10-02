@@ -1063,11 +1063,6 @@ all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
-```{r}
-# save results
-save_catt_panels(all_catt, plot_titles, prefix = "model_b")
-```
-
 ```{r, warning=FALSE}
 #| code-fold: show
 eval_catt(all_catt, plot_titles)
@@ -1080,6 +1075,10 @@ For trimmed and top-ranked LDW-CPS1 subsamples, CATT ranges vary considerably, y
 Top-ranked LDW-PSID1 subsamples, on the other hand, again yield more negative mean CATT estimates and wider ranges compared to their LDW-CPS1 counterparts, signaling persistent difficulties in generating reliable effect estimates. Still, compared to model A, the minimum CATT estimates are less strongly negative, though the mean CATTs only improve marginally in their proximity to the experimental benchmark.
 
 Hence, alike model A, these results show that the variation in ranges and means across methods and samples reflects substantial heterogeneity in treatment effect estimation. While certain criteria may improve consistency with experimental benchmarks, they may also introduce notable discrepancies and variability in estimated heterogeneous effects. 
+```{r}
+# save results
+save_catt_panels(all_catt, plot_titles, prefix = "model_b")
+```
 
 ### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}

@@ -90,8 +90,9 @@ love.plot(lcs, lcs_psid_plus, treat, covar = covar, title = "LCS-PSID1-PLUS")
 bal.tab(model, data = lcs_psid, treat = "treat")
 bal.tab(model, data = lcs_psid_plus, treat = "treat")
 ```
-
-ADD EXPLANATION HERE
+::: callout-tip
+Due to computational constraints, we use a reduced set of matching methods, consistent with previous sections.
+:::
 
 ## Improving primarily covariate balance
 ### Matching 
@@ -115,13 +116,6 @@ m.out.psid_plus.optimal_full <- matchit(model, data = lcs_psid_plus, method = "f
 #| code-fold: show
 # perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
 m.out.psid_plus.general_full <- matchit(model, data = lcs_psid_plus, method = "quick", distance = "logit")
-```
-
-##### Genetic matching
-```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
-# perform genetic matching 
-#m.out.psid_plus.genetic <- matchit(model, data = lcs_psid_plus, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
 ```
 
 #### Stratum matching
@@ -243,7 +237,7 @@ for (wcol in weight_columns) {
 }
 ```
 
-Regarding these results we can apply adaptive weight truncation to all weights.
+Regarding these results we can apply adaptive weight truncation to all considered weights.
 ```{r}
 #| code-fold: show
 # truncate adaptively at mean + 3 standard deviations 
@@ -309,7 +303,7 @@ trim_names <- c("ps_threshold", "common_range", "stuermer", "walker", "crump")
 trimmed_psid <- list(ps_threshold = lcs_psid_trim, common_range = lcs_psid_plus.common, stuermer = lcs_psid_plus.stuermer, walker = lcs_psid_plus.walker, crump = lcs_psid_plus.crump)
 ```
 
-#### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+#### dPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r}
 # apply inverse probability weighting (IPW) with trimming and attach IPW weights
 ipw_comb.psid_plus <- setNames(
@@ -377,7 +371,7 @@ bal.psid_plus <- cobalt::bal.tab(model, data = lcs_psid_plus, un = TRUE, weights
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
 
-#### Effective Sample Sizes 
+#### ESS
 ```{r}
 #| code-fold: show
 # compute effective sample sizes (ESS)
@@ -634,6 +628,7 @@ top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.
 # save them into .RData files
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "lcs_psid")
 ```
+
 ## Estimating
 ### Average treatment effect on the treated (ATT)
 ```{r, message=FALSE, warning=FALSE}
@@ -730,11 +725,6 @@ all_catt <- c(list(catt.lcs,catt.psid, catt.psid.trim), catt.top5_psid_plus)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
-```{r}
-# save results
-save_catt_panels(all_catt, plot_titles, prefix = "lcs")
-```
-
 ```{r, warning=FALSE}
 #| code-fold: show
 eval_catt(all_catt, plot_titles)
@@ -742,7 +732,11 @@ eval_catt(all_catt, plot_titles)
 
 With LCS-PSID1, CATT estimates span from $-3,357.48 to $2,404.33, contrasting with the CATT estimated from experimental data which ranges from $-359.43 to $2,719.14, with a mean CATT estimate of $863.51. 
 
-Across the LCS-PSID1-based subsamples, the ranges of CATT estimates are relatively similar. Importantly, the mean CATT estimates remain positive in all cases, except for `card` subsample, that produces a mean CATT estimate of $-415.71.
+In contract, across the LCS-PSID1-based subsamples, the ranges of CATT estimates are relatively similar. Importantly, the mean CATT estimates remain positive in all cases, except for `card` subsample, that produces a mean CATT estimate of $-415.71.
+```{r}
+# save results
+save_catt_panels(all_catt, plot_titles, prefix = "lcs")
+```
 
 ### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}
@@ -829,7 +823,7 @@ Consistent with the preceding sections, the evaluation shows that, across each s
 save_ow(ow_att, plot_titles, prefix = "lcs")
 ```
 
-## Validation through Placebo Analyses
+## Validation through placebo analyses
 ```{r, warning=FALSE}
 # define variables
 Y_pl <- "nchildren75"
@@ -839,8 +833,6 @@ covar_pl <- c("age", "educ", "nodegree", "married", "black", "hisp", "re75", "u7
 
 ```{r, warning=FALSE}
 #| code-fold: show
-set.seed(1234)
-load("data/lcs.RData") 
 # estimate placebo ATT on original and observational datasets
 out1_pl <- estimate_all(lcs, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(lcs_psid, Y_pl, "treat", covar_pl)
@@ -896,7 +888,7 @@ The placebo analysis shows that the experimental benchmark is close to zero and 
 save_csv(result_mat_pl, "LCS_att_estimates_pl")
 ```
 
-## Sensitivity Analyses
+## Validation through sensitivity analyses
 ```{r, warning=FALSE}
 #| code-fold: show
 # define variables
@@ -929,6 +921,6 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "lcs")
 ```
 
-ADD EXPLANATION HERE ----
+The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Observational samples instead show varying degrees of sensitivity, with the full observational sample (B) being more sensitive than the trimmed version (C). The top-ranked PSID1 subsamples (D-H) show that despite employing advanced criteria to improve balance and overlap, treatment effect estimates can exhibit increasing bias under plausible stronger confounding scenarios based on the reference confounder strength. 
 
 # Summary

@@ -1145,11 +1145,6 @@ all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
-```{r}
-# save results
-save_catt_panels(all_catt, plot_titles, prefix = "model_a")
-```
-
 Although the AIPW estimator can produce ATT estimates closely aligned with the experimental benchmark using LDW data, its performance for revealing the true CATT is considerably worse. 
 ```{r, warning=FALSE}
 #| code-fold: show
@@ -1163,6 +1158,10 @@ Among the trimmed and top-ranked LDW-CPS1 subsamples, CATT ranges vary substanti
 The CATT estimates for the LDW-PSID1 trimmed and top-ranked subsamples reveal substantially decreased mean values and wider extremes compared to their CPS1 counterparts, reflecting greater difficulties in producing reliable treatment effect estimates.
 
 This variation in range and means across methods and samples reflects substantial heterogeneity in treatment effect estimation, indicating that while some criteria improve alignment with experimental benchmarks, others introduce considerable discrepancies and variability in estimated heterogeneous effects.
+```{r}
+# save results
+save_catt_panels(all_catt, plot_titles, prefix = "model_a")
+```
 
 ### Quantile treatment effect on the treated (QTET)
 
