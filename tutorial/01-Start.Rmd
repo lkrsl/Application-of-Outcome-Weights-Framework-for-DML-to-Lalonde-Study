@@ -1,4 +1,4 @@
-# Getting Started
+# Getting started
 
 ::: callout-caution
 The functions presented below constitute the core wrapper functions utilized throughout the analysis, including three adapted function originally from the Imbens & Xu (2024) tutorial, which were modified to suit specific analytical purpose (highlighted by ***). For the full original collection of functions by Imbens & Xu (2024), including additional functions used in the analysis, please consult their official source code available on their GitHub [repository](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study).
@@ -49,7 +49,7 @@ library(tidyverse)
 library(WeightIt)
 ```
 
-## Wrapper Functions
+## Wrapper functions
 
 Next, we outline the wrapper functions designed to address overlap and covariate balance as well as the estimation of the average treatment effect on the treated (ATT) and alternative estimands. 
 
@@ -71,12 +71,9 @@ If you are using RStudio, you should now see the functions in the environment se
 | `inspect_data()` | Inspects datasets.    | [More](#inspec) |
 
 | `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`, `truncate_weights_fixed()`, `truncate_weights_percentile()`, `check_weights()`, `truncate_weights_adaptive()`, `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()` and `trim_attach_weights()` | Implements methods to improve covariate balancing and overlap. | [More](#impl-cov-bal-overl-mthds) |
-
-`get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_trunc_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()` and `save_top5_individual_files()` 
-| Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#eval-mthds) |
-
-| `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `eval_catt()`, `plot_qtet_panels()` and `save_qtet_panels()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#est-and-plot-att-catt-qtet) |
-
+`get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_trunc_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()` and `save_top5_individual_files()` | Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#eval-mthds) |
+| `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `eval_catt()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#est-and-plot-att-catt-qtet) |
+| `get_res_att()`, `derive_ow()`, `plot_ow()`, `eval_ow()`, `save_ow()` |  Analyses outcome weights of datasets.  | [More](#ow-ana) |
 | `check_filter_datasets()`, `save_sensitivity_plots()` |  Validates and filters datasets.  | [More](#sens-ana) |
 
 <a name="inspec"></a>
@@ -409,10 +406,10 @@ plot_matchit <- function(match_list, dataset_name) {
     match_obj <- match_list[[method_name]]
     if (method_name == "subcl") {
       plot(summary(match_obj, subclass = TRUE), 
-           main = paste0(method_name, " matching of ", dataset_name))
+           main = paste0(dataset_name, " - ", method_name," matching"))
     } else {
       plot(summary(match_obj), 
-           main = paste0(method_name, " matching of ", dataset_name))
+           main = paste0(dataset_name, " - ", method_name," matching"))
     }
   }
 }
@@ -638,6 +635,7 @@ plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_na
           abs = TRUE,
           var.order = "unadjusted",
           thresholds = c(m = 0.1),
+          stars = "none",
           title = title_text
         )
         print(lp)
@@ -785,7 +783,7 @@ compute_ess_all_datasets <- function(combined_list, treat, covar) {
         data$weight <- rep(1, nrow(data))
       }
       bal_obj <- cobalt::bal.tab(
-        as.formula(paste(treat, "~", paste(covars, collapse = " + "))),
+        as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
         data = data,
         weights = data$weight,
         un = TRUE,
@@ -822,15 +820,15 @@ compute_ess_all_datasets <- function(combined_list, treat, covar) {
 
 `plot_comb_overlap()` creates plots assessing overlap for combinations of weighting and trimming methods across datasets.
 ```{r class.source = 'fold-hide'}
-plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                               prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
-  all_combined_list <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
-  
+  all_combined_list <- list()
+  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
   for (ds_name in names(all_combined_list)) {
     combined_list <- all_combined_list[[ds_name]]
     plot_list <- list()
     method_names <- character()
-    # Build plots and exact method names list
     for (weight_method in names(combined_list)) {
       for (trim_method in names(combined_list[[weight_method]])) {
         full_method_name <- paste(weight_method, trim_method, sep = "_")
@@ -870,9 +868,11 @@ plot_comb_overlap <- function(comb_meth_cps, comb_meth_psid, treat, covar,
 
 `plot_comb_love_plots()` visualizes SMDs via love plots for combined weighting and trimming approaches.
 ```{r class.source = 'fold-hide'}
-plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
+plot_comb_love_plots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                                  prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
-  all_datasets <- list(CPS = comb_meth_cps, PSID = comb_meth_psid)
+  all_datasets <- list()
+  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
   for (ds_name in names(all_datasets)) {
     method_list <- all_datasets[[ds_name]]
     method_names <- unlist(lapply(names(method_list), function(weighting) {
@@ -922,29 +922,139 @@ plot_comb_love_plots <- function(comb_meth_cps, comb_meth_psid, treat, covar,
 - `prefix_cps`: Optional string prefix for plot titles related to CPS results.
 - `prefix_psid`: Optional string prefix for plot titles related to PSID results.
 
+`save_comb_hist()` saves the histograms into a pdf file.
+```{r class.source = 'fold-hide'}
+save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
+                           prefix = "model_a",
+                           prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
+                           path = "../graphs/lalonde") {
+  dir.create(path, showWarnings = FALSE, recursive = TRUE)
+  all_combined_list <- list()
+  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
+  
+  file_index <- 1
+  for (ds_name in names(all_combined_list)) {
+    combined_list <- all_combined_list[[ds_name]]
+    method_names <- character()
+    plot_list <- list()
+    for (weight_method in names(combined_list)) {
+      for (trim_method in names(combined_list[[weight_method]])) {
+        full_method_name <- paste(weight_method, trim_method, sep = "_")
+        plot_list[[full_method_name]] <- combined_list[[weight_method]][[trim_method]]
+        method_names <- c(method_names, full_method_name)
+      }
+    }
+    total_plots <- length(plot_list)
+    for (i in seq_len(total_plots)) {
+      data <- plot_list[[i]]
+      pdf_file <- file.path(path, sprintf("%s_overlap_%d.pdf", prefix, file_index))
+      pdf(pdf_file, width = 8, height = 6)
+      assess_overlap(data, treat = treat, cov = covar)
+      prefix_str <- if (ds_name == "CPS") prefix_cps else prefix_psid
+      title(main = paste0(prefix_str, " - ", method_names[i]))
+      dev.off()
+      file_index <- file_index + 1
+    }
+  }
+}
+```
+
+**Arguments**
+
+- `comb_meth_cps`: A named list combining weighting and trimming results for CPS dataset.
+- `comb_meth_psid`: A named list combining weighting and trimming results for PSID dataset.
+- `treat`: The name of the binary treatment indicator variable.
+- `covar`: A vector of covariate names.
+- `prefix`: Optional string prefix for plot titles related to the respective dataset or model.
+- `prefix_cps`: Optional string prefix for plot titles related to CPS results.
+- `prefix_psid`: Optional string prefix for plot titles related to PSID results.
+
+`save_comb_loveplots()` saves the loveplots into a pdf file.
+```{r class.source = 'fold-hide'}
+save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
+                                prefix = "model_a",
+                                prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
+                                path = "../graphs/lalonde") {
+  dir.create(path, showWarnings = FALSE, recursive = TRUE)
+  all_datasets <- list()
+  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
+  
+  file_index <- 1
+  for (ds_name in names(all_datasets)) {
+    method_list <- all_datasets[[ds_name]]
+    method_names <- unlist(lapply(names(method_list), function(weighting) {
+      trimmed_list <- method_list[[weighting]]
+      sapply(names(trimmed_list), function(trim) paste(weighting, trim, sep = "_"))
+    }))
+    for (weighting in names(method_list)) {
+      trimmed_list <- method_list[[weighting]]
+      for (trim in names(trimmed_list)) {
+        df <- trimmed_list[[trim]]
+        if (!"weight" %in% names(df)) df$weight <- 1
+        bal <- cobalt::bal.tab(
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
+          data = df,
+          weights = df$weight,
+          un = TRUE,
+          s.d.denom = "treated"
+        )
+        method_name <- paste(weighting, trim, sep = "_")
+        prefix_str <- ifelse(ds_name == "CPS", prefix_cps, prefix_psid)
+        pdf_file <- file.path(path, sprintf("%s_balance_%d.pdf", prefix, file_index))
+        pdf(pdf_file, width = 8, height = 6)
+        lp <- cobalt::love.plot(
+          bal,
+          stats = "mean.diffs",
+          absolute = TRUE,
+          var.order = "unadjusted",
+          thresholds = c(m = .1),
+          title = paste(prefix_str, method_name, sep = " - ")
+        )
+        print(lp)
+        dev.off()
+        file_index <- file_index + 1
+      }
+    }
+  }
+}
+```
+
+**Arguments**
+
+- `comb_meth_cps`: A named list combining weighting and trimming results for CPS dataset.
+- `comb_meth_psid`: A named list combining weighting and trimming results for PSID dataset.
+- `treat`: The name of the binary treatment indicator variable.
+- `covar`: A vector of covariate names.
+- `prefix`: String prefix used for saved file names to identify dataset.
+- `prefix_cps`: Optional string prefix for plot titles related to CPS results.
+- `prefix_psid`: Optional string prefix for plot titles related to PSID results.
+
 #### Getting top methods and datasets
 `combine_results()` merges and summarizes SMD and ESS statistics from various analysis stages into a final comparison table.
 ```{r class.source = 'fold-hide'}
 combine_results <- function(dataset_name) {
   dataset_lower <- tolower(dataset_name)
-  # retrieve matching results
+  # Retrieve matching results
   smd_matching <- get(paste0("smd_matchit.", dataset_lower))
   ess_matching <- get(paste0("ess_matchit.", dataset_lower))
-  # retrieve trimming results
+  # Retrieve trimming results
   smd_trimming <- get(paste0("smd_trim.", dataset_lower))
   ess_trimming <- get(paste0("ess_trim.", dataset_lower))
-  # retrieve truncation results
+  # Retrieve truncation results
   smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
   ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
-  # retrieve weighting results
+  # Retrieve weighting results
   smd_weighting <- get(paste0("smd_weight.", dataset_lower))
   ess_weighting <- get(paste0("ess_weight.", dataset_lower))
-  # retrieve combined SMD and ESS
+  # Retrieve combined SMD and ESS
+  # Make sure you have these variables in your environment per dataset
   smd_combined_var <- paste0("smd_all_comb_meth.", dataset_lower)
   ess_combined_var <- paste0("ess_all_comb_meth.", dataset_lower)
   smd_combined <- get(smd_combined_var)
   ess_combined <- get(ess_combined_var)
-  # combine all SMD results
+  # Combine all SMD results
   smd_all <- do.call(rbind, list(
     smd_matching,
     smd_trimming,
@@ -952,7 +1062,7 @@ combine_results <- function(dataset_name) {
     smd_weighting,
     smd_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
   ))
-    # combine all ESS results
+    # Combine all ESS results
   ess_all <- do.call(rbind, list(
     ess_matching,
     ess_trimming,
@@ -960,12 +1070,12 @@ combine_results <- function(dataset_name) {
     ess_weighting,
     ess_combined[, c("Method", "Control", "Treated")]
   ))
-  # merge SMD and ESS results by Method
+  # Merge SMD and ESS results by Method
   final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
-  # remove dataset suffixes like ".cps_plus" or ".psid_plus" from Method names for cleaner labels
+  # Remove dataset suffixes like ".cps_plus" or ".psid_plus" from Method names for cleaner labels
   final_df$Method <- gsub("\\.psid_plus", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps_plus", "", final_df$Method, ignore.case = TRUE)
-    # reset row names
+    # Reset row names
   rownames(final_df) <- NULL
   return(final_df)
 }
@@ -975,7 +1085,7 @@ combine_results <- function(dataset_name) {
 
 - `dataset_name`: The dataset name for which to combine SMD and ESS summaries.
 
-`save_csv()` saves the tables into a csv file.
+`save_csv()` saves the tables into a CSV file.
 ```{r class.source = 'fold-hide'}
 save_csv <- function(data, filename) {
   folder <- "../tables"
@@ -998,12 +1108,12 @@ assess_methods <- function(df) {
       # ess score
       ess_balance_ratio = pmin(Control, Treated) / pmax(Control, Treated),
       ess_total = Control + Treated,
-      # normalize balance_ratio and ess_total
+      # Normalize balance_ratio and ess_total
       ess_balance_score = (ess_balance_ratio - min(ess_balance_ratio, na.rm = TRUE)) /
         (max(ess_balance_ratio, na.rm = TRUE) - min(ess_balance_ratio, na.rm = TRUE)),
       ess_size_score = (ess_total - min(ess_total, na.rm = TRUE)) /
         (max(ess_total, na.rm = TRUE) - min(ess_total, na.rm = TRUE)),
-      # combine size and balance equally
+      # Combine size and balance equally
       ess_score = 0.5 * ess_balance_score + 0.5 * ess_size_score,
       # smd score
       smd_score = 1 - (Mean_Abs_SMD - min(Mean_Abs_SMD, na.rm = TRUE)) /
@@ -1104,7 +1214,7 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 <br>
 
 ### Estimating 
-#### ATT
+#### Average treatment effect of the treated (ATT)
 
 <a name="est-and-plot-att-catt-qtet"></a>
 
@@ -1122,29 +1232,6 @@ reg <- function(data, Y, treat, covar) {
   fml <- as.formula(paste(Y, "~", treat, "+", paste(covar, collapse = " + ")))
   out <- summary(lm_robust(fml, data = data, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
   # extract coef, se, ci.lower, ci.upper
-  return(out)
-}
-
-# om.reg
-om.reg <- function(data, Y, treat, covar) {
-  tr <- which(data[, treat] == 1)
-  co <- which(data[, treat] == 0)
-  fml <- as.formula(paste(Y, "~", paste(covar, collapse = " + ")))
-  out.co <- lm(fml, data = data[co, ])
-  Y.tr.hat <- predict(out.co, newdata = data[tr, covar, drop = FALSE])
-  newdata <- cbind.data.frame(Y = c(data[tr, Y], Y.tr.hat), treat = rep(c(1, 0), each = length(tr)))
-  out <- summary(lm_robust(Y ~ treat, data = newdata, se_type = "stata"))$coefficients["treat", c(1, 2, 5, 6)]
-  return(out)
-}
-
-# om.grf
-om.grf <- function(data, Y, treat, covar) {
-  tr <- which(data[, treat] == 1)
-  co <- which(data[, treat] == 0)
-  out.co <- regression_forest(X = data[co, covar, drop = FALSE], Y = as.vector(data[co, Y]) )
-  Y.tr.hat <- as.vector(unlist(predict(out.co, newdata = data[tr, covar, drop = FALSE])))
-  newdata <- cbind.data.frame(Y = c(data[tr, Y], Y.tr.hat), treat = rep(c(1, 0), each = length(tr)))
-  out <- summary(lm_robust(Y ~ treat, data = newdata, se_type = "stata"))$coefficients["treat", c(1, 2, 5, 6)]
   return(out)
 }
 
@@ -1173,7 +1260,31 @@ psm <- function(data, Y, treat, covar) {
   return(out)
 }
 
-#ipw
+
+# OM (reg)
+om.reg <- function(data, Y, treat, covar) {
+  tr <- which(data[, treat] == 1)
+  co <- which(data[, treat] == 0)
+  fml <- as.formula(paste(Y, "~", paste(covar, collapse = " + ")))
+  out.co <- lm(fml, data = data[co, ])
+  Y.tr.hat <- predict(out.co, newdata = data[tr, covar, drop = FALSE])
+  newdata <- cbind.data.frame(Y = c(data[tr, Y], Y.tr.hat), treat = rep(c(1, 0), each = length(tr)))
+  out <- summary(lm_robust(Y ~ treat, data = newdata, se_type = "stata"))$coefficients["treat", c(1, 2, 5, 6)]
+  return(out)
+}
+
+# OM (grf)
+om.grf <- function(data, Y, treat, covar) {
+  tr <- which(data[, treat] == 1)
+  co <- which(data[, treat] == 0)
+  out.co <- regression_forest(X = data[co, covar, drop = FALSE], Y = as.vector(data[co, Y]) )
+  Y.tr.hat <- as.vector(unlist(predict(out.co, newdata = data[tr, covar, drop = FALSE])))
+  newdata <- cbind.data.frame(Y = c(data[tr, Y], Y.tr.hat), treat = rep(c(1, 0), each = length(tr)))
+  out <- summary(lm_robust(Y ~ treat, data = newdata, se_type = "stata"))$coefficients["treat", c(1, 2, 5, 6)]
+  return(out)
+}
+
+# IPW
 ipw <- function(data, Y, treat, covar) {
   ps <- probability_forest(X = data[, covar, drop = FALSE], Y = as.factor(data[, treat]), seed = 1234)$predictions[,2]
   fml <- as.formula(paste(Y, "~", treat))
@@ -1185,7 +1296,9 @@ ipw <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# cbps
+
+# CBPS
+#library("CBPS")
 cbps <- function(data, Y, treat, covar) {
   fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
   ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
@@ -1198,6 +1311,7 @@ cbps <- function(data, Y, treat, covar) {
 }
 
 # ebal
+#library(hbal)
 ebal <- function(data, Y, treat, covar) {
   ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
   out <- hbal::att(ebal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
@@ -1211,7 +1325,54 @@ ebal <- function(data, Y, treat, covar) {
 #   return(out)
 # }
 
-# dml
+# aipw_grf
+aipw <- function(data, Y, treat, covar) {
+  #library("grf")
+  for (var in c(Y, treat, covar)) {
+    data[, var] <- as.vector(data[, var])
+  }
+  c.forest <- causal_forest(X = data[, covar, drop = FALSE], Y = data[, Y],
+                            W = data[, treat], seed = 1234)
+  att <- average_treatment_effect(c.forest, target.sample = "treated", method = "AIPW")
+  att <- c(att, att[1] - 1.96 * att[2], att[1] + 1.96 * att[2])
+  return(att)
+}
+
+aipw.match <- function(data, Y, treat, covar) { # match on ps
+  ps <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = 1234)$predictions[,2]
+  m.out <- Match(Y = data[, Y], Tr = data[, treat], X = ps,
+                 estimand = "ATT", M = 1, replace = FALSE, ties = FALSE, BiasAdjust = FALSE)
+  mb <- quiet(MatchBalance(treat ~ ps, data = data, match.out = m.out, nboots= 0))
+  ks <- mb$AfterMatching[[1]]$ks$ks$statistic
+  s <- data[c(m.out$index.treated, m.out$index.control), ]
+  out <- aipw(s, Y, treat, covar)
+  #return(out)
+  return(c(out, ks))
+}
+
+aipw_ow <- function(data, Y, treat, covar) {
+  for (var in c(Y, treat, covar)) {
+    data[, var] <- as.vector(data[, var])
+  }
+  X <- data[, covar, drop = FALSE]
+  Y <- data[, Y]
+  W <- data[, treat]
+  # run dml_with_smoother with AIPW_ATT
+  dml_fit <- dml_with_smoother(Y = Y, D = W, X = X,
+                               estimators = c("AIPW_ATT"),
+                               smoother = "honest_forest",
+                               n_cf_folds = 5,
+                               n_reps = 1)
+  # extract estimate and SE from summary
+  summ <- summary(dml_fit, quiet = TRUE)
+  est <- summ["AIPW-ATT", "Estimate"]
+  se <- summ["AIPW-ATT", "SE"]
+  ci_lower <- est - 1.96 * se
+  ci_upper <- est + 1.96 * se
+  return(c(est, se, ci_lower, ci_upper))
+}
+
+### dml
 dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_l = lrn("regr.lm"), ml_m = lrn("regr.lm")){
   if(is.null(covar)){
     stop("No controls in specification.")
@@ -1223,7 +1384,6 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
   if(is.null(clust_var) == TRUE){
     dat = data[,c(Y,treat,covar)]
     dat = na.omit(dat)
-    
     dml_dat = DoubleMLData$new(dat,
                                y_col = Y,
                                d_cols = treat,
@@ -1236,7 +1396,6 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
     dat = dat[is.na(dat[,D]) == FALSE,]
     features = data.frame(model.matrix(formula(paste(c('~ 1',treat,covar), collapse="+")), dat))
     dat = cbind(dat[,c(Y,clust_var)],features)
-
     dml_dat = DoubleMLClusterData$new(dat,
                                       y_col = Y,
                                       d_cols = treat,
@@ -1244,64 +1403,15 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
                                       use_other_treat_as_covariate = FALSE,
                                       x_cols = covar)
   }
-  # set active treatment treatment
+  # Set active treatment treatment
   dml_dat$set_data_model(treat)
-  # estimate with DML
+  # Estimate with DML
   set.seed(pi)
   dml_mod = DoubleMLPLR$new(dml_dat, ml_l=ml_l, ml_m=ml_m)
   quiet(dml_mod$fit())
   out = c(dml_mod$coef[treat], dml_mod$se[treat], dml_mod$confint()[treat,])
   return(out)
   
-}
-
-# aipw_grf
-aipw <- function(data, Y, treat, covar) {
-  # library("grf")
-  for (var in c(Y, treat, covar)) {
-    data[, var] <- as.vector(data[, var])
-  }
-  c.forest <- causal_forest(X = data[, covar, drop = FALSE], Y = data[, Y],
-                            W = data[, treat], seed = 1234)
-  att <- average_treatment_effect(c.forest, target.sample = "treated", method = "AIPW")
-  att <- c(att, att[1] - 1.96 * att[2], att[1] + 1.96 * att[2])
-  return(att)
-}
-
-aipw.match <- function(data, Y, treat, covar) {
-  # match on ps
-  ps <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = 1234)$predictions[,2]
-  m.out <- Match(Y = data[, Y], Tr = data[, treat], X = ps,
-                 estimand = "ATT", M = 1, replace = FALSE, ties = FALSE, BiasAdjust = FALSE)
-  mb <- quiet(MatchBalance(treat ~ ps, data = data, match.out = m.out, nboots= 0))
-  ks <- mb$AfterMatching[[1]]$ks$ks$statistic
-  s <- data[c(m.out$index.treated, m.out$index.control), ]
-  out <- aipw(s, Y, treat, covar)
-  # return(out)
-  return(c(out, ks))
-}
-
-aipw_ow <- function(data, Y, treat, covar) {
-  # data prep as before
-  for (var in c(Y, treat, covar)) {
-    data[, var] <- as.vector(data[, var])
-  }
-  X <- data[, covar, drop = FALSE]
-  Y_vec <- data[, Y]
-  W_vec <- data[, treat]
-  # run dml_with_smoother with AIPW_ATT
-  dml_fit <- dml_with_smoother(Y = Y_vec, D = W_vec, X = X,
-                               estimators = c("AIPW_ATT"),
-                               smoother = "honest_forest",
-                               n_cf_folds = 5,
-                               n_reps = 1)
-  # extract estimate and SE from summary
-  summ <- summary(dml_fit, quiet = TRUE)
-  est <- summ["AIPW-ATT", "Estimate"]
-  se <- summ["AIPW-ATT", "SE"]
-  ci_lower <- est - 1.96 * se
-  ci_upper <- est + 1.96 * se
-  return(c(est, se, ci_lower, ci_upper))
 }
 
 # execute all estimators
@@ -1370,7 +1480,7 @@ estimate_all <- function(data, Y, treat, covar,
 }
 ```
 
-#### Function calls
+**Function calls**
 
 -   `quiet`: Suppresses output from a function call.
 -   `diff`: Difference in means estimator. It runs a linear regression adjusting for robust standard errors and returns the coefficient, standard error, and confidence interval for the treatment variable.
@@ -1521,7 +1631,7 @@ save_att_panels <- function(
 - `plot_titles`: A character vector of titles for each plot, corresponding to the outputs in `all_outs`.
 - `band`: A numeric vector specifying the confidence interval bounds.
 - `est`: A numeric value representing the point estimate.
-- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `prefix`: String prefix used for saved file names to identify dataset.
 - `plots_per_page`: The number of plots to display per page / panel (default 4).
 - `ylab`: The label for the y-axis (default "Estimate").
 - `textsize`: A numeric scaling factor for text size in plots (default 1).
@@ -1576,9 +1686,9 @@ eval_att <- function(result) {
 
 - `result`: A data frame containing treatment effect estimation results.
 
-#### CATT
+#### Conditional average treatment effect on the treated (CATT)
 
-`plot_catt_panels()` visualizes conditional average treatment effects on the treated (CATT) comparing multiple methods.
+`plot_catt_panels()` visualizes CATT comparing multiple methods.
 ```{r class.source = 'fold-hide'}
 plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
   num_pages <- ceiling((length(all_catt) - 1) / plots_per_page)
@@ -1624,7 +1734,7 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
 - `plots_per_page`: The number of plots to display per page / panel (default 4).
 - `range`: A numeric vector of axis limits for plots (default c(-8000, 8000)).
 
-`save_catt_panels()`generates and saves multi-page pdf plots comparing CATT estimates across different methods.
+`save_catt_panels()`generates and saves multi-page PDF plots comparing CATT estimates across different methods.
 ```{r class.source = 'fold-hide'}
 save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), prefix = "model_a", plots_per_page = 4) {
   dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
@@ -1701,90 +1811,47 @@ eval_catt <- function(all_catt, plot_titles) {
 - `all_catt`: A list of objects containing conditional average treatment effect on treated (CATT) estimates.
 - `plot_titles`: A character vector of titles for each plot, corresponding to the outputs in `all_catt`.
 
-#### QTET
+#### Quantile treatment effect on treated (QTET)
 
-`plot_qtet_panels()` plots quantile treatment effect on the treated (QTET) panels for comparison against an experimental benchmark.
+`plot_qte_top()` plots QTET of top-ranked samples for comparison against an experimental benchmark.
 ```{r class.source = 'fold-hide'}
-plot_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000)) {
-  panels_per_page <- 4  # for 2x2 grid
-  num_panels <- length(all_qtet)
-  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * panels_per_page + 2  # skip the experimental reference itself
-    end_idx   <- min(page * panels_per_page + 1, num_panels)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
-    for (i in start_idx:end_idx) {
-      comp_qte <- all_qtet[[i]]
-      if (!is.null(comp_qte)) {
-        plot_qte(
-          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
-          bm = experimental_qte, # blue reference line (always the experimental)
-          main = plot_titles[i],
-          ylim = ylim
-        )
-        legend("bottomleft",
-               legend = c("Experimental", "Method"),
-               lty = 1,
-               pch = c(16, 16),
-               col = c(4, 1),
-               bty = "n"
-        )
-      }
-    }
-    # if last page has fewer than 4 plots, fill remainder with empty plots for aesthetics
-    plots_this_page <- end_idx - start_idx + 1
-    if (plots_this_page < panels_per_page) {
-      for (k in seq_len(panels_per_page - plots_this_page)) {
-        plot.new()
-      }
-    }
+plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, ylim = NULL, col = NULL) {
+  n <- length(qtet_top)
+  for (i in 1:n) {
+    main_title <- plot_titles[main_start + i - 1]
+    mod <- qtet_top[[i]]
+    mod2 <- qtet_top0[[i]]
+    plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
+    legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
+           lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
   }
 }
 ```
 
 **Arguments**
 
-- `all_qtet`:  A list of objects containing quantile treatment effect on treated (QTET) estimates.
-- `plot_titles`: A character vector of titles for each plot, corresponding to the outputs in `all_qtet`.
-- `experimental_qte`: Reference QTET object from experimental benchmark data.
-- `plots_per_page`: The number of plots to display per page / panel (default 4).
-- `ylim`: A numeric vector specifying the y-axis limits for the plots (default c(-25000, 15000)).
+- `qtet_top`: A list of objects containing QTET estimates for top-ranked samples.
+- `qtet_top0`: A list of objects containing unadjusted QTET estimates.
+- `bm`: Experimental benchmark.
+- `plot_titles`:  A character vector of titles for each plot, matching the order of elements in `qtet_top`. 
+- `main_start`: Integer index specifying where to start selecting titles from `plot_titles` (default is 1).
+- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `col`: Color specification.
 
-`save_qtet_panels()` generates and saves multi-page pdf plots comparing QTET estimates across different estimation methods.
+`save_qtet()` generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates.
 ```{r class.source = 'fold-hide'}
-save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_page = 4, ylim = c(-25000, 15000), prefix = "model_a") {
-  panels_per_page <- 4  # for 2x2 grid
-  num_panels <- length(all_qtet)
-  num_pages  <- ceiling((num_panels - 1) / panels_per_page)
-  dir.create("../figures", showWarnings = FALSE, recursive = TRUE)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * panels_per_page + 2  # skip experimental reference itself
-    end_idx   <- min(page * panels_per_page + 1, num_panels)
-    plots_this_page <- end_idx - start_idx + 1
-    file_name <- sprintf("../figures/%s_qtet_estimates_%d.pdf", prefix, page)
-    pdf(file = file_name, width = 12, height = 10)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
-    for (i in start_idx:end_idx) {
-      comp_qte <- all_qtet[[i]]
-      if (!is.null(comp_qte)) {
-        plot_qte(
-          mod = comp_qte,        # black "main" line (this top method / nonexp sample)
-          bm = experimental_qte, # blue reference line (always the experimental)
-          main = plot_titles[i],
-          ylim = ylim
-        )
-        legend("bottomleft",
-               legend = c("Experimental", "Method"),
-               lty = 1,
-               pch = c(16, 16),
-               col = c(4, 1),
-               bty = "n")
-      }
-    }
-    # Fill remaining spots on the page if fewer than 4 actual panels
-    if (plots_this_page < panels_per_page) {
-      for (k in seq_len(panels_per_page - plots_this_page)) plot.new()
-    }
+save_qtet <- function(plots, plot_titles = NULL, main_start = 1, ylim = NULL, col = NULL, prefix = "model_a") {
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  n <- length(plots)
+  for (i in seq_len(n)) {
+    p <- plots[[i]]
+    main_title <- if (is.null(plot_titles)) p$main else plot_titles[main_start + i - 1]
+    clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
+    file_name <- sprintf("../graphs/lalonde/%s_qtet_estimates_%s.pdf", prefix, clean_title)
+    pdf(file = file_name, width = 7, height = 5)
+    plot_qte(p$mod, p$mod0, p$bm, main = main_title, ylim = ylim, col = col)
+    legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
+           lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
     dev.off()
   }
 }
@@ -1792,18 +1859,178 @@ save_qtet_panels <- function(all_qtet, plot_titles, experimental_qte, plots_per_
 
 **Arguments**
 
-- `all_qtet`:  A list of objects containing quantile treatment effect on treated (QTET) estimates.
-- `plot_titles`: A character vector of titles for each plot, corresponding to the outputs in `all_qtet`.
-- `experimental_qte`: Reference QTET object from experimental benchmark data.
-- `plots_per_page`: The number of plots to display per page / panel (default 4).
-- `ylim`: A numeric vector specifying the y-axis limits for the plots (default c(-25000, 15000)).
-- `prefix`: String prefix for saving output PDF files.
+- `plots`: A list of objects containing QTET estimates and corresponding unadjusted estimates.
+- `plot_titles`: A character vector of titles for each plot, matching the order of elements in `plots`.
+- `main_start`: Integer index specifying where to start selecting titles from `plot_titles` (default is 1).
+- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `col`: Color specification.
+- `prefix`: A string prefix for saved PDF filenames.
+
+`save_qte_top()` generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates of top-ranked samples.
+```{r class.source = 'fold-hide'}
+save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
+                                ylim = NULL, col = NULL, prefix = "model_a_top") {
+  n <- length(qtet_top)
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  for (i in seq_len(n)) {
+    mod <- qtet_top[[i]]
+    mod2 <- qtet_top0[[i]]
+    main_title <- plot_titles[main_start + i - 1]
+    clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
+    file_name <- sprintf("../graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
+    pdf(file = file_name, width = 7, height = 5)
+    plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
+    legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
+           lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+    dev.off()
+  }
+}
+```
+
+**Arguments**
+
+- `qtet_top`: A list of objects containing QTET estimates for top-ranked samples.
+- `qtet_top0`: A list of objects containing unadjusted QTET estimates.
+- `plot_titles`: A character vector of titles for each plot, matching the order of elements in `qtet_top`.
+- `main_start`: Integer index specifying where to start selecting titles from `plot_titles` (default is 1).
+- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `col`: Color specification.
+- `prefix`: A string prefix for saved PDF filenames.
 
 <br>
 
+<a name="ow-ana"></a>
+
+## Outcome weights analysis
+`get_res_att()` estimates average treatment effects on the treated (ATT) using augmented inverse probability weighting with cross-fitting on a list of datasets.
+```{r class.source = 'fold-hide'}
+get_res_att <- function(dataset_list, Y, treat, covar,
+                            estimators = "AIPW_ATT",
+                            smoother = "honest_forest",
+                            n_cf_folds = 5,
+                            n_reps = 1) {
+  lapply(dataset_list,
+      function(data) {
+        dml_with_smoother(
+          Y = data[[Y]],
+          D = data[[treat]],
+          X = data[, covar, drop = FALSE],
+          estimators = estimators,
+          smoother = smoother,
+          n_cf_folds = n_cf_folds,
+          n_reps = n_reps
+      )
+    }
+  )
+}
+```
+
+**Arguments**
+
+- `dataset_list`: A list of input datasets. 
+- `Y`: String specifying the name of the outcome variable.
+- `treat`: String specifying the name of the binary treatment indicator variable.
+- `covar`: A vector of covariate names.
+- `estimators`: String specifying the estimator to use (default is "AIPW_ATT").
+- `smoother`:  String specifying the smoothing method (default is "honest_forest").
+- `n_cf_folds`: Integer specifying the number of cross-fitting folds (default is 5).
+- `n_reps`: Integer specifying the number of repetitions for robustness (default is 1).
+
+`derive_ow()` extracts outcome weights from a list of estimation results.
+```{r class.source = 'fold-hide'}
+derive_ow <- function(results_list) {
+lapply(results_list, function(res) get_outcome_weights(res))
+}
+```
+
+**Argument**
+
+- `results_list`: A list of objects obtained from `get_res_att()`.
+
+`plot_ow()` 
+```{r class.source = 'fold-hide'}
+plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50, 
+                    col = "#ff000080", xlab = "Outcome Weight", 
+                    estimator = "AIPW-ATT") {
+  N <- length(outcome_weights)
+  for (i in seq_len(N)) {
+    weights <- outcome_weights[[i]]$omega[estimator, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
+    mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
+  }
+  par(mfrow = c(1, 1))
+}
+```
+
+**Arguments**
+
+- `outcome_weights`: A list of outcome weight objects.
+- `plot_titles`: A character vector of titles for each plot.
+- `breaks`: Integer specifying the number of bins for the histogram plots (default is 50).
+- `col`: Color specification (default is "#ff000080").
+- `xlab`: String specifying the label for the x-axis (default is "Outcome Weight")
+- `estimator`: String specifying the estimator to use (default is "AIPW-ATT").
+
+`eval_ow()` computes summary statistics of outcome weights by treatment group for a list of datasets and returns a data frame for comparison.
+```{r class.source = 'fold-hide'}
+eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat_var = "treat", estimand = "AIPW-ATT") {
+  results <- lapply(seq_along(outcome_weights), function(i) {
+    ow <- outcome_weights[[i]]$omega[estimand, ]
+    treat <- dataset_list[[i]][[treat_var]]
+    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    sum_treated <- sum(ow[treat == 1])
+    sum_untreated <- sum(ow[treat == 0])
+    data.frame(
+      Method = method,
+      Sum_Treated = sum_treated,
+      Sum_Untreated = sum_untreated,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, results)
+}
+```
+
+**Arguments*
+
+- `outcome_weights`: A list of outcome weight objects.
+- `plot_titles`:  A character vector of titles for each plot.
+- `treat_var`:  String specifying the treatment variable in each dataset (default is "treat").
+- `estimator`: String specifying the estimator to use (default is "AIPW-ATT").
+
+`save_ow()` saves the outcome weight histograms as PDF files, one per dataset, with optional custom titles and formatting.
+```{r class.source = 'fold-hide'}
+save_ow <- function(outcome_weights, plot_titles = NULL,
+                    breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
+                    prefix = "model_a", estimator = "AIPW-ATT") {
+  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  N <- length(outcome_weights)
+  for (i in seq_len(N)) {
+    file_name <- sprintf("../graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
+    pdf(file = file_name, width = 8, height = 6)
+    weights <- outcome_weights[[i]]$omega[estimator, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
+    mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
+    dev.off()
+  }
+}
+```
+
+**Argument**
+
+- `outcome_weights`: A list of outcome weight objects.
+- `plot_titles`:  A character vector of titles for each plot.
+- `breaks`: Integer specifying the number of bins for the histogram plots (default is 50).
+- `col`: Color specification (default is "#ff000080").
+- `xlab`: String specifying the label for the x-axis (default is "Outcome Weight")
+- `prefix`: A string prefix for saved PDF filenames.
+- `estimator`:  String specifying the estimator to use (default is "AIPW-ATT").
+
 <a name="sens-ana"></a>
 
-## Sensitivity Analysis
+## Sensitivity analysis
 
 `check_filter_datasets()` filters a list of datasets to retain only those with all required variables, no missing data, binary treatment, and sufficient baseline/covariate variation.
 ```{r class.source = 'fold-hide'}

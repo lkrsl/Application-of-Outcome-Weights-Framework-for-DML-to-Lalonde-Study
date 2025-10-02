@@ -1164,7 +1164,7 @@ plot_ow(ow_att, plot_titles)
 ```{r, warning=FALSE}
 #| code-fold: show
 #save results
-eval_ow_prop(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
 ```
 
 ```{r, warning=FALSE}

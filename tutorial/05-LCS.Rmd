@@ -303,7 +303,7 @@ trim_names <- c("ps_threshold", "common_range", "stuermer", "walker", "crump")
 trimmed_psid <- list(ps_threshold = lcs_psid_trim, common_range = lcs_psid_plus.common, stuermer = lcs_psid_plus.stuermer, walker = lcs_psid_plus.walker, crump = lcs_psid_plus.crump)
 ```
 
-#### dPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+#### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r}
 # apply inverse probability weighting (IPW) with trimming and attach IPW weights
 ipw_comb.psid_plus <- setNames(
@@ -813,7 +813,7 @@ plot_ow(ow_att, plot_titles)
 ```{r, warning=FALSE}
 #| code-fold: show
 #save results
-eval_ow_prop(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
 ```
 
 Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
