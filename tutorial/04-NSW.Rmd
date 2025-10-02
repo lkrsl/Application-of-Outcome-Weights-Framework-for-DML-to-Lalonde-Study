@@ -990,13 +990,13 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "nsw")
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS1, NSW-PSID1, trimmed versions of the NSW-CPS1 and NSW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples of both NSW-CPS1 and NSW-PSID1 based on various matching, weighting, truncation and trimming criteria.
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS1, NSW-PSID1, trimmed versions of the NSW-CPS1 and NSW-PSID1 samples (analogous to Imbens & Xu (2024)) and a series of top-ranked subsamples of both NSW-CPS1 and NSW-PSID1 based on various matching, weighting, truncation and trimming criteria.
 
-Figure (A) presents the benchmark from the experimental data (NSW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, NSW-CPS1 and NSW-PSID1, while figures (D) and (E) present those for the trimmed versions, replicating the tutorial results of Imbens & Xu (2024). Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
+Figure (A) presents the benchmark from the experimental sample (NSW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, NSW-CPS1 and NSW-PSID1, while figures (D) and (E) present those for the trimmed versions, replicating the tutorial results of Imbens & Xu (2024). Figures (F) through (J) display results for CPS1-based subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-based subsamples under parallel rules.
 
-Across the NSW-CPS1 and its top-ranked subsamples, all estimators consistently produce ATT estimates that closely align with the experimental benchmark, though all are negative. These estimates, however, deviate more from the benchmark than those obtained under model A and B in previous sections using LDW data. Notably, the `overlap_crump` and `adapt_weight_trunc_ipw_weight` methods exhibit somewhat larger deviations.
+Across the NSW-CPS1 and its top-ranked subsamples, all estimators produce ATT estimates that closely align with the experimental benchmark, though all estimates are negative. Some larger deviations occur for the `Diff-in-Means` estimator within the `overlap_crump` and `adapt_weight_trunc_ipw_weight` subsamples. Nevertheless, these ATT estimates deviate more from the benchmark than those obtained under models A and B in previous sections using LDW data. 
 
-In comparison, PSID1-based subsamples frequently exhibit greater dispersion and substantially higher standard errors than NSW-CPS1 samples, mirroring observations from the LDW data. All ATT estimates remain negatively aligned, reflecting heightened methodological uncertainty within these samples.
+In comparison, PSID1-based subsamples frequently exhibit greater dispersion and substantially higher standard errors than NSW-CPS1 samples, consistent with previous observations from LDW data. All ATT estimates remain negatively aligned, reflecting heightened methodological uncertainty within these samples.
 ```{r, warning=FALSE}
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
@@ -1012,17 +1012,17 @@ result_mat <- create_matrix_results(all_outs, plot_titles)
 knitr::kable(result_mat, booktabs = TRUE, caption = "NSW ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both NSW-CPS1 and NSW-PSID1.
+The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(O) summarize results for the trimmed and top-ranked samples for both NSW-CPS1 and NSW-PSID1.
 
 For all CPS1-based samples, ATT estimates remain negative, but are relatively close to the experimental benchmark. In contrast, the PSID1-based estimates exhibit larger negative magnitudes, and increased standard errors, underscoring the heightened difficulty of achieving covariate balance and overlap in this observational dataset. 
 
-Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that trimming can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
+Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain methods can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r}
 # save results 
 save_csv(result_mat, "NSW_att_estimates")
 ```
 
-### Conditional Average Treatment Effect on the Treated (CATT)
+### Conditional average treatment effect on the treated (CATT)
 ```{r, warning=FALSE}
 #| code-fold: show
 catt.nsw <- catt(nsw, Y, treat, covar)
@@ -1057,16 +1057,15 @@ save_catt_panels(all_catt, plot_titles, prefix = "nsw")
 eval_catt(all_catt, plot_titles)
 ```
 
-Specifically, with NSW-CPS1, the CATT estimates range from $-8,652.64 to $6,452.97, contrasting with the experimental data where CATT estimates span from $-1,179.03 to $3,339.96, with a mean CATT estimate of $812.17. Unlike in the previous sections, the NSW-PSID1 data exhibits a narrower CATT estimate range, spanning from $-8,591.86 to $1,170.55 - yet its mean CATT estimate remains substantially negative, at approximately $-2,321.86.
+With NSW-CPS1, the CATT estimates range from $-8,652.64 to $6,452.97, contrasting with the benchmark where CATT estimates span from $-1,179.03 to $3,339.96, with a mean CATT estimate of $812.17. Alike in the previous sections, the NSW-PSID1 data exhibits a narrower CATT estimates range compared to NSW-CPS1, spanning from $-8,591.86 to $1,170.55. Yet its mean CATT estimate remains substantially negative, at approximately $-2,321.86, contrary to the positive mean CATT estimates observed in models A and B.
 
-Among the trimmed and top-ranked CPS1 subsamples, CATT estimates exhibit substantial variability. 
-Methods such as `overlap_crump` or `adap_weight_trunc_ipw_weight` yield notably negative minimum CATT values alongside moderately negative mean estimates. Similarly, the `card` and `mahvars` methods produce consistently negative mean CATT estimates, indicating weaker alignment with the experimental benchmark. The `ps_threshold` sample performs better with highest min CATT and mean CATTs closest to the experimental benchmark, while still negative.
+Among the trimmed and top-ranked NSW-CPS1 subsamples, CATT estimates exhibit substantial variability. Subsamples such as `overlap_crump` or `adap_weight_trunc_ipw_weight` yield notably negative minimum CATT values alongside moderately negative mean CATT estimates. Similarly, `card` and `mahvars` subsamples produce consistently negative mean CATT estimates, although weaker alignment with the experimental benchmark. The `ps_threshold` subsample yields improved estimates with highest min CATT and mean CATTs estimates closest to the experimental benchmark, while still negative.
 
-The CATT estimates for the PSID1 trimmed and top-ranked subsamples reveal substantially decreased mean CATT estimation values and wider extremes compared to their CPS1 counterparts, reflecting greater difficulties in producing reliable treatment effect estimates.
+The NSW-PSID1 trimmed and top-ranked subsamples deliver substantially decreased mean CATT estimates and wider extremes compared to their NSW-CPS1 counterparts, reflecting greater difficulties in producing reliable effect estimates.
 
-This variation in range and averages across methods and samples, as observed in previous sections,  reflects substantial heterogeneity in treatment effect estimation but also indicates that while certain samples or methods improve alignment with the experimental benchmark, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
+This variation in range and means across samples, as observed in previous sections, reflects substantial heterogeneity in treatment effect estimation but also indicates that while certain criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
 
-### Quantile Treatment Effect on the Treated (QTET)
+### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
@@ -1123,7 +1122,7 @@ plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.nsw_cps, plot_titles, ma
 plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.nsw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
 ```
 
-These figures display QTET estimates derived from both the NSW experimental and various observational samples. The QTETs estimated from the original and trimmed NSW-CPS1 sample (B and D) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the original and trimmed NSW-PSID1 sample (C and E) show clear biases when compared to the experimental benchmark, which clusters near zero. Among the top-ranked subsamples, CPS1-based QTETs (F–J) consistently track the true QTET closely. In contrast, PSID1-based QTETs (K–O) generally perform well and align closely with the true QTET, except for subsamples based on the `mahvars` and `card` methods, which exhibit increased bias and noticeably wider confidence intervals, reflecting greater estimation uncertainty.
+These figures display QTET estimates derived from both the NSW experimental and various observational samples. The QTETs estimated from trimmed NSW-CPS1 sample (D) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the original NSW-CPS1, the original NSW-PSID1 and its trimmed subsample (B, C and E) show clear biases when compared to the experimental benchmark, which clusters near zero. Among the top-ranked subsamples, CPS1-based QTETs (F–J) consistently track the true QTET closely. In contrast, PSID1-based QTETs (K–O) generally perform well, aligning closely with the true QTET, except for subsamples `mahvars` and `card`, which exhibit increased bias and noticeably wider confidence intervals, reflecting greater estimation uncertainty.
 ```{r, warning=FALSE}
 # list results
 plots_nsw <- list(
@@ -1174,9 +1173,13 @@ eval_ow_prop(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "A
 save_ow(ow_att, plot_titles, prefix = "nsw")
 ```
 
-Consistent with the preceding sections, the evaluation shows that, across each dataset, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
+Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
 
-## Sensitivity Analyses
+::: callout-tip
+A placebo test is not performed as the NSW data comes from a randomized controlled trial (RCT), which ensures internal validity and unbiased treatment effect estimates, without confounding.
+:::
+
+## Validation through sensitivity analyses
 ```{r, warning=FALSE}
 #| code-fold: show
 # define variables
@@ -1208,6 +1211,6 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "nsw")
 ```
 
-The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of re75. Notably, some samples such as LDW-PSID1 exhibit a greater sensitivity with more pronounced swings including negative estimates at higher confounder strengths, contrasting with consistent positive effects in LDW-CPS1 variants. This highlights sample-specific differences in robustness against potential unobserved confounding.
+The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re78`. 
 
 # Summary
