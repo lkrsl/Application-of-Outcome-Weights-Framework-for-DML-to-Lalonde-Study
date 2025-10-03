@@ -1182,7 +1182,7 @@ plot_ow(ow_att, plot_titles)
 
 ```{r, warning=FALSE}
 #| code-fold: show
-#save results
+#evaluate results
 eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
 ```
 
