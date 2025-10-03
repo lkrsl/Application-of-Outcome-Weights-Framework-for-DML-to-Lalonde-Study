@@ -59,7 +59,7 @@ To use the wrapper functions, the simplest method is to source the R script with
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
-source("functions.R")
+source("tutorial/functions.R")
 ```
 
 If you are using RStudio, you should now see the functions in the environment section.
@@ -927,7 +927,7 @@ plot_comb_love_plots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, tr
 save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                            prefix = "model_a",
                            prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
-                           path = "../graphs/lalonde") {
+                           path = "graphs/lalonde") {
   dir.create(path, showWarnings = FALSE, recursive = TRUE)
   all_combined_list <- list()
   if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
@@ -975,7 +975,7 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
 save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
                                 prefix = "model_a",
                                 prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
-                                path = "../graphs/lalonde") {
+                                path = "graphs/lalonde") {
   dir.create(path, showWarnings = FALSE, recursive = TRUE)
   all_datasets <- list()
   if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps

@@ -28,7 +28,7 @@ This section (2) covers model A, which includes the outcome variable 1978 earnin
 #| code-fold: show
 # source functions
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-source("functions.R")
+source("tutorial/functions.R")
 ```
 
 ```{r}

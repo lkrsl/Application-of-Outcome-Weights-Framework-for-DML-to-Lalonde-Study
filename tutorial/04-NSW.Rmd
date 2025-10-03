@@ -15,7 +15,7 @@ For detailed explanations of the analysis steps and tips, please refer to sectio
 #| code-fold: show
 # source functions
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-source("functions.R")
+source("tutorial/functions.R")
 ```
 
 ```{r}
