@@ -109,8 +109,12 @@ truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
 #### check_weights()
 check_weights <- function(data, weight_col = "weight") {
   w <- data[[weight_col]]
-  cat("Variance of", weight_col, ":", var(w, na.rm = TRUE), "\n")
-}  
+  variance <- var(w, na.rm = TRUE)
+  data.frame(
+    Weight_Column = weight_col,
+    Variance = variance
+  )
+}
 
 #### truncate_weights_adaptive()
 truncate_weights_adaptive <- function(data, weight_col, c = 3) {
@@ -664,9 +668,11 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
       data <- plot_list[[i]]
       pdf_file <- file.path(path, sprintf("%s_overlap_%d.pdf", prefix, file_index))
       pdf(pdf_file, width = 8, height = 6)
-      assess_overlap(data, treat = treat, cov = covar)
-      prefix_str <- if (ds_name == "CPS") prefix_cps else prefix_psid
-      title(main = paste0(prefix_str, " - ", method_names[i]))
+      invisible(capture.output({
+        assess_overlap(data, treat = treat, cov = covar)
+        prefix_str <- if (ds_name == "CPS") prefix_cps else prefix_psid
+        title(main = paste0(prefix_str, " - ", method_names[i]))
+      }, type = "output"))
       dev.off()
       file_index <- file_index + 1
     }
@@ -810,7 +816,6 @@ get_top_methods <- function(summary_df, top_n = 5) {
   top_methods_df <- summary_df %>%
     arrange(desc(Score)) %>%
     head(top_n)
-  print(top_methods_df)
   return(top_methods_df$Method)
 }
 
@@ -857,7 +862,6 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
     dataset_to_save <- combined_methods_list[[method_name]]
     file_name <- sprintf("data/top%d_%s_method_%s.RData", i, prefix, method_name)
     save(dataset_to_save, file = file_name)
-    cat("Saved:", file_name, "\n")
   }
 }
 
@@ -1140,7 +1144,7 @@ plot_coef <- function(out,
                       main.pos = 1,
                       main.line = -2,
                       ylim = NULL,
-                      textsize = 1
+                      textsize = 0.8
 ) {
   if (is.null(methods) == TRUE) {
     methods <- rownames(out)
@@ -1275,11 +1279,9 @@ eval_att <- function(result) {
 #### plot_catt_panels()
 plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
   num_pages <- ceiling((length(all_catt) - 1) / plots_per_page)
-  # Experimental reference (first panel)
   catt_ldw <- all_catt[[1]]$catt
   att_ldw  <- all_catt[[1]]$att[1]
   id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
-  
   for (page in seq_len(num_pages)) {
     start_idx <- (page - 1) * plots_per_page + 2 # skip experimental vs itself
     end_idx   <- min(page * plots_per_page + 1, length(all_catt))
@@ -1377,7 +1379,6 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
     main_title <- plot_titles[main_start + i - 1]
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
-    par(cex.main = 0.6)
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
            lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")

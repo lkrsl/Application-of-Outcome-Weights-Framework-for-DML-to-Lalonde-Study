@@ -7,25 +7,23 @@ For detailed explanations of the analysis steps and tips, please refer to sectio
 ## Set up
 ### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # source functions
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
 source("tutorial/functions.R")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # load data
 load("data/lcs.RData")
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # set seed
 set.seed(42)
 ```
 
 ### Load and preprocess data 
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # expc = 0: experimental treated; 
 # expc = 1: experimental control; 
 # expc = 2: psid control;
@@ -39,8 +37,7 @@ lcs_co$expc <- 1
 lcs_psid_plus <- rbind.data.frame(lcs_psid, lcs_co)
 ```
 
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # define variables
 Y <- "re79"
 treat <- "treat"
@@ -55,24 +52,21 @@ In the following analysis, only PSID1 data is used as the original LaLonde study
 
 ### Assessing overlap and covariate balance
 #### Overlap
-```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LCS-Experimental. SubfigureB:LCS-PSID1.',out.width='100%', fig.asp=0.5}
-#| code-fold: show
+```{r, fig.cap='FIGURE1. SubfigureA:LCS-Experimental. SubfigureB:LCS-PSID1.',out.width='100%', fig.asp=0.5}
 # assess overlap
 lcs.ps <- assess_overlap(data = lcs, treat = treat, cov = covar, xlim = c(-1.5, 1.5), breaks = 40)
 lcs_psid.ps <- assess_overlap(data = lcs_psid, treat = treat, cov = covar, xlim = c(-11, 7), breaks = 40)
 ```
 
 As anticipated, the LCS-Experimental data exhibit an almost perfect overlap. In contrast, the observational dataset LCS-PSID1 displays weak overlap. 
-```{r, class.source = "fold-show", fig.cap='FIGURE2. SubfigureC:LCS-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
-#| code-fold: show
+```{r, fig.cap='FIGURE2. SubfigureC:LCS-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 # assess overlap
 lcs_psid_plus.ps <- assess_overlap(data = lcs_psid_plus, treat = treat, cov = covar, xlim = c(-15, 5))
 ```
 
 With the expanded dataset LCS-PSID1, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater spread of log-odds densities across both samples.
 
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
@@ -81,34 +75,29 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```{r, message=FALSE, warning=FALSE}
 love.plot(lcs, lcs_psid, treat, covar = covar, title = "LCS-PSID1")
 love.plot(lcs, lcs_psid_plus, treat, covar = covar, title = "LCS-PSID1-PLUS")
-
-bal.tab(model, data = lcs_psid, treat = "treat")
-bal.tab(model, data = lcs_psid_plus, treat = "treat")
 ```
-::: callout-tip
+
+<div class="callout-note">
 Due to computational constraints, we use a reduced set of matching methods, consistent with previous sections.
-:::
+</div>
 
 ## Improving primarily covariate balance
 ### Matching 
 #### Distance Matching
 ##### Optimal pair matching
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # perform optimal pair matching that minimizes total within-pair distance on propensity scores
 m.out.psid_plus.optimal_pair <- matchit(model, data = lcs_psid_plus, method = "optimal", distance = "logit")
 ```
 
 ##### Optimal full matching
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
 m.out.psid_plus.optimal_full <- matchit(model, data = lcs_psid_plus, method = "full", distance = "logit")
 ```
 
 ##### Generalized full matching
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
 m.out.psid_plus.general_full <- matchit(model, data = lcs_psid_plus, method = "quick", distance = "logit")
 ```
@@ -117,7 +106,6 @@ m.out.psid_plus.general_full <- matchit(model, data = lcs_psid_plus, method = "q
 ##### Coarsened matching (cem)
 Strata = coarsened versions of covariates
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # match units exactly within coarse strata 
 m.out.psid_plus.cem <- matchit(model, data = lcs_psid_plus, method = "cem")
 ```
@@ -125,7 +113,6 @@ m.out.psid_plus.cem <- matchit(model, data = lcs_psid_plus, method = "cem")
 ##### Subclassification 
 Strata = bins of the propensity score
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # partition sample into fixed number of bins based on propensity score 
 m.out.psid_plus.subcl <- matchit(model, data = lcs_psid_plus, method = "subclass", subclass = 5)
 ```
@@ -133,14 +120,12 @@ m.out.psid_plus.subcl <- matchit(model, data = lcs_psid_plus, method = "subclass
 #### Pure subset selection
 ##### Cardinality profile matching
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # select largest balanced subsample meeting covariate balance tolerances
 m.out.psid_plus.card <- matchit(model, data = lcs_psid_plus, method = "cardinality", tols = 0.1, ratio = 1)
 ```
 
 ##### Profile matching
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # matching by directly optimizing balance profile measures across covariates
 m.out.psid_plus.profile <- matchit_profile(lcs_psid_plus, treat, covar)
 ```
@@ -148,7 +133,6 @@ m.out.psid_plus.profile <- matchit_profile(lcs_psid_plus, treat, covar)
 ### Weighting
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # compute weights as inverse of estimated propensity scores 
 w.out.psid_plus.ipw <- weightit(model, data = lcs_psid_plus, method = "ps", estimand = "ATT")
 
@@ -157,14 +141,12 @@ lcs_psid_plus$ipw_weight <- w.out.psid_plus.ipw$weights
 
 #### Standardized mortality ratio (SMR) treated weights
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # calculate weights for ATT by assigning weight = 1 to treated units and weights proportional to odds of treatment for control
 lcs_psid_plus$smr_weight <- create_smr_weights(lcs_psid_plus, model, "ATT")
 ```
 
 #### Matching weights
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # derive optimal matching weights intending to minimize covariate imbalance while targeting ATT
 w.out.psid_plus.opt <- weightit(model, data = lcs_psid_plus, method = "optweight", estimand = "ATT")
 
@@ -173,14 +155,12 @@ lcs_psid_plus$opt_weight <- w.out.psid_plus.opt$weights
 
 #### Overlap weights
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # calculate overlap weights emphasizing units with propensity scores near 0.5
 lcs_psid_plus$overlap_weight <- create_overlap_weights(lcs_psid_plus, model)
 ```
 
 #### Entropy weights
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # compute entropy balancing weights 
 w.out.psid_plus.ebal <- weightit(model, data = lcs_psid_plus, method = "ebal", estimand = "ATT")
 
@@ -189,15 +169,13 @@ lcs_psid_plus$ebal_weight <- w.out.psid_plus.ebal$weights
 
 ## Improving primarily overlap
 ### Truncation
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # list of weight columns to apply truncation 
 weight_columns <- c("ipw_weight", "smr_weight", "opt_weight", "overlap_weight", "ebal_weight")
 ```
 
 #### Fixed maximum value truncation
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # truncate weights by imposing a maximum threshold of 10
 lcs_psid_plus.fixed <- lcs_psid_plus
 for (wcol in weight_columns) {
@@ -208,8 +186,7 @@ for (wcol in weight_columns) {
 ```
 
 #### At percentile truncation
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # truncate weights such that values above the 99th percentile are capped
 lcs_psid_plus.percent <- lcs_psid_plus
 for (wcol in weight_columns) {
@@ -220,21 +197,23 @@ for (wcol in weight_columns) {
 ```
 
 #### Adaptive weight truncation
-```{r}
-#| code-fold: sh
-# inspect variance of weights 
+```{r, message=FALSE, warning=FALSE}
+results_list <- list() 
+
 for (wcol in weight_columns) {
   if (wcol %in% names(lcs_psid_plus)) {
-    check_weights(lcs_psid_plus, wcol)
+    results_list[[wcol]] <- check_weights(lcs_psid_plus, wcol)
   } else {
-    cat("Column", wcol, "not found in lcs_cps.plus\n")
+    warning(paste("Column", wcol, "not found in lcs_psid_plus"))
   }
 }
+
+variance_table <- bind_rows(results_list)
+knitr::kable(variance_table, caption = "Variance of Weights")
 ```
 
 Regarding these results we can apply adaptive weight truncation to all considered weights.
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # truncate adaptively at mean + 3 standard deviations 
 lcs_psid_plus.adapt <- lcs_psid_plus
 for (wcol in weight_columns) {
@@ -245,9 +224,9 @@ for (wcol in weight_columns) {
 ```
 
 ### Trimming 
-#### Propensity score threshold trimming (similar to tutorial of @imbens2024)
-```{r}
-#| code-fold: show
+#### Propensity score threshold trimming 
+(Similar to tutorial of @imbens2024)
+```{r, message=FALSE, warning=FALSE}
 # apply trimming with threshold 0.9
 lcs_psid_trim <- ps_trim(lcs_psid_plus.ps, threshold = 0.9)
 
@@ -263,43 +242,38 @@ lcs_psid.trim_match <- psmatch(data = lcs_psid.trim_match, Y = "re79", treat = "
 ```
 
 #### Common range trimming
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # trim observations outside the common support region of propensity scores
 lcs_psid_plus.common  <- common_range_trim(lcs_psid_plus.ps)
 ```
 
 #### Propensity score trimming (Crump)
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # trim observations with propensity scores outside [0.1, 0.9] interval
 lcs_psid_plus.crump <- crump_trim(lcs_psid_plus.ps, lower = 0.1, upper = 0.9)
 ```
 
 #### Stuermer trimming
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # trim observations based on propensity score quantiles separately for treated and control
 lcs_psid_plus.stuermer <- stuermer_trim(lcs_psid_plus.ps)
 ```
 
 #### Walker trimming
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # trim observations based on preference scores that adjust for treatment prevalence using logit transformations
 lcs_psid_plus.walker  <- walker_trim(lcs_psid_plus.ps)
 ```
 
 ### Combination of methods
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # list trimming methods
 trim_names <- c("ps_threshold", "common_range", "stuermer", "walker", "crump")
 trimmed_psid <- list(ps_threshold = lcs_psid_trim, common_range = lcs_psid_plus.common, stuermer = lcs_psid_plus.stuermer, walker = lcs_psid_plus.walker, crump = lcs_psid_plus.crump)
 ```
 
 #### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # apply inverse probability weighting (IPW) with trimming and attach IPW weights
 ipw_comb.psid_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], lcs_psid_plus, "ipw_weight")),
@@ -308,8 +282,7 @@ ipw_comb.psid_plus <- setNames(
 ```
 
 #### SMR treated weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # apply standardized mortality ratio (SMR) weighting with trimming and attach SMR weights
 smr_treat_comb.psid_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], lcs_psid_plus, "smr_weight")),
@@ -318,8 +291,7 @@ smr_treat_comb.psid_plus <- setNames(
 ```
 
 #### Overlap weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # apply overlap weighting with trimming and attach overlap weights
 ov_comb.psid_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], lcs_psid_plus, "overlap_weight")),
@@ -328,8 +300,7 @@ ov_comb.psid_plus <- setNames(
 ```
 
 #### Entropy weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # apply entropy balancing weights with trimming and attach entropy weights
 entropy_comb.psid_plus <- setNames(
   lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], lcs_psid_plus, "ebal_weight")),
@@ -339,8 +310,7 @@ entropy_comb.psid_plus <- setNames(
 
 ## Reassessing methods
 ### Matching
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # list all matching methods
 methods.psid_plus <- list(
   optimal_pair = m.out.psid_plus.optimal_pair,
@@ -353,36 +323,31 @@ methods.psid_plus <- list(
 )
 ```
 
-```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
-# calculate balance statistics 
-bal.psid_plus <- cobalt::bal.tab(model, data = lcs_psid_plus, un = TRUE, weights = methods.psid_plus, s.d.denom = "treated")
-```
-
 #### SMD
-```{r}
-#| code-fold: show
-# compute SMDs
+```{r, message=FALSE, warning=FALSE}
+# compute SMD
 smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
 ```
 
 #### ESS
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
+# calculate balance statistics 
+bal.psid_plus <- cobalt::bal.tab(model, data = lcs_psid_plus, un = TRUE, weights = methods.psid_plus, s.d.denom = "treated")
+```
+
+```{r, message=FALSE, warning=FALSE}
 # compute effective sample sizes (ESS)
 ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
 
 #### Visuals
-```{r, class.source = "fold-show", fig.cap='FIGURE3.'}
-#| code-fold: show
+```{r, fig.cap='FIGURE3.'}
 # visualize covariate balance 
 plot_matchit(methods.psid_plus, "LCS-PSID1-PLUS")
 ```
 
 ### Weighting
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # list all weights
 weight.psid_plus <- list(
   ipw = lcs_psid_plus$ipw_weight,
@@ -395,29 +360,24 @@ weight.psid_plus <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
-# compute SMDs 
+# compute SMD
 smd_weight.psid_plus <- compute_abs_smd_weight(lcs_psid_plus, "treat", covar, weight_columns)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # compute ESS
 ess_weight.psid_plus <- compute_ess_weight(lcs_psid_plus, "treat", covar, weight_columns)
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE4.'}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE4.'}
 # visualize covariate balance
 plot_weighting_methods(lcs_psid_plus, "treat", covar, weight.psid_plus, "LCS-PSID1-PLUS")
 ```
 
 ### Truncation
-Methods
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # list truncation methods
 trunc.psid_plus <- list(
   fix_max_value_trunc.psid_plus = lcs_psid_plus.fixed,
@@ -428,29 +388,24 @@ trunc.psid_plus <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
-# compute SMDs
+# compute SMD
 smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # compute ESS
 ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight_columns)
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE5.'}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE5.'}
 # visualize covariate balance
 plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LCS-PSID-PLUS")
 ```
 
 ### Trimming
-Methods
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # list trimming object
 trim.psid_plus <- list(
   original = lcs_psid_plus,
@@ -464,27 +419,23 @@ trim.psid_plus <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
-# compute SMDs
+# compute SMD
 smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # compute ESS
 ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE6.'}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE6.'}
 # visualize overlap
 plot_trim(trim.psid_plus, treat, covar)
 ```
 
-```{r, class.source = "fold-show", fig.cap='FIGURE7.'}
-#| code-fold: show
+```{r, fig.cap='FIGURE7.'}
 # visualize covariate balance
 love.plot(lcs_psid, lcs_psid.trim_match, treat, covar = covar, title = "LCS-PSID1-PLUS - propensity threshold trimming")
 love.plot(lcs_psid, lcs_psid_plus.common, treat, covar, title = "LCS-PSID1-PLUS - common range trimming")
@@ -494,7 +445,7 @@ love.plot(lcs_psid, lcs_psid_plus.walker,  treat, covar, title = "LCS-PSID1-PLUS
 ```
 
 ## Integrated methods
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # list all combined method results
 comb_meth.psid_plus <- list(
   ipw = ipw_comb.psid_plus,
@@ -505,24 +456,24 @@ comb_meth.psid_plus <- list(
 ```
 
 #### SMD
-```{r}
-# compute SMDs
+```{r, message=FALSE, warning=FALSE}
+# compute SMD
 smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
 
 #### ESS
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # compute ESS
 ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE A8.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE A8.'}
 # visualize overlap
 plot_comb_overlap(comb_meth_psid = comb_meth.psid_plus, treat = "treat", covar = covar, prefix_psid = "LCS-PSID1")
 ```
 
-```{r, message=FALSE, warning=FALSE, class.source = "fold-show", fig.cap='FIGURE A9.'} 
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE A9.'} 
 # visualize covariate balance
 plot_comb_love_plots(comb_meth_psid = comb_meth.psid_plus, treat = "treat", covar = covar, prefix_cps = "LCS-PSID1")
 ```
@@ -544,14 +495,18 @@ all_psid_plus <- combine_results("psid_plus")
 save_csv(all_psid_plus, "PSID1_PLUS_all_results_lcs")
 ```
 
-```{r}
-ranked_psid_plus <- assess_methods(all_psid_plus)
-```
-
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # get top 5 methods 
+ranked_psid_plus <- assess_methods(all_psid_plus)
+
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
+# print results
+top5_methods_df.psid_plus <- ranked_psid_plus %>% arrange(desc(Score)) %>% head(5)
+knitr::kable(top5_methods_df.psid_plus, caption = "Top 5 Methods", booktabs = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_lcs")
 ```
@@ -614,12 +569,12 @@ dataset_list_psid <- list(
   "entropy_walker" = entropy_comb.psid_plus[[5]])
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # create the datasets from combined lists for your top 5 methods:
 top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.psid_plus)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save them into .RData files
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "lcs_psid")
 ```
@@ -627,17 +582,12 @@ save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "
 ## Estimating
 ### Average treatment effect on the treated (ATT)
 ```{r, message=FALSE, warning=FALSE}
+# get estimates
 out1 <- estimate_all(lcs, "re79", "treat", covar)
 out2 <- estimate_all(lcs_psid, "re79", "treat", covar)
-```
-
-```{r, message=FALSE, warning=FALSE}
 out3 <- estimate_all(lcs_psid.trim_match, "re79", "treat", covar)
-```
 
-```{r, message=FALSE, warning=FALSE}
 out.psid_plus <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, "re79", "treat", covar))
-
 out4 <- out.psid_plus[[1]]
 out5 <- out.psid_plus[[2]]
 out6 <- out.psid_plus[[3]]
@@ -645,7 +595,7 @@ out7 <- out.psid_plus[[4]]
 out8 <- out.psid_plus[[5]]
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # build plot titles 
 base_titles <- c("(A) LCS-Experimental", "(B) LCS-PSID1" , "(C) Trimmed LCS-PSID1")
 top_start <- 4 # D is 4th letter
@@ -662,10 +612,10 @@ all_outs <- c(list(out1, out2, out3), out.psid_plus)
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est)
+plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save results
 save_att_panels(all_outs, plot_titles, band, est, "lcs")
 ```
@@ -675,85 +625,77 @@ The above figures show the ATT estimates and their 95% confidence intervals for 
 Figure (A) presents the benchmark from the experimental sample (LCS-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) shows results for the observational sample LCS-PSID1 and figure (C) for its trimmed version, replicating the tutorial results of Imbens & Xu (2024). Figures (D) through (H) display results for PSID1-based subsamples. 
 
 Across the LCS-PSID1 dataset and its top-ranked subsamples, all estimators yield ATT estimates that largely cluster around the experimental benchmark except `Diff-in-Means`, which tends to produce estimates that deviate more noticeably from the benchmark.
-```{r, warning=FALSE}
+```{r, warning=FALSE, message=FALSE}
 # prepare all results in the order shown in the plots
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
-att_summary
+knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
 ```
 
-```{r class.source = 'fold-hide'}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, booktabs = TRUE, caption = "LCS ATT Estimates and SEs for All Samples and Estimators")
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs")
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LCS-Experimental sample, column (B) for the LCS-PSID1 sample, and column (C) for its trimmed version. Columns (D)-(H) show results of the top-ranked subsample of LCS-PSID1.
 
 For all PSID1-based samples, the ATT estimates remain overly positive. However, the estimates obtained with the `Diff-in-Means` estimator are consistently negative. Likewise, for the sample constructed with the `card` method, the estimates remain negative across all estimators. 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat, "LCS_att_estimates")
 ```
 
 ### Conditional average treatment effect on the treated (CATT)
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 catt.lcs <- catt(lcs, Y, treat, covar)
 catt.psid <- catt(lcs_psid, Y, treat, covar)
 catt.psid.trim <- catt(lcs_psid.trim_match, Y, treat, covar)
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 11. CATT Estimates using LCS Data"}
-#| code-fold: show
 # combine all catt objects 
 all_catt <- c(list(catt.lcs,catt.psid, catt.psid.trim), catt.top5_psid_plus)
 
 # plot results
 par(mfrow = c(2,2))
-par(cex.main = 0.7)
+par(cex.main = 0.8)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
-eval_catt(all_catt, plot_titles)
+```{r, warning=FALSE, message=FALSE}
+all_catt_eval <- eval_catt(all_catt, plot_titles)
+knitr::kable(all_catt_eval, caption = "CATT Summary Statistics", booktabs = TRUE)
 ```
 
 With LCS-PSID1, CATT estimates span from $-3,357.48 to $2,404.33, contrasting with the CATT estimated from experimental data which ranges from $-359.43 to $2,719.14, with a mean CATT estimate of $863.51. 
 
 In contract, across the LCS-PSID1-based subsamples, the ranges of CATT estimates are relatively similar. Importantly, the mean CATT estimates remain positive in all cases, except for `card` subsample, that produces a mean CATT estimate of $-415.71.
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save results
 save_catt_panels(all_catt, plot_titles, prefix = "lcs")
 ```
 
 ### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 qte.lcs <- est_qte(Y, treat, covar, data = lcs, cores = 4)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 qte.lcs_psid <- est_qte(Y, treat, covar, data = lcs_psid)
 qte.lcs_psid.trim <- est_qte(Y, treat, covar, data = lcs_psid.trim_match) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 qte.lcs0 <- est_qte(Y, treat, NULL, data = lcs)
 qte.lcs_psid0 <- est_qte(Y, treat, NULL, data = lcs_psid)
 qte.lcs_psid.trim0 <- est_qte(Y, treat, NULL, data = lcs_psid.trim_match)
@@ -761,9 +703,8 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental"}
-#| code-fold: show
 par(mfrow = c(2,2))
-par(cex.main = 0.7)
+par(cex.main = 0.8)
 
 # PSID
 plot_qte(qte.lcs_psid, qte.lcs_psid0, qte.lcs, main = "(B) LCS-PSID", ylim = c(-25000, 15000))
@@ -780,7 +721,6 @@ plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.lcs_psid, plot_titles,
 
 These figures present QTET estimates obtained from LCS-Experimental sample and several observational samples. The QTETs estimated from both the original and trimmed LCS-PSID1 samples (B and C), as well as from the top-ranked subsamples (E through H), align comparatively close with the true QTET. However, the QTETs from subsample (F) exhibit a stronger bias, suggesting greater estimation uncertainty.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates using LCS Data: Experimental vs. Nonexperimental"}
-#| code-fold: show
 plots_lcs <- list(
   list(mod = qte.lcs_psid, mod0 = qte.lcs_psid0, bm = qte.lcs, main = "(B) LCS PSID"),
   list(mod = qte.lcs_psid.trim, mod0 = qte.lcs_psid.trim0, bm = qte.lcs_psid, main = "(D) LCS PSID (Trimmed)")
@@ -791,14 +731,12 @@ save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.lcs_psid, plot_titles,
 ```
 
 ### Assessing outcome weights (OW)
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # list all datasets
 all_datasets <- c(list(lcs, lcs_psid, lcs_psid.trim_match), top5_datasets.psid_plus)
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # estimate ATT 
 res_att <- get_res_att(all_datasets, Y, treat, covar)
 # extract outcome weights
@@ -806,49 +744,44 @@ ow_att <- derive_ow(res_att)
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A14. Outcome Weights using LCS Data"}
-#| code-fold: show
 par(mfrow = c(2,2))
-par(cex.main = 0.7)
+par(cex.main = 0.8)
 # plot outcome weights distribution
 plot_ow(ow_att, plot_titles) 
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
-#evaluate results
-eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-ATT")
+```{r, warning=FALSE, message=FALSE}
+# evaluate results
+res_ow <- eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-ATT")
+knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) 
 ```
 
 Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
-```{r, warning=FALSE}
-#| code-fold: show
-#save results
+```{r, message=FALSE, warning=FALSE}
+# save results
 save_ow(ow_att, plot_titles, prefix = "lcs")
 ```
 
 ## Validation through placebo analyses
-```{r, warning=FALSE}
+```{r, warning=FALSE, message=FALSE}
 # define variables
 Y_pl <- "nchildren75"
 treat <- "treat"
 covar_pl <- c("age", "educ", "nodegree", "married", "black", "hisp", "re75", "u75")
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # estimate placebo ATT on original and observational datasets
 out1_pl <- estimate_all(lcs, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(lcs_psid, Y_pl, "treat", covar_pl)
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # estimate placebo ATT on trimmed datasets (analogous to tutorial of @imbens2024)
 out3_pl <- estimate_all(lcs_psid_trim, Y_pl, "treat", covar_pl)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # estimate placebo ATT on top ranked datasets
 out.psid_pl <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, Y_pl, "treat", covar_pl))
 out4_pl <- out.psid_pl[[1]]
@@ -858,42 +791,37 @@ out7_pl <- out.psid_pl[[4]]
 out8_pl <- out.psid_pl[[5]]
 ```
 
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # collect all placebo results 
 all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl), out.psid_pl)
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 13. Placebo Test LCS: Number of Children in 1975 as the Outcome"}
-#| code-fold: show
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
 ylim_pl = c(-1.5, 1)
-plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl)
+plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl = c(-15500, 5500), textsize = 0.7)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save results
 save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "lcs_placebo")
 ```
 
-```{r class.source = 'fold-hide'}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "LCS Placebo ATT Estimates and SEs for All Samples and Estimators")
+knitr::kable(result_mat_pl, caption = "Placebo ATT Estimates and SEs", booktabs = TRUE)
 ```
 
 The placebo analysis shows that the experimental benchmark is close to zero and statistically insignificant, while all estimators applied to the observational datasets produce comparable results.
-```{r}
-#| code-fold: show
+```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat_pl, "LCS_att_estimates_pl")
 ```
 
 ## Validation through sensitivity analyses
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # define variables
 Y <- "re79"
 treat <- "treat"
@@ -902,17 +830,15 @@ covar <- c("age", "educ", "nodegree", "married", "black", "hisp", "re75", "u75")
 bm <- c("re75")
 ```
 
-```{r, warning=FALSE}
-#| code-fold: show
+```{r, warning=FALSE, message=FALSE}
 # check for valid datasets 
 datasets_sens <- c(list(lcs, lcs_psid), top5_datasets.psid_plus)
 filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 14. Sensitivity Analyses LCS"}
-#| code-fold: show
 par(mfrow = c(2,2))
-par(cex.main = 0.7)
+par(cex.main = 0.8)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
@@ -921,7 +847,7 @@ for (i in seq_along(filtered_datasets_sens)) {
 }
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save results
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "lcs")
 ```
