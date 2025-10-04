@@ -422,7 +422,7 @@ for (wcol in weight_columns) {
 
 The purpose of trimming is to remove units whose propensity scores are too dissimilar from the opposite group, thereby improving covariate balance between treated and control groups. We employ several trimming methods below.
 
-#### Propensity score threshold trimming (analogous to tutorial of Imbens & Xu (2024))
+#### Propensity score threshold trimming (similar to tutorial by @imbens2024)
 ```{r}
 #| code-fold: show
 # apply trimming with thresholds 0.9 and 0.8 
@@ -1004,7 +1004,7 @@ Next, we estimate the average treatment effect on the treated (ATT) using both t
 
 We employ a broad set of estimators, including difference-in-means, regression, the Oaxaca-Blinder estimator, generalized random forests (GRF) as an outcome model, 1:5 nearest neighbor matching with bias correction, inverse probability weighting (IPW) with GRF-based propensity scores, covariate balancing propensity score (CBPS), entropy balancing, double/debiased machine learning using elastic net, and augmented inverse probability weighting (AIPW) via GRF. We also incorporate the recently introduced estimand-specific AIPW estimator implemented through an expansion of the `OutcomeWeights` R package by Knaus and Pfleiderer (2024).
 
-We utilize the `estimate_all()` and `plot_coef()` functions as defined by Imbens & Xu (2024).
+We utilize the `estimate_all()` and `plot_coef()` functions as defined by @imbens2024.
 ```{r, message=FALSE, warning=FALSE}
 # estimate ATT
 out1 <- estimate_all(ldw, "re78", "treat", covar)
@@ -1127,7 +1127,7 @@ catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, trea
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-Then, we employ a modified version of the function `plot_catt()` from Imbens & Xu (2024) to visualize the results by plotting the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
+Then, we employ a modified version of the function `plot_catt()` from @imbens2024 to visualize the results by plotting the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
 
 <div class="callout-note">
 Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
@@ -1274,7 +1274,7 @@ eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-
 ```
 
 <div class="callout-caution">
-The outcome weights are not obtained directly from the ATT point estimates due to computational design of other methods. Instead, the ATT is separately estimated for each dataset following the approach developed by Knaus and Pfleiderer (2024).
+The outcome weights are not obtained directly from the ATT point estimates due to computational design of other methods. Instead, the ATT is separately estimated for each dataset following the approach developed by @OW_Package.
 </div>
 
 The evaluation reveals that across each sample the estimated outcome weights sum to one within the treated group and minus one within the untreated group, resulting in an overall sum of zero.
@@ -1412,3 +1412,10 @@ The analyses suggest that some samples maintain stable treatment effect estimate
 </div>
 
 ## Summary
+After reexamining model A, that is based on the LaLonde-Dehejia-Wahba (LDW) data and its augmented versions with control groups from CPS-1 and PSID-1, several insights into causal inference challenges emerge. First, we confirm that ensuring overlap between treated and control groups remains crucial for credible causal estimation. The LDW-Experimental data exhibit excellent overlap, while the observational datasets (LDW-CPS1 and LDW-PSID1) show weaker overlap, with many treated units outside the control range. Augmenting these datasets with experimental controls improves overlap but does not consistently improve covariate balance.
+
+Second, controlling for covariates such as age, education, race, and prior earnings, and using various methods including matching, weighting, truncation, trimming, and combined approaches, largely yields consistent effects. The propensity score plays an important role in assessing overlap and balancing covariates across groups.
+
+Third, the LDW dataset is somewhat unique in that most methods approximate the experimental benchmark well for average treatment effects on the treated (ATT), an achievement not fully replicated in the original LaLonde samples. However, placebo tests using pre-treatment earnings and sensitivity analyses reveal lingering concerns about the unconfoundedness assumption and robustness of some estimators.
+
+Overall, this chapter highlights the importance of overlap and covariate balance, the utility of propensity scores, and the need for rigorous validation of treatment assignment assumptions to produce credible causal estimates. Despite improvements in data and methods, tests of unconfoundedness via placebo outcomes suggest caution in interpreting causal effects.

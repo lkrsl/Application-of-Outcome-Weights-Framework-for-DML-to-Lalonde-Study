@@ -1218,3 +1218,6 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re78`. 
 
 ## Summary
+After reexamining the original LaLonde (NSW) dataset, the results confirm that the NSW-Experimental data shows nearly perfect overlap between treated and control groups, while the observational datasets (NSW-CPS1 and NSW-PSID1) display weak overlap, with many treated units outside the control range. Expanding these datasets with experimental controls improves overlap but does not consistently enhance covariate balance. 
+
+These findings reinforce the lessons from previous LDW analyses: even with improved overlap and some gains in covariate balance, achieving consistent and reliable effect estimation remains difficult, especially with non-experimental data. The results highlight the persistent limitations of observational samples in replicating experimental benchmarks.

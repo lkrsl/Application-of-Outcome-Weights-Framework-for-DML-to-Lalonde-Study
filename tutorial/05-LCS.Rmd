@@ -1,6 +1,6 @@
 # LaLonde-Calónico-Smith (LCS) Data 
 
-This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as `lcs` below, similar to @imbens2024). 
+This section (5) examines the LaLonde female samples reconstructed by @calonico_smith_2017, referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as `lcs` below, similar to @imbens2024). 
 
 For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the LCS–specific results.
 
@@ -929,3 +929,6 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Observational samples instead show varying degrees of sensitivity, with the full observational sample (B) being more sensitive than the trimmed version (C). The top-ranked PSID1 subsamples (D-H) show that despite employing advanced criteria to improve balance and overlap, treatment effect estimates can exhibit increasing bias under plausible stronger confounding scenarios based on the reference confounder strength. 
 
 ## Summary
+After reexamining the LaLonde-Calónico-Smith (LCS) data, the results confirm that, as with the NSW and LDW datasets, overlap between treated and control groups is generally stronger in the experimental sample than in the observational (PSID-1) controls. Augmenting the sample with experimental controls improves overlap but does not consistently resolve covariate imbalance.
+
+The findings for the LCS sample closely mirror those from the LDW and NSW analyses: while certain methods can bring effect estimates closer to experimental benchmarks, substantial estimator-dependent variability and sensitivity to sample construction persist. Placebo and sensitivity analyses again show that unconfoundedness is difficult to verify, and that treatment effect estimates from observational data remain fragile. This underscores the ongoing challenge of obtaining reliable causal estimates for the LCS data.
