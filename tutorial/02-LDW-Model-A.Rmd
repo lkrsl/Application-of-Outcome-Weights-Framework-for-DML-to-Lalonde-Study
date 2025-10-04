@@ -1,9 +1,3 @@
----
-title: "Replication and Extension of Imbens & Xu (2024) Tutorial - LaLonde-Dehejia-Wahba (LDW) Data" 
-output: html_document
-date: "2025-05-08"
----
-
 # LaLonde-Dehejia-Wahba (LDW) Data
 LaLonde (1986) evaluated the effect of the National Supported Work Demonstration (NSW) program on both female and male participants. While the female participants were drawn from the Aid to Families with Dependent Children (AFDC) program, the male participants were drawn from three other groups: former drug addicts, ex-criminal offenders, and high-school dropouts. LaLonde relied on two main data sources:
 (1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
@@ -22,8 +16,8 @@ In the last section, the analysis applies a reduced set of statistical tools to 
 
 This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (black, hispanic), marital status, lack of high school degree, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts: Matching, Weighting, Truncation, Trimming and Combined Methods integrating these techniques. From these methods, the top 5 ranked are identified based on absolute standardized mean differences (SMDs) and effective sample size (ESS). The corresponding datasets are used to estimate the average treatment effect on the treated (ATT). Notably, the estimation incorporates the recently introduced augmented inverse probability weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
 
-# Set up
-## Source functions and load data
+## Set up
+### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # source functions
@@ -41,7 +35,7 @@ load("data/lalonde.RData")
 set.seed(42)
 ```
 
-## Inspect data
+### Inspect data
 ```{r}
 #| code-fold: show
 # collect datasets in a list
@@ -55,9 +49,9 @@ print(summary_stats)
 lapply(data, head, 5)
 ```
 
-## Load and preprocess data
+### Load and preprocess data
 
-We merge the experimental controls from LDW-Experimental into LDW-CPS1 and LDW-PSID1 to augment the control groups with additional observations, following a similar approach as by Imbens & Xu (2024).
+We merge the experimental controls from LDW-Experimental into LDW-CPS1 and LDW-PSID1 to augment the control groups with additional observations, following a similar approach as by @imbens2024.
 ```{r}
 #| code-fold: show
 # assigns 1 to the experimental controls
@@ -85,7 +79,7 @@ print(summary_stats_plus)
 lapply(datasets, head, 5)
 ```
 
-# Model A
+## Model A
 ```{r}
 #| code-fold: show
 # define variables
@@ -95,9 +89,9 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re74", "re75", "u74", "u75") #re74 included
 ```
 
-## Assessing overlap and covariate balance
-### Overlap
-To identify the average causal effect under unconfoundedness (that asserts that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and untreated units (meaning that for every combination of covariates, there are both treated and untreated units in the dataset) are required. The `assess_overlap()` function of Imbens & Xu (2024) is used to assess overlaps in the propensity scores and to visualize results using histograms of their log-odds.
+### Assessing overlap and covariate balance
+#### Overlap
+To identify the average causal effect under unconfoundedness (that asserts that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and untreated units (meaning that for every combination of covariates, there are both treated and untreated units in the dataset) are required. The `assess_overlap()` function of @imbens2024 is used to assess overlaps in the propensity scores and to visualize results using histograms of their log-odds.
 
 In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable coverage.
 ```{r, class.source = "fold-show", fig.cap='FIGURE A1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
@@ -126,7 +120,7 @@ For the following analysis, we set up a model formula.
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
-### Covariate balance
+#### Covariate balance
 
 Initial covariate balance checks reveal the degree to which treatment and control groups differ on observed characteristics. We employ the `bal.tab()` function from the cobalt package to generate detailed balance statistics, complemented by visual summaries using `love.plot()`, which depicts standardized mean differences across covariates before and after adjustment.
 ```{r, class.source = "fold-show", fig.cap='FIGURE A2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
@@ -143,7 +137,9 @@ love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")
 
 Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized mean differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
 
+<div class="callout-note">
 For the subsequent analysis aimed at enhancing covariate balance and overlap, only the two datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS are used. The LDW-Experimental dataset is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+</div>
 
 ## Improving primarily covariate balance
 ### Matching 
@@ -1091,9 +1087,9 @@ result_mat <- create_matrix_results(all_outs, plot_titles)
 knitr::kable(result_mat, booktabs = TRUE, caption = "Model A ATT Estimates and SEs for All Samples and Estimators")
 ```
 
-::: callout-tip
+<div class="callout-note">
 The first value in each cell represents the point estimate from the respective estimator and sample. The number in brackets directly following it is the robust standard error (SE) associated with that estimate, indicating the uncertainty or variability around the point estimate.
-:::
+</div>
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. 
 
@@ -1105,9 +1101,9 @@ Overall, figures and table jointly demonstrate that ATT estimates from observati
 save_csv(result_mat, "LDW_att_estimates_model_a")
 ```
 
-::: callout-tip
+<div class="callout-tip">
 Improved overlap and covariate balance generally leads to estimates closer to the experimental benchmark, but often at the cost of increased standard errors. This trade-off highlights the need to carefully balance bias reduction against precision when selecting methods for robust causal inference.
-:::
+</div>
 
 Next, we explore alternative estimands such as heterogeneous treatment effects and quantile treatment effects, which may provide deeper insights into the validity of the unconfoundedness assumption. 
 
@@ -1133,15 +1129,18 @@ catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, tr
 
 Then, we employ a modified version of the function `plot_catt()` from Imbens & Xu (2024) to visualize the results by plotting the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding experimental benchmarks. 
 
-::: callout-tip
+<div class="callout-note">
 Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
-:::
+</div>
+
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A11. CATT Estimates Model A using LDW Data"}
 #| code-fold: show
 # combine all catt objects 
 all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
 
 # plot results
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -1198,6 +1197,9 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The red line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+
 # CPS
 plot_qte(qte.ldw_cps, qte.ldw.cps0, qte.ldw, main = "(B) LDW-CPS", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
@@ -1259,18 +1261,21 @@ ow_att <- derive_ow(res_att)
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A13. Outcome Weights Model A using LDW Data"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+# plot outcome weights distribution
 plot_ow(ow_att, plot_titles) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
 #evaluate results
-eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-ATT")
 ```
 
-::: callout-tip
+<div class="callout-caution">
 The outcome weights are not obtained directly from the ATT point estimates due to computational design of other methods. Instead, the ATT is separately estimated for each dataset following the approach developed by Knaus and Pfleiderer (2024).
-:::
+</div>
 
 The evaluation reveals that across each sample the estimated outcome weights sum to one within the treated group and minus one within the untreated group, resulting in an overall sum of zero.
 ```{r, warning=FALSE}
@@ -1300,7 +1305,7 @@ out3_pl <- estimate_all(ldw_psid, Y_pl, "treat", covar_pl)
 
 ```{r, warning=FALSE}
 #| code-fold: show
-# estimate placebo ATT on trimmed datasets (analogous to tutorial of Imbens & Xu (2024))
+# estimate placebo ATT on trimmed datasets
 out4_pl <- estimate_all(ldw_cps.trim_match, Y_pl, "treat", covar_pl)
 out5_pl <- estimate_all(ldw_psid.trim_match, Y_pl, "treat", covar_pl)
 ```
@@ -1344,7 +1349,7 @@ save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "model_a_placebo")
 ```
 
 The placebo ATT results are presented in the table below:
-```{r class.source = 'fold-hide'}
+```{r class.source = 'fold-hide', warning=FALSE}
 #| code-fold: show
 # print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
@@ -1385,6 +1390,8 @@ filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, 
 
 ```{r, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A15. Sensitivity Analyses Model A"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
@@ -1400,8 +1407,8 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 
 The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re75`. Notably, some samples such as LDW-PSID1 exhibit a greater sensitivity with more pronounced swings including negative estimates at higher confounder strengths, contrasting with consistent positive effects in LDW-CPS1 variants. This highlights sample-specific differences in robustness against potential unobserved confounding.
 
-::: callout-tip
+<div class="callout-tip">
 The analyses suggest that some samples maintain stable treatment effect estimates despite increasing confounder strength, while others show greater sensitivity. This highlights the importance of assessing robustness across different samples (respectively methods used to derive specific samples) to account for potential unobserved bias.
-:::
+</div>
 
-# Summary
+## Summary

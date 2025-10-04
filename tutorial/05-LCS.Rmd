@@ -1,16 +1,11 @@
----
-title: "Replication and Extension of Imbens & Xu (2024) Tutorial - LaLonde Males Samples" 
-output: html_document
-date: "2025-05-08"
----
-
 # LaLonde-Calónico-Smith (LCS) Data 
-This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as `lcs` below, similar to Imbens & Xu). 
 
-For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the lcs–specific results.
+This section (5) examines the LaLonde female samples reconstructed by Calónico and Smith (2017), referred to as the LaLonde-Calónico-Smith (LCS) sample (loaded as `lcs` below, similar to @imbens2024). 
 
-# Set up
-## Source functions and load data
+For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only present and explain the LCS–specific results.
+
+## Set up
+### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # source functions
@@ -28,7 +23,7 @@ load("data/lcs.RData")
 set.seed(42)
 ```
 
-## Load and preprocess data 
+### Load and preprocess data 
 ```{r}
 #| code-fold: show
 # expc = 0: experimental treated; 
@@ -54,12 +49,12 @@ covar <- c("age", "educ", "nodegree", "married", "black", "hisp",
            "re75", "u75")
 ```
 
-::: callout-tip
+<div class="callout-note">
 In the following analysis, only PSID1 data is used as the original LaLonde study and its reconstruction by Calónico and Smith (2017) designate PSID1 as the appropriate nonexperimental control group for women, providing a comparable observational dataset that aligns with the experimental sample’s characteristics.
-:::
+</div>
 
-## Assessing overlap and covariate balance
-### Overlap
+### Assessing overlap and covariate balance
+#### Overlap
 ```{r, class.source = "fold-show", fig.cap='FIGURE1. SubfigureA:LCS-Experimental. SubfigureB:LCS-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
@@ -82,7 +77,7 @@ With the expanded dataset LCS-PSID1, it is evident that the degree of overlap be
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
-### Covariate balance
+#### Covariate balance
 ```{r, message=FALSE, warning=FALSE}
 love.plot(lcs, lcs_psid, treat, covar = covar, title = "LCS-PSID1")
 love.plot(lcs, lcs_psid_plus, treat, covar = covar, title = "LCS-PSID1-PLUS")
@@ -250,7 +245,7 @@ for (wcol in weight_columns) {
 ```
 
 ### Trimming 
-#### Propensity score threshold trimming (analogous to tutorial of Imbens & Xu (2024))
+#### Propensity score threshold trimming (similar to tutorial of @imbens2024)
 ```{r}
 #| code-fold: show
 # apply trimming with threshold 0.9
@@ -675,7 +670,7 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "lcs")
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for eight samples: LCS-Experimental, LCS-PSID1, a trimmed version of the LCS-PSID1 sample (analogous to Imbens & Xu) and a series of top-ranked subsamples of LCS-PSID1 based on various matching, weighting, truncation and trimming criteria.
+The above figures show the ATT estimates and their 95% confidence intervals for eight samples: LCS-Experimental, LCS-PSID1, a trimmed version of the LCS-PSID1 sample (analogous to @imbens2024) and a series of top-ranked subsamples of LCS-PSID1 based on various matching, weighting, truncation and trimming criteria.
 
 Figure (A) presents the benchmark from the experimental sample (LCS-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) shows results for the observational sample LCS-PSID1 and figure (C) for its trimmed version, replicating the tutorial results of Imbens & Xu (2024). Figures (D) through (H) display results for PSID1-based subsamples. 
 
@@ -722,6 +717,8 @@ catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, tr
 all_catt <- c(list(catt.lcs,catt.psid, catt.psid.trim), catt.top5_psid_plus)
 
 # plot results
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -765,6 +762,9 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+
 # PSID
 plot_qte(qte.lcs_psid, qte.lcs_psid0, qte.lcs, main = "(B) LCS-PSID", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
@@ -775,19 +775,19 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
 # PSID top methods
-plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.lcs_psid, plot_titles, main_start = 4, ylim = c(-25000, 15000))
+plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.lcs_psid, plot_titles, main_start = 2, ylim = c(-25000, 15000))
 ```
 
 These figures present QTET estimates obtained from LCS-Experimental sample and several observational samples. The QTETs estimated from both the original and trimmed LCS-PSID1 samples (B and C), as well as from the top-ranked subsamples (E through H), align comparatively close with the true QTET. However, the QTETs from subsample (F) exhibit a stronger bias, suggesting greater estimation uncertainty.
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 12. QTET Estimates using LCS Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
 plots_lcs <- list(
-  list(mod = qte.lcs_psid, mod0 = qte.lcs.psid0, bm = qte.lcs, main = "(B) LCS PSID"),
+  list(mod = qte.lcs_psid, mod0 = qte.lcs_psid0, bm = qte.lcs, main = "(B) LCS PSID"),
   list(mod = qte.lcs_psid.trim, mod0 = qte.lcs_psid.trim0, bm = qte.lcs_psid, main = "(D) LCS PSID (Trimmed)")
 )
 
 save_qtet(plots_lcs, prefix = "lcs", ylim = c(-25000, 15000))
-save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.lcs_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "lcs_top")
+save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.lcs_psid, plot_titles, main_start = 4, ylim = c(-25000, 15000), prefix = "lcs_top")
 ```
 
 ### Assessing outcome weights (OW)
@@ -807,13 +807,16 @@ ow_att <- derive_ow(res_att)
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A14. Outcome Weights using LCS Data"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+# plot outcome weights distribution
 plot_ow(ow_att, plot_titles) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
 #evaluate results
-eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-ATT")
 ```
 
 Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
@@ -840,7 +843,7 @@ out2_pl <- estimate_all(lcs_psid, Y_pl, "treat", covar_pl)
 
 ```{r, warning=FALSE}
 #| code-fold: show
-# estimate placebo ATT on trimmed datasets (analogous to tutorial of Imbens & Xu (2024))
+# estimate placebo ATT on trimmed datasets (analogous to tutorial of @imbens2024)
 out3_pl <- estimate_all(lcs_psid_trim, Y_pl, "treat", covar_pl)
 ```
 
@@ -908,6 +911,8 @@ filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, 
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE 14. Sensitivity Analyses LCS"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
@@ -923,4 +928,4 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 
 The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Observational samples instead show varying degrees of sensitivity, with the full observational sample (B) being more sensitive than the trimmed version (C). The top-ranked PSID1 subsamples (D-H) show that despite employing advanced criteria to improve balance and overlap, treatment effect estimates can exhibit increasing bias under plausible stronger confounding scenarios based on the reference confounder strength. 
 
-# Summary
+## Summary

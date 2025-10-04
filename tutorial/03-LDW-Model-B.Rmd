@@ -1,16 +1,10 @@
----
-title: "Replication and Extension of Imbens & Xu (2024) Tutorial - LaLonde-Dehejia-Wahba (LDW) Data" 
-output: html_document
-date: "2025-05-08"
----
-
 # LaLonde-Dehejia-Wahba (LDW) Data
 This section (3) covers model B, which, similar to model A, uses 1978 earnings (`re78`) as the outcome variable but adjusts for a slightly different set of covariates: age, education, race indicators (black, hispanic), marital status, lack of a high school degree, 1975 earnings (`re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`), explicitly excluding 1974 earnings (`re74`) to test the model’s robustness. The model is specified via a logistic regression formula based on these covariates. To enhance covariate balance between treated and untreated groups, the same comprehensive suite of methods is employed as in model A, organized into five categories. From these approaches, the top 5 ranked methods are selected based on absolute standardized mean differences (SMDs) and effective sample size (ESS), and their resulting datasets are used to estimate the average treatment effect on the treated (ATT). This estimation process also incorporates the augmented inverse probability weighting (AIPW) estimator from the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify patterns in the contribution of individual observations to the ATT. Placebo tests are then conducted using 1975 earnings (`re75`) as the outcome variable to assess potential biases and the validity of the unconfoundedness assumption. Finally, sensitivity analyses are performed to evaluate the robustness of the treatment effect estimates to violations of these assumptions.
 
 For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only explain the model B–specific results.
 
-# Set up
-## Source functions and load data
+## Set up
+### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # source functions
@@ -28,7 +22,7 @@ load("data/lalonde.RData")
 set.seed(42)
 ```
 
-## Inspect data
+### Inspect data
 ```{r}
 #| code-fold: show
 # collect datasets in a list
@@ -42,7 +36,7 @@ print(summary_stats)
 lapply(data, head, 5)
 ```
 
-## Load and preprocess data 
+### Load and preprocess data 
 ```{r}
 #| code-fold: show
 # assigns 1 to the experimental controls
@@ -70,7 +64,7 @@ print(summary_stats_plus)
 lapply(datasets, head, 5)
 ```
 
-# Model B
+## Model B
 ```{r}
 #| code-fold: show
 # define variables
@@ -80,8 +74,8 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re75", "u74", "u75") #re74 excluded
 ```
 
-## Assessing overlap and covariate balance
-### Overlap
+### Assessing overlap and covariate balance
+#### Overlap
 ```{r, class.source = "fold-show", fig.cap='FIGURE B1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
@@ -103,7 +97,7 @@ ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = co
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
-### Covariate balance
+#### Covariate balance
 ```{r, class.source = "fold-show", fig.cap='FIGURE B2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 bal.tab(model, data = ldw_cps, treat = "treat")
 bal.tab(model, data = ldw_cps_plus, treat = "treat")
@@ -380,7 +374,7 @@ for (wcol in weight_columns) {
 ```
 
 ### Trimming 
-#### Propensity score threshold trimming (analogous to tutorial of Imbens & Xu (2024))
+#### Propensity score threshold trimming (analogous to tutorial of @imbens2024)
 ```{r}
 #| code-fold: show
 # apply trimming with thresholds 0.9 and 0.8 
@@ -865,9 +859,7 @@ dataset_list_cps <- list(
   "entropy_ps_threshold" = entropy_comb.cps_plus[[3]],
   "entropy_stuermer" = entropy_comb.cps_plus[[4]],
   "entropy_walker" = entropy_comb.cps_plus[[5]])
-```
 
-```{r}
 dataset_list_psid <- list(
   "All" = ldw_psid_plus, 
   "original" = ldw_psid_plus, 
@@ -1004,7 +996,7 @@ plot_att_panels(all_outs, plot_titles, band, est)
 save_att_panels(all_outs, plot_titles, band, est, "model_b")
 ```
 
-As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to Imbens & Xu) and a series of top-ranked subsamples of both LDW-CPS1 and LDW-PSID1 based on various matching, weighting, truncation and trimming criteria. 
+As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (analogous to @imbens2024) and a series of top-ranked subsamples of both LDW-CPS1 and LDW-PSID1 based on various matching, weighting, truncation and trimming criteria. 
 
 Again, figure (A) presents the benchmark, serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the LDW-CPS1 and LDW-PSID1y, while figures (D) and (E) present those for the trimmed versions. Figures (F) through (J) display results for CPS1-derived subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-derived subsamples under parallel rules.
 
@@ -1021,7 +1013,7 @@ rownames(att_summary) <- plot_titles
 att_summary
 ```
 
-```{r class.source = 'fold-hide'}
+```{r class.source = 'fold-hide', warning=FALSE}
 #| code-fold: show
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
@@ -1060,6 +1052,8 @@ catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, tr
 all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
 
 # plot results
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -1115,6 +1109,9 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B12. QTET Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+
 # CPS
 plot_qte(qte.ldw_cps, qte.ldw.cps0, qte.ldw, main = "(B) LDW-CPS", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
@@ -1177,13 +1174,16 @@ ow_att <- derive_ow(res_att)
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B13. Outcome Weights Model B using LDW Data"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+# plot outcome weights distribution
 plot_ow(ow_att, plot_titles) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
 #evaluate results
-eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-ATT")
 ```
 
 ```{r, warning=FALSE}
@@ -1213,7 +1213,7 @@ out3_pl <- estimate_all(ldw_psid, Y_pl, "treat", covar_pl)
 
 ```{r, warning=FALSE}
 #| code-fold: show
-# estimate placebo ATT on trimmed datasets (analogous to tutorial of Imbens & Xu (2024))
+# estimate placebo ATT on trimmed datasets 
 out4_pl <- estimate_all(ldw_cps.trim_match, Y_pl, "treat", covar_pl)
 out5_pl <- estimate_all(ldw_psid.trim_match, Y_pl, "treat", covar_pl)
 ```
@@ -1295,6 +1295,8 @@ filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, 
 
 ```{r, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE 15. Sensitivity Analyses Model B"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
@@ -1310,4 +1312,4 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 
 The sensitivity analysis demonstrates identical results for LDW-Experimental, LDW-CPS1 and LDW-PSID1 as in model A and indicates once again that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re75`. However, compared to Model A, these estimates tend to shift upwards, exhibiting somewhat more positive values across variants. 
 
-# Summary
+## Summary

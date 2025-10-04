@@ -4,10 +4,10 @@ output_dir: "docs"
 rmd_files: [
   "index.Rmd",
   "tutorial/01-Start.Rmd", 
-  # "tutorial/02-LDW-Model-A.Rmd",
-  # "tutorial/03-LDW-Model-B.Rmd",
-  # "tutorial/04-NSW.Rmd",
-  # "tutorial/05-LCS.Rmd",
+  #"tutorial/02-LDW-Model-A.Rmd",
+  #"tutorial/03-LDW-Model-B.Rmd",
+  #"tutorial/04-NSW.Rmd",
+  #"tutorial/05-LCS.Rmd",
   "tutorial/07-references.Rmd"
 ]
 language:

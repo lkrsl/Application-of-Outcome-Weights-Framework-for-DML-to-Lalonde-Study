@@ -33,7 +33,7 @@ library(WeightIt)
 
 #### source files for aipw_ow extension
 skripte <- list.files(
-  "../package/OutcomeWeights/R",  
+  "package/OutcomeWeights/R",  
   pattern = "\\.R$", 
   full.names = TRUE)
 for (f in skripte) source(f, local = knitr::knit_global())
@@ -1377,6 +1377,7 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
     main_title <- plot_titles[main_start + i - 1]
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
+    par(cex.main = 0.6)
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
            lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")

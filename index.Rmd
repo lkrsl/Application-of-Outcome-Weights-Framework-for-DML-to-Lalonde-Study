@@ -1,21 +1,33 @@
 --- 
-title: "Application of Outcome Weights Framework for DML to Lalonde Study"
+title: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
 author: "Laura Kreisel"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
 documentclass: book
 bibliography: [tutorial/book.bib, tutorial/packages.bib]
 description: |
-  This book demonstrates the application of the Outcome Weights Framework 
-  for Double Machine Learning to the Lalonde Study.
+  This book replicates the LaLonde study as revisited by Imbens & Xu (2024), comparing full 
+  and reduced covariate models to reduce potential confounding. 
+  It evaluates various methods to improve overlap and covariate balance for more robust 
+  treatment effect estimation and applies the outcome weights framework by Knaus & Pfleiderer (2024) 
+  to LaLonde data variants as well as analyzes the distributional properties of outcome weights.
 link-citations: yes
 github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study
 ---
 
 # Preface {-}
 
-This book demonstrates the application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study. The framework provides a systematic approach to causal inference in observational studies.
+This book replicates the LaLonde study as revisited by Imbens & Xu (2024), comparing full 
+and reduced covariate models to reduce potential confounding. 
+It evaluates various methods to improve overlap and covariate balance for more robust 
+treatment effect estimation and applies the outcome weights framework by Knaus & Pfleiderer (2024) 
+to LaLonde data variants as well as analyzes the distributional properties of outcome weights.
 
-## Overview
+# Overview
 
-This tutorial covers the implementation and application of the Outcome Weights Framework to the classic Lalonde dataset for evaluating the effect of job training programs.
+Section 1 introduces required packages and wrapper functions used throughout the analysis. 
+Section 2 replicates and extends the full covariate model from Imbens & Xu (2024) 
+using the LaLonde-Dehejia-Wahba (LDW) dataset. 
+Section 3 applies a reduced covariate set to the same LDW data. 
+Section 4 analyzes the original LaLonde dataset following similar methods and 
+section 5 explores the LaLonde-Calónico-Smith (LCS) dataset, focusing on female samples.

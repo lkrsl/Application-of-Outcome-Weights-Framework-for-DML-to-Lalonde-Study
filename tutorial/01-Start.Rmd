@@ -1,16 +1,16 @@
 # Getting started
 
-::: callout-caution
-The functions presented below constitute the core wrapper functions utilized throughout the analysis, including three adapted function originally from the Imbens & Xu (2024) tutorial, which were modified to suit specific analytical purpose (highlighted by ***). For the full original collection of functions by Imbens & Xu (2024), including additional functions used in the analysis, please consult their official source code available on their GitHub [repository](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study).
-:::
+<div class="callout-caution">
+The functions presented below constitute the core wrapper functions utilized throughout the analysis, including three adapted function originally from the @imbens2024 tutorial, which were modified to suit specific analytical purpose (highlighted by ***), as well as others integrated without modification. For the full collection of functions by @imbens2024, please consult their official source code available on their GitHub [repository](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study).
+</div>
 
 ## Installation
 
 Several R packages are required for the data analysis and visualization. The code below checks for all required packages and installs those that are missing. After the installation, the packages need to be loaded.  
 
-::: callout-note
-Since the analysis sources functions directly from the Imbens & Xu (2024) tutorial, the required packages are automatically installed and loaded as part of that process. Therefore, it is only necessary to install and load any additional packages as well as add custom functions that are required for the analysis.
-:::
+<div class="callout-note">
+Since the analysis sources functions directly from the @imbens2024 tutorial, the required packages are automatically installed and loaded as part of that process. Therefore, it is only necessary to install and load any additional packages as well as add custom functions that are required for the analysis.
+</div>
 
 **Packages**: "data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 
@@ -51,30 +51,29 @@ library(WeightIt)
 
 ## Wrapper functions
 
-Next, we outline the wrapper functions designed to address overlap and covariate balance as well as the estimation of the average treatment effect on the treated (ATT) and alternative estimands. 
+Next, we outline the wrapper functions designed to manage the datasets, address overlap and covariate balance, estimate treatment effects as well as analyze outcome weights. 
 
-::: callout-note
+<div class="callout-note">
 To use the wrapper functions, the simplest method is to source the R script with the following code.
-:::
+</div>
 
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 source("tutorial/functions.R")
 ```
 
-If you are using RStudio, you should now see the functions in the environment section.
+If RStudio is used, the functions should now be seen in the environment section.
 
 ### Overview
 
 | Function                                            | Description                                                                                                                                                                     |                 Code                  |
 |------------------|------------------------------------|:----------------:|
 | `inspect_data()` | Inspects datasets.    | [More](#inspec) |
-
-| `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`, `truncate_weights_fixed()`, `truncate_weights_percentile()`, `check_weights()`, `truncate_weights_adaptive()`, `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()` and `trim_attach_weights()` | Implements methods to improve covariate balancing and overlap. | [More](#impl-cov-bal-overl-mthds) |
-`get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_trunc_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()` and `save_top5_individual_files()` | Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)) | [More](#eval-mthds) |
-| `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `eval_catt()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators. | [More](#est-and-plot-att-catt-qtet) |
-| `get_res_att()`, `derive_ow()`, `plot_ow()`, `eval_ow()`, `save_ow()` |  Analyses outcome weights of datasets.  | [More](#ow-ana) |
-| `check_filter_datasets()`, `save_sensitivity_plots()` |  Validates and filters datasets.  | [More](#sens-ana) |
+| `matchit_profile()`,`create_smr_weights()`,`create_overlap_weights()`, `truncate_weights_fixed()`, `truncate_weights_percentile()`, `check_weights()`, `truncate_weights_adaptive()`, `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()`, `trim_attach_weights()` | Implements methods to improve covariate balancing and overlap.   | [More](#impl-cov-bal-overl-mthds)  |
+| `get_smd_stats()`, `compute_abs_smd_matchit()`, `compute_ess_matchit()`, `plot_matchit()`, `compute_abs_smd_weight()`, `compute_ess_weight()`, `plot_weighting_methods()`, `compute_abs_smd_trunc()`, `compute_ess_trunc()`, `plot_trunc_methods()`, `compute_abs_smd_trim()`, `compute_ess_trim()`, `plot_trim()`, `compute_smd_all_datasets ()`, `compute_ess_all_datasets()`, `plot_comb_overlap()`, `plot_comb_love_plots()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `create_top5_datasets()`, `save_top5_individual_files()` | Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and effective sample size (ESS)).    | [More](#eval-mthds) |
+| `estimate_all()`, `plot_coef()`, `plot_att_panels()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `eval_catt()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators.    | [More](#est-and-plot-att-catt-qtet) |
+| `get_res_att()`, `derive_ow()`, `plot_ow()`, `eval_ow()`, `save_ow()` | Analyses outcome weights of datasets.    | [More](#ow-ana) |
+| `check_filter_datasets()`, `save_sensitivity_plots()` | Validates and filters datasets.    | [More](#sens-ana) |
 
 <a name="inspec"></a>
 
@@ -98,7 +97,7 @@ inspect_data <- function(data_list) {
 
 **Argument**
 
-- `data_list`: The dataset or a list of datasets. 
+- `data_list`: A data frame or a list of data frames containing structured data.
 
 <br>
 
@@ -122,13 +121,13 @@ matchit_profile <- function(data, treat, covar) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `data`: A data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 
 #### Weighting
 
-`create_smr_weights()` calculates standardized mortality ratio (SMR) weights based on estimated propensity scores, allowing for ATT or ATE weighting according to the estimand specified.
+`create_smr_weights()` calculates standardized mortality ratio (SMR) weights based on estimated propensity scores, allowing for ATT or average treatment effect (ATE) weighting according to the estimand specified.
 ```{r class.source = 'fold-hide'}
 create_smr_weights <- function(data, formula, estimand = "ATT") {
   ps_model <- glm(formula, data = data, family = binomial())
@@ -144,9 +143,9 @@ create_smr_weights <- function(data, formula, estimand = "ATT") {
 
 **Arguments**
 
-- `data`: The input dataset.
+- `data`: The data frame containing structured data.
 - `formula`: The model formula specifying the relation between the treatment variable and a set of covariates, defining the model structure. 
-- `estimand = ATT`: The target estimand (default is ATT).
+- `estimand = ATT`: The name of the target estimand (default is ATT).
 
 `create_overlap_weights()` computes overlap weights based on propensity scores.
 ```{r class.source = 'fold-hide'}
@@ -159,7 +158,7 @@ create_overlap_weights <- function(data, formula) {
 
 **Arguments**
 
-- `data`: The input dataset.
+- `data`: The data frame containing structured data.
 - `formula`: The model formula specifying the relation between the treatment variable and a set of covariates, defining the model structure. 
 
 #### Truncation
@@ -174,9 +173,9 @@ truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `weight_col`: The column name of the weights in the dataset.
-- `max_weight`: The maximum allowed weight value.
+- `data`: The data frame containing structured data.
+- `weight_col`: The column name of the weights in the dataset as string.
+- `max_weight`: The maximum allowed weight value as integer.
 
 `truncate_weights_percentile()` caps weights at a specified percentile threshold to reduce outliers in weight distribution.
 ```{r class.source = 'fold-hide'}
@@ -189,9 +188,9 @@ truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `weight_col`: The column name of the weights in the dataset.
-- `percentile`: The quantile cutoff value.
+- `data`: The data frame containing structured data.
+- `weight_col`: The column name of the weights in the dataset as string.
+- `percentile`: The quantile cutoff value as integer.
 
 `check_weights()` prints the variance of the specified weight vector to assess variability and relevance for adaptive truncation.
 ```{r class.source = 'fold-hide'}
@@ -203,8 +202,8 @@ check_weights <- function(data, weight_col = "weight") {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `weight_col`: The weight column to analyze.
+- `data`: The data frame containing structured data.
+- `weight_col`: The column name of the weights in the dataset as string.
 
 `truncate_weights_adaptive()` caps weights adaptively at a threshold defined by the mean plus a multiple of the standard deviation.
 ```{r class.source = 'fold-hide'}
@@ -221,9 +220,9 @@ truncate_weights_adaptive <- function(data, weight_col, c = 3) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `weight_col`: The column name of the weights in the dataset.
-- `c`: The multiplier for the standard deviation added to the mean to define the cutoff value.
+- `data`: The data frame containing structured data.
+- `weight_col`: The column name of the weights in the dataset as string.
+- `c`: The multiplier for the standard deviation added to the mean to define the cutoff value as integer.
 
 #### Trimming 
 
@@ -237,9 +236,9 @@ ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `ps`: The name of the propensity score variable.
-- `threshold`: The upper limit for propensity score inclusion.
+- `data`: The data frame containing structured data.
+- `ps`: The name of the propensity score variable as string.
+- `threshold`: The upper limit for propensity score inclusion as integer.
 
 `common_range_trim()` trims the dataset to observations with propensity scores within the common support range for treated and control groups.
 ```{r class.source = 'fold-hide'}
@@ -259,9 +258,9 @@ common_range_trim <- function(data, ps_col = "ps_assoverlap", treat_col = "treat
 
 **Arguments**
 
-- `data`: The input dataset.
-- `ps_col`: The column name of propensity scores.
-- `treat_col`: The column name of the (binary) treatment indicator.
+- `data`: The data frame containing structured data.
+- `ps_col`: The column name of propensity scores as string.
+- `treat_col`: The column name of the (binary) treatment indicator as string.
 
 `crump_trim()` trims the dataset to observations with propensity scores outside specified lower and upper bounds (default 0.1 and 0.9).
 ```{r class.source = 'fold-hide'}
@@ -273,10 +272,10 @@ crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9)
 
 **Arguments**
 
-- `data`: The input dataset.
-- `ps_col`: The column name of propensity scores.
-- `lower`: The lower bound for inclusion.
-- `upper`: The upper bound for inclusion.
+- `data`: The data frame containing structured data.
+- `ps_col`: The column name of propensity scores as string.
+- `lower`: The lower bound for inclusion as integer.
+- `upper`: The upper bound for inclusion as integer.
 
 `stuermer_trim ()` trims the dataset to observations based on propensity score quantiles separately for treated and control group.
 ```{r class.source = 'fold-hide'}
@@ -293,9 +292,9 @@ stuermer_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap",
 
 **Arguments**
 
-- `data`: The input dataset.
-- `treat_col`: The column name of the (binary) treatment indicator.
-- `ps_col`: The column name of propensity scores.
+- `data`: The data frame containing structured data.
+- `treat_col`: The column name of the (binary) treatment indicator as string.
+- `ps_col`: The column name of propensity scores as string.
 
 `walker_trim()` trims the dataset to observations based on preference scores that adjust for treatment prevalence using logit transformations.
 ```{r class.source = 'fold-hide'}
@@ -312,9 +311,9 @@ walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap",
 
 **Arguments**
 
-- `data`: The input dataset.
-- `treat_col`: The column name of the (binary) treatment indicator.
-- `ps_col`: The column name of propensity scores.
+- `data`: The data frame containing structured data.
+- `treat_col`: The column name of the (binary) treatment indicator as string.
+- `ps_col`: The column name of propensity scores as string.
 
 #### Combined methods
 `trim_attach_weights()` merges trimmed data with original weights, preserving corresponding weight values after trimming.
@@ -337,9 +336,9 @@ return(trimmed_data)
 
 **Arguments**
 
-- `trimmed_data`: The dataset resulting from trimming procedures, typically a subset of the original dataset.
-- `original_data`: The full dataset before trimming.
-- `weight_col`: The name of the column in `original_data` that holds the weights to be transferred.
+- `trimmed_data`: A data frame containing the subsetted dataset after trimming procedures.
+- `original_data`: A data frame containing the full dataset before trimming.
+- `weight_col`: The name of the column in `original_data` that holds the weights to be transferred, given as string.
 
 <br>
 
@@ -381,7 +380,7 @@ compute_abs_smd_matchit <- function(match_list) {
 
 **Argument**
 
-- `match_list`: A named list of MatchIt objects.
+- `match_list`: A list of MatchIt objects.
 
 `compute_ess_matchit()` extracts and formats effective sample size (ESS) information from the balance summary of a MatchIt object.
 ```{r class.source = 'fold-hide'}
@@ -417,7 +416,7 @@ plot_matchit <- function(match_list, dataset_name) {
 
 **Arguments**
 
-- `match_list`: A named list of MatchIt objects.
+- `match_list`: A list of MatchIt objects.
 - `dataset_name`: A string naming the dataset for use in plot titles.
 
 #### Weighting
@@ -449,10 +448,10 @@ compute_abs_smd_weight <- function(data, treat, covar, weight_cols) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `data`: The data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
-- `weight_cols`:The name of the columns holding the weights.
+- `weight_cols`: A string containing the column names holding the weights.
 
 `compute_ess_weight()` extracts ESS associated with different weighting schemes.
 ```{r class.source = 'fold-hide'}
@@ -480,8 +479,8 @@ compute_ess_weight <- function(data, treat, covar, weight_cols) {
 
 **Arguments**
 
-- `data`: The input dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `data`: The data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `weight_cols`: The name of the columns holding the weights.
 
@@ -512,10 +511,10 @@ plot_weighting_methods <- function(data, treat, covar, weight_list, dataset_name
 
 **Arguments**
 
-- `data`: The input dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `data`: The data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
-- `weight_list`: A named list of weight vectors. 
+- `weight_list`: A list of weight vectors. 
 - `dataset_name`: The dataset name for plot titles.
 
 #### Truncation
@@ -556,8 +555,8 @@ compute_abs_smd_trunc <- function(trunc_list, treat, covar, weight_cols) {
 
 **Arguments**
 
-- `trunc_list`: A list of datasets with truncated weights.
-- `treat`: The name of the binary treatment indicator variable.
+- `trunc_list`: A list of data frames, each containing a dataset with truncated weights.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `weight_cols`: The name of the columns holding the weights.
 
@@ -605,8 +604,8 @@ compute_ess_trunc <- function(trunc_list, treat, covar, weight_cols) {
 
 **Arguments**
 
-- `trunc_list`: A list of truncated weight datasets.
-- `treat`: The name of the binary treatment indicator variable.
+- `trunc_list`: A list of data frames, each containing a dataset with truncated weights.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `weight_cols`: The name of the columns holding the weights.
 
@@ -647,8 +646,8 @@ plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_na
 
 **Arguments**
 
-- `trunc_list`: A list of truncated weight datasets.
-- `treat`: The name of the binary treatment indicator variable.
+- `trunc_list`: A list of data frames, each containing a dataset with truncated weights.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `weight_cols`: The name of the columns holding the weights.
 - `dataset_name`: The dataset name for plot titles.
@@ -684,8 +683,8 @@ compute_abs_smd_trim <- function(trimming_list, treat, covar) {
 
 **Arguments**
 
-- `trimming_list`: A named list of trimmed datasets.
-- `treat`: The name of the binary treatment indicator variable.
+- `trimming_list`: A list of data frames, each a trimmed dataset.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 
 `compute_ess_trim()` extracts ESS information for multiple trimmed datasets.
@@ -708,8 +707,8 @@ compute_ess_trim <- function(trimming_list, treat, covar) {
 
 **Arguments**
 
-- `trimming_list`: A named list of trimmed datasets.
-- `treat`: The name of the binary treatment indicator variable.
+- `trimming_list`: A list of data frames, each a trimmed dataset.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 
 `plot_trim()` plots overlap diagnostics for a set of trimmed datasets, visualizing covariate balance before and after matching.
@@ -724,8 +723,8 @@ plot_trim <- function(data_list, treat, covar) {
 
 **Arguments**
 
-- `data_list`: A list of datasets to plot.
-- `treat`: The name of the binary treatment indicator variable.
+- `data_list`: A list of data frames to plot.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 
 #### Combined methods
@@ -767,8 +766,8 @@ compute_smd_all_datasets <- function(combined_list, treat, covar) {
 
 **Arguments**
 
-- `combined_list`: A nested list of datasets grouped by weighting and trimming methods.
-- `treat`: The name of the binary treatment indicator variable.
+- `combined_list`: A list of data frames grouped by weighting and trimming methods.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 
 `compute_ess_all_datasets()` aggregates ESS information across various datasets, weighting methods, and trimming techniques.
@@ -814,8 +813,8 @@ compute_ess_all_datasets <- function(combined_list, treat, covar) {
 
 **Arguments**
 
-- `combined_list`: A nested list of datasets grouped by weighting and trimming methods.
-- `treat`: The name of the binary treatment indicator variable.
+- `combined_list`: A list of data frames grouped by weighting and trimming methods.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 
 `plot_comb_overlap()` creates plots assessing overlap for combinations of weighting and trimming methods across datasets.
@@ -859,12 +858,12 @@ plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat
 
 **Arguments**
 
-- `comb_meth_cps`: A named list combining weighting and trimming results for CPS dataset.
-- `comb_meth_psid`: A named list combining weighting and trimming results for PSID dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `comb_meth_cps`: A list combining weighting and trimming results for CPS dataset.
+- `comb_meth_psid`: A list combining weighting and trimming results for PSID dataset.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
-- `prefix_cps`: Optional string prefix for plot titles related to CPS results.
-- `prefix_psid`: Optional string prefix for plot titles related to PSID results.
+- `prefix_cps`: A string prefix for plot titles related to CPS results.
+- `prefix_psid`: A string prefix for plot titles related to PSID results.
 
 `plot_comb_love_plots()` visualizes SMDs via love plots for combined weighting and trimming approaches.
 ```{r class.source = 'fold-hide'}
@@ -915,12 +914,12 @@ plot_comb_love_plots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, tr
 
 **Arguments**
 
-- `comb_meth_cps`: A named list combining weighting and trimming results for CPS dataset.
-- `comb_meth_psid`: A named list combining weighting and trimming results for PSID dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `comb_meth_cps`: A list combining weighting and trimming results for CPS dataset.
+- `comb_meth_psid`: A list combining weighting and trimming results for PSID dataset.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
-- `prefix_cps`: Optional string prefix for plot titles related to CPS results.
-- `prefix_psid`: Optional string prefix for plot titles related to PSID results.
+- `prefix_cps`: A string prefix for plot titles related to CPS results.
+- `prefix_psid`: A string prefix for plot titles related to PSID results.
 
 `save_comb_hist()` saves the histograms into a pdf file.
 ```{r class.source = 'fold-hide'}
@@ -962,13 +961,13 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
 
 **Arguments**
 
-- `comb_meth_cps`: A named list combining weighting and trimming results for CPS dataset.
-- `comb_meth_psid`: A named list combining weighting and trimming results for PSID dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `comb_meth_cps`: A list combining weighting and trimming results for CPS dataset.
+- `comb_meth_psid`: A list combining weighting and trimming results for PSID dataset.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
-- `prefix`: Optional string prefix for plot titles related to the respective dataset or model.
-- `prefix_cps`: Optional string prefix for plot titles related to CPS results.
-- `prefix_psid`: Optional string prefix for plot titles related to PSID results.
+- `prefix`: A string prefix for plot titles related to the respective dataset or model.
+- `prefix_cps`: A string prefix for plot titles related to CPS results.
+- `prefix_psid`: A string prefix for plot titles related to PSID results.
 
 `save_comb_loveplots()` saves the loveplots into a pdf file.
 ```{r class.source = 'fold-hide'}
@@ -1023,13 +1022,13 @@ save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, tre
 
 **Arguments**
 
-- `comb_meth_cps`: A named list combining weighting and trimming results for CPS dataset.
-- `comb_meth_psid`: A named list combining weighting and trimming results for PSID dataset.
-- `treat`: The name of the binary treatment indicator variable.
+- `comb_meth_cps`: A list combining weighting and trimming results for CPS dataset.
+- `comb_meth_psid`: A list combining weighting and trimming results for PSID dataset.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
-- `prefix`: String prefix used for saved file names to identify dataset.
-- `prefix_cps`: Optional string prefix for plot titles related to CPS results.
-- `prefix_psid`: Optional string prefix for plot titles related to PSID results.
+- `prefix`: A string prefix used for saved file names to identify dataset.
+- `prefix_cps`: A string prefix for plot titles related to CPS results.
+- `prefix_psid`: A string prefix for plot titles related to PSID results.
 
 #### Getting top methods and datasets
 `combine_results()` merges and summarizes SMD and ESS statistics from various analysis stages into a final comparison table.
@@ -1097,7 +1096,7 @@ save_csv <- function(data, filename) {
 
 **Arguments**
 
-- `data`: The input dataset.
+- `data`: The dataset.
 - `filename`: The name of the file that is to be saved as CSV.
 
 `assess_methods()` scores and ranks methods based on a weighted combination of balance and sample size metrics.
@@ -1185,7 +1184,7 @@ create_top5_datasets <- function(dataset_list, top5_method_names) {
 
 **Arguments**
 
-- `dataset_list`: A named list of datasets or MatchIt objects containing processed results for different methods.
+- `dataset_list`: A list of datasets or MatchIt objects containing processed results for different methods.
 - `top5_method_names`: A character vector of method names corresponding to the top-ranked datasets.
 
 `save_top5_individual_files()` saves datasets of the top five methods as individual files for reproducibility or sharing. 
@@ -1207,9 +1206,9 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 
 **Arguments**
 
-- `combined_methods_list`: A named list of all combined method results.
+- `combined_methods_list`: A list of all combined method results.
 - `top5_method_names`: A character vector of method names corresponding to the top-ranked datasets.
-- `prefix`: String prefix used for saved file names to identify dataset.
+- `prefix`: A string prefix used for saved file names to identify dataset.
 
 <br>
 
@@ -1218,7 +1217,7 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 
 <a name="est-and-plot-att-catt-qtet"></a>
 
-`estimate_all()` runs multiple treatment effect estimators on a dataset and returns point estimates, standard errors and confidence intervals.
+`estimate_all()` runs multiple treatment effect estimators on a dataset and returns point estimates, standard errors and confidence intervals.***
 ```{r class.source = 'fold-hide'}
 # diff
 diff <- function(data, Y, treat) {
@@ -1498,7 +1497,7 @@ estimate_all <- function(data, Y, treat, covar,
 -   `aipw_ow`: AIPW computed via outcome weights.
 -   `dml`: Double machine learning. It uses machine learning algorithms to control for confounders when estimating treatment effects.
 
-`plot_coef()` plots treatment effect point estimates and corresponding confidence intervals comparatively across various estimators.
+`plot_coef()` plots treatment effect point estimates and corresponding confidence intervals comparatively across various estimators.***
 ```{r class.source = 'fold-hide'}
 plot_coef <- function(out, 
                       methods = c("diff", "reg", "om.reg", "om.grf", 
@@ -1631,7 +1630,7 @@ save_att_panels <- function(
 - `plot_titles`: A character vector of titles for each plot, corresponding to the outputs in `all_outs`.
 - `band`: A numeric vector specifying the confidence interval bounds.
 - `est`: A numeric value representing the point estimate.
-- `prefix`: String prefix used for saved file names to identify dataset.
+- `prefix`: A string prefix used for saved file names to identify dataset.
 - `plots_per_page`: The number of plots to display per page / panel (default 4).
 - `ylab`: The label for the y-axis (default "Estimate").
 - `textsize`: A numeric scaling factor for text size in plots (default 1).
@@ -1927,9 +1926,9 @@ get_res_att <- function(dataset_list, Y, treat, covar,
 
 **Arguments**
 
-- `dataset_list`: A list of input datasets. 
+- `dataset_list`: A list of datasets. 
 - `Y`: String specifying the name of the outcome variable.
-- `treat`: String specifying the name of the binary treatment indicator variable.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `estimators`: String specifying the estimator to use (default is "AIPW_ATT").
 - `smoother`:  String specifying the smoothing method (default is "honest_forest").
@@ -2071,9 +2070,9 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
 
 **Arguments**
 
-- `datasets`: The input datasets.
+- `datasets`: A list of data frames containing data to be filtered.
 - `Y`: The name of the outcome variable.
-- `treat`: The name of the binary treatment indicator variable.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `bm`: A vector of baseline variable names.
 
@@ -2099,12 +2098,12 @@ save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_
 
 - `filtered_datasets`: A list of filtered datasets.
 - `Y`: The name of the outcome variable.
-- `treat`: The name of the binary treatment indicator variable.
+- `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `bm`: A vector of baseline variable names.
 - `plot_titles`: A vector of titles for plots corresponding to datasets.
-- `prefix`: String prefix for saving output PDF files.
+- `prefix`: A string prefix for saving output PDF files.
 
-::: callout-note
+<div class="callout-tip">
 Please refer to the accompanying paper for a detailed explanation of the metrics used in the analysis, including absolute standardized mean differences (SMDs), effective sample sizes (ESS), and the composite scoring approach employed to evaluate covariate balance and overlap across multiple methods. 
-:::
+</div>

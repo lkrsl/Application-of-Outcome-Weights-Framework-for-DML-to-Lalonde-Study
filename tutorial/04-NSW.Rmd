@@ -1,16 +1,10 @@
----
-title: "Replication and Extension of Imbens & Xu (2024) Tutorial - LaLonde Males Samples" 
-output: html_document
-date: "2025-05-08"
----
-
 # LaLonde (NSW) Data 
 This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde dataset (loaded as `nsw`, similar to Imbens & Xu). 
 
 For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only explain the nsw–specific results.
 
-# Set up
-## Source functions and load data
+## Set up
+### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
 #| code-fold: show
 # source functions
@@ -28,7 +22,7 @@ load("data/lalonde.RData")
 set.seed(42)
 ```
 
-## Load and preprocess data (LaLonde (NSW))
+### Load and preprocess data (LaLonde (NSW))
 ```{r}
 #| code-fold: show
 treat <- "treat"
@@ -45,7 +39,7 @@ nsw_cps_plus <- rbind.data.frame(nsw_cps, nsw_co)
 nsw_psid_plus <- rbind.data.frame(nsw_psid, nsw_co)
 ```
 
-# NSW
+## NSW
 ```{r}
 #| code-fold: show
 # define variables
@@ -55,8 +49,8 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re75", "u75")
 ```
 
-## Assessing overlap and covariate balance
-### Overlap
+### Assessing overlap and covariate balance
+#### Overlap
 ```{r, class.source = "fold-show", fig.cap='FIGURE C1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
 #| code-fold: show
 # assess overlap
@@ -82,7 +76,7 @@ With the expanded datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that 
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
-### Covariate balance
+#### Covariate balance
 ```{r, class.source = "fold-show", fig.cap='FIGURE C2. SubfigureA:NSW-CPS1. SubfigureB:NSW-CPS1-PLUS. SubfigureC:NSW-PSID1. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 love.plot(nsw, nsw_cps, treat, covar = covar, title = "NSW-CPS1")
 love.plot(nsw, nsw_cps_plus, treat, covar = covar, title = "NSW-CPS1-PLUS")
@@ -97,7 +91,9 @@ bal.tab(model, data = nsw_psid_plus, treat = "treat")
 
 Neither NSW-CPS1-PLUS nor NSW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
 
+<div class="callout-note">
 In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS are considered. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+</div>
 
 ## Improving primarily covariate balance
 ### Matching 
@@ -1044,6 +1040,8 @@ catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, tr
 all_catt <- c(list(catt.nsw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
 
 # plot results
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -1098,6 +1096,9 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+
 # CPS
 plot_qte(qte.nsw_cps, qte.nsw.cps0, qte.nsw, main = "(B) NSW-CPS", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
@@ -1158,13 +1159,16 @@ ow_att <- derive_ow(res_att)
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C13. Outcome Weights using NSW Data"}
 #| code-fold: show
+par(mfrow = c(2,2))
+par(cex.main = 0.7)
+# plot outcome weights distribution
 plot_ow(ow_att, plot_titles) 
 ```
 
 ```{r, warning=FALSE}
 #| code-fold: show
 #evaluate results
-eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimand = "AIPW-ATT")
+eval_ow(ow_att, all_datasets, plot_titles, treat_var = treat, estimator = "AIPW-ATT")
 ```
 
 ```{r, warning=FALSE}
@@ -1175,9 +1179,9 @@ save_ow(ow_att, plot_titles, prefix = "nsw")
 
 Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
 
-::: callout-tip
+<div class="callout-tip">
 A placebo test is not performed as the NSW data comes from a randomized controlled trial (RCT), which ensures internal validity and unbiased treatment effect estimates, without confounding.
-:::
+</div>
 
 ## Validation through sensitivity analyses
 ```{r, warning=FALSE}
@@ -1213,4 +1217,4 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles,
 
 The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re78`. 
 
-# Summary
+## Summary
