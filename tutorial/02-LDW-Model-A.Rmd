@@ -346,19 +346,19 @@ for (wcol in weight_columns) {
 We first inspect the variance of the weights. If variance is zero, adaptive weight truncation is not meaningful. 
 ```{r, message=FALSE, warning=FALSE}
 # inspect variance of weights
-result_list <- list()
+results_list <- list()
 
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_cps_plus)) {
-    results_list[[paste0("cps_", wcol)]] <- check_weights(nsw_cps_plus, wcol)
+  if (wcol %in% names(ldw_cps_plus)) {
+    results_list[[paste0("cps_", wcol)]] <- check_weights(ldw_cps_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in ldw_cps_plus"))
   }
 }
 
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_psid_plus)) {
-    results_list[[paste0("psid_", wcol)]] <- check_weights(nsw_psid_plus, wcol)
+  if (wcol %in% names(ldw_psid_plus)) {
+    results_list[[paste0("psid_", wcol)]] <- check_weights(ldw_psid_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in ldw_psid_plus"))
   }
