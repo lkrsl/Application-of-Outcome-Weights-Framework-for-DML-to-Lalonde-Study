@@ -1,6 +1,6 @@
 # 1 Set up
 # 1.1 Installation
-packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "MatchIt", "optmatch", "quickmatch", 
+packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs", "MatchIt", "optmatch", "optweight", "quickmatch", 
   "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
@@ -23,8 +23,10 @@ library(dplyr)
 library(ggplot2)
 library(gridExtra)
 library(highr)
+library(highs)
 library(MatchIt)
 library(optmatch)
+library(optweight)
 library(quickmatch)
 library(readr)
 library(tidyr)
@@ -40,15 +42,15 @@ for (f in skripte) source(f, local = knitr::knit_global())
 
 # 1.2 Data inspection
 #### inspect_datasets()
-inspect_data <- function(data_list) {
-  if (is.data.frame(data_list)) {
-    data_list <- list(dataset = data_list)
+inspect_data <- function(data) {
+  if (is.data.frame(data)) {
+    data <- list(dataset = data)
   }
   data.frame(
-    dataset = names(data_list),
-    num_obs = sapply(data_list, nrow),
-    num_vars = sapply(data_list, ncol),
-    name_vars = sapply(data_list, function(df) paste(names(df), collapse = ", ")),
+    dataset = names(data),
+    num_obs = sapply(data, nrow),
+    num_vars = sapply(data, ncol),
+    name_vars = sapply(data, function(df) paste(names(df), collapse = ", ")),
     row.names = NULL
   )
 }
@@ -973,7 +975,7 @@ ebal <- function(data, Y, treat, covar) {
 #   return(out)
 # }
 
-# AIPW
+# aipw_grf
 aipw <- function(data, Y, treat, covar) {
   #library("grf")
   for (var in c(Y, treat, covar)) {

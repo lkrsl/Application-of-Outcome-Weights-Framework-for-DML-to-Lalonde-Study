@@ -716,10 +716,13 @@ save_csv(all_psid_plus, "PSID1_PLUS_all_results_model_b")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# get top 5 methods 
+# rank methods 
 ranked_cps_plus  <- assess_methods(all_cps_plus)
 ranked_psid_plus <- assess_methods(all_psid_plus)
+```
 
+```{r, message=FALSE, warning=FALSE}
+# get top 5 methods 
 top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
 top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
 
@@ -922,7 +925,7 @@ all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
+plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.8)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -948,7 +951,6 @@ knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
 knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs")
@@ -1097,7 +1099,7 @@ ow_att <- derive_ow(res_att)
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B13. Outcome Weights Model B using LDW Data"}
 par(mfrow = c(2,2))
-par(cex.main = 0.7)
+par(cex.main = 0.8)
 # plot outcome weights distribution
 plot_ow(ow_att, plot_titles) 
 ```
@@ -1124,7 +1126,6 @@ covar_pl <- c("age", "education", "black", "hispanic", "married", "nodegree", "r
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#| code-fold: show
 # estimate placebo ATT on original and observational datasets
 out1_pl <- estimate_all(ldw, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(ldw_cps, Y_pl, "treat", covar_pl)
@@ -1163,7 +1164,7 @@ all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl), out.cps_pl, 
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
 ylim_pl <- c(-12000, 2000)
-plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl = c(-15500, 5500), textsize = 0.7)
+plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl = c(-15500, 5500), textsize = 0.8)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1206,7 +1207,7 @@ filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, 
 
 ```{r, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE 15. Sensitivity Analyses Model B"}
 par(mfrow = c(2,2))
-par(cex.main = 0.7)
+par(cex.main = 0.8)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
