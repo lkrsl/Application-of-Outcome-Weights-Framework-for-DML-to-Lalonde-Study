@@ -1,216 +1,39 @@
----
-title: "TEST_AIPW_ATT_ATU"
-output: html_document
-date: "2025-05-19"
----
-
-```{r}
-# Load required libraries
-#install.packages("grf")
-#install.packages("here")
-library(grf)
-library(here)
-
-# Source additional scripts from specified directory
-skripte <- list.files(
-  "/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/outcome_weights/R", 
-  pattern = "\\.R$", 
-  full.names = TRUE)
-for (f in skripte) source(f, local = knitr::knit_global())
-```
-
-# Average Treatment Effect (ATE)
-
-```{r}
-# Set seed for reproducibility
-set.seed(123)
-n <- 2000 # Number of observations
-p <- 5 # Number of covariates
-
-# Generate covariate matrix
-X <- matrix(rnorm(n * p), n, p) 
-
-# Simulate treatment assignment using logistic model
-D <- rbinom(n, 1, plogis(0.5 * X[,1]))
-
-# Define true ATE and generate outcomes
-tau_ate <- 1.5
-Y <- rowSums(X[, 1:3]) + D * tau_ate + rnorm(n)
-
-# Perform Double Machine Learning (DML) for ATE
-ate_result <- dml_with_smoother(
-  Y = Y,
-  D = D,
-  X = X,
-  estimators = c("AIPW_ATE"),
-  smoother = "honest_forest",
-  n_cf_folds = 5,
-  n_reps = 1
-)
-
-# Summarize and display results
-summary_ate <- summary(ate_result)
-print(summary_ate)
-```
-
-```{r}
-# Compute ATE estimate using outcome weights
-omega_ate <- get_outcome_weights(ate_result)
-weighted_ate <- as.numeric(omega_ate$omega["AIPW-ATE", ] %*% Y)
-
-# Extract ATE estimate directly from DML results
-dml_ate_estimate <- summary_ate["AIPW-ATE", "Estimate"]
-
-# Validate estimates and compare with true ATE
-cat("ATE Estimates:",
-    "Weight-based:", weighted_ate, 
-    "DML-based:", dml_ate_estimate, "\n")
-cat("Comparison (all.equal):", all.equal(weighted_ate, dml_ate_estimate), "\n")
-cat("True ATE:", tau_ate, "\n")
-```
-
-# Average Treatment Effect on the Treated (ATT)
-
-```{r}
-# Set seed for reproducibility
-set.seed(123)
-n <- 2000 # Number of observations
-p <- 5 # Number of covariates
-
-# Generate covariate matrix
-X <- matrix(rnorm(n * p), n, p)
-
-# Simulate treatment assignment using logistic model
-D <- rbinom(n, 1, plogis(0.5 * X[,1]))
-
-# Define true ATT and generate outcomes
-tau_att <- 2
-treatment_effect <- ifelse(D == 1, tau_att, 0) # Effect only for treated
-Y <- rowSums(X[, 1:3]) + treatment_effect + rnorm(n)
-
-# Perform Double Machine Learning (DML) for ATT
-att_result <- dml_with_smoother(
-  Y = Y,
-  D = D,
-  X = X,
-  estimators = c("AIPW_ATT"),
-  smoother = "honest_forest",
-  n_cf_folds = 5,
-  n_reps = 1
-)
-
-# Summarize and display results
-summary_att <- summary(att_result)
-print(summary_att)
-```
-
-```{r}
-# Compute ATT estimate using outcome weights
-omega_att <- get_outcome_weights(att_result)
-weighted_att <- as.numeric(omega_att$omega["AIPW-ATT", ] %*% Y)
-
-# Extract ATT estimate directly from DML results
-dml_att_estimate <- summary_att["AIPW-ATT", "Estimate"]
-
-# Validate estimates and compare with true ATT
-cat("ATT Estimates:",
-    "Weight-based:", weighted_att, 
-    "DML-based:", dml_att_estimate, "\n")
-cat("Comparison (all.equal):", all.equal(weighted_att, dml_att_estimate), "\n")
-cat("True ATT:", mean(treatment_effect[D == 1]), "\n")
-```
-
-# Average Treatment Effect on the Untreated (ATU)
-
-```{r}
-# Set seed for reproducibility
-set.seed(123)
-n <- 2000 # Number of observations
-p <- 5 # Number of covariates
-
-# Generate covariate matrix
-X <- matrix(rnorm(n * p), n, p)
-
-# Simulate treatment assignment using logistic model
-D <- rbinom(n, 1, plogis(0.5 * X[,1]))
-
-# Define true ATU and generate outcomes
-tau_atu <- 1.5
-treatment_effect <- ifelse(D == 1, 0, tau_atu) # Effect only for untreated
-Y <- rowSums(X[, 1:3]) + treatment_effect + rnorm(n)
-
-# Perform Double Machine Learning (DML) for ATU
-atu_result <- dml_with_smoother(
-  Y = Y,
-  D = D,
-  X = X,
-  estimators = c("AIPW_ATU"),
-  smoother = "honest_forest",
-  n_cf_folds = 5,
-  n_reps = 1
-)
-
-# Summarize and display results
-summary_atu <- summary(atu_result)
-print(summary_atu)
-```
-
-```{r}
-# Compute ATU estimate using outcome weights
-omega_atu <- get_outcome_weights(atu_result)
-weighted_atu <- as.numeric(omega_atu$omega["AIPW-ATU", ] %*% Y)
-
-# Extract ATU estimate directly from DML results
-dml_atu_estimate <- summary_atu["AIPW-ATU", "Estimate"]
-
-# Validate estimates and compare with true ATU
-cat("ATU Estimates:",
-    "Weight-based:", weighted_atu, 
-    "DML-based:", dml_atu_estimate, "\n")
-cat("Comparison (all.equal):", all.equal(weighted_atu, dml_atu_estimate), "\n")
-cat("True ATU:", mean(treatment_effect[D == 0]), "\n")
-```
-
--------------------------------- ALIGNED TO TEST BASELINE (ATT & ATU) --------------------------------
-
 # Average Treatment Effect of the Treated (ATT)
 
-1) Validate outcome weights
-
-```{r}
-# Load required libraries
+```{r, message=FALSE, warning=FALSE}
+# load required libraries
 library(testthat)
 library(grf)
 library(here)
 
-# Source additional scripts from specified directory
+# source additional scripts from specified directory
 skripte <- list.files(
-  "/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/outcome_weights/R", 
+  "../R",  
   pattern = "\\.R$", 
   full.names = TRUE)
 for (f in skripte) source(f, local = knitr::knit_global())
 ```
 
-```{r}
-# Set up sample data
+```{r, message=FALSE, warning=FALSE}
+# set up sample data
 set.seed(1234)
 n <- 100   # Number of observations
 p <- 3     # Number of covariates
 
-# Generate sample data
+# generate sample data
 X <- matrix(rbinom(n * p, 1, 0.5), n, p)
 Z <- rbinom(n, 1, 0.5)  # Instrumental variable
 Q <- rbinom(n, 1, 0.5)  # Random assignment
 D <- Q * Z              # Treatment assignment
 
-# Define true treatment effect and outcomes (ATT-focused)
+# define true treatment effect and outcomes (ATT-focused)
 tau <- X[, 1] / 2 
 treatment_effect <- ifelse(D == 1, tau, 0)
 Y <- rowSums(X[, 1:3]) + treatment_effect + rnorm(n)  
 ```
 
-```{r}
-# Perform DML for ATT
+```{r, message=FALSE, warning=FALSE}
+# perform DML for ATT
 att_result <- dml_with_smoother(
   Y = Y,
   D = D,
@@ -221,15 +44,15 @@ att_result <- dml_with_smoother(
   n_cf_folds = 2
 )
 
-# Summarize results
+# summarize results
 summary_att <- summary(att_result)
 print(summary_att)
 
-# Validate weights
+# validate weights
 omega_att <- get_outcome_weights(att_result)
 weighted_att <- as.numeric(omega_att$omega["AIPW-ATT", ] %*% Y)  
 
-# Compare with summary output
+# compare with summary output
 expect_equal(
   weighted_att,
   as.numeric(summary_att["AIPW-ATT", "Estimate"]),  
@@ -237,40 +60,36 @@ expect_equal(
 )
 ```
 
-2) Validate estimate
-
-```{r}
-# Calculate true ATT 
+```{r, message=FALSE, warning=FALSE}
+# calculate true ATT 
 true_att <- mean(treatment_effect[D == 1])  
 
-# Compare with tolerance
-cat("Final validation:", isTRUE(all.equal(weighted_att, true_att, tolerance = 0.2)), "\n")
+# compare with tolerance
+cat("Final validation of AIPW-ATT:", isTRUE(all.equal(weighted_att, true_att, tolerance = 0.2)), "\n")
 ```
 
 # Average Treatment Effect of the Treated (ATU)
 
-1) Validate outcome weights
-
-```{r}
-# Set up sample data
+```{r, message=FALSE, warning=FALSE}
+# set up sample data
 set.seed(1234)
 n <- 100   # Number of observations
 p <- 3     # Number of covariates
 
-# Generate sample data
+# generate sample data
 X <- matrix(rbinom(n * p, 1, 0.5), n, p)
 Z <- rbinom(n, 1, 0.5)  # Instrumental variable
 Q <- rbinom(n, 1, 0.5)  # Random assignment
 D <- Q * Z              # Treatment assignment
 
-# Define true treatment effect and outcomes (ATU-focused)
+# define true treatment effect and outcomes (ATU-focused)
 tau <- X[, 1] / 2 
 treatment_effect <- ifelse(D == 1, 0, tau_atu)
 Y <- rowSums(X[, 1:3]) + treatment_effect + rnorm(n)  
 ```
 
-```{r}
-# Perform DML for ATU
+```{r, message=FALSE, warning=FALSE}
+# perform DML for ATU
 atu_result <- dml_with_smoother(
   Y = Y,
   D = D,
@@ -281,15 +100,15 @@ atu_result <- dml_with_smoother(
   n_cf_folds = 2
 )
 
-# Summarize results
+# summarize results
 summary_atu <- summary(atu_result)
 print(summary_atu)
 
-# Validate weights
+# validate weights
 omega_atu <- get_outcome_weights(atu_result)
 weighted_atu <- as.numeric(omega_atu$omega["AIPW-ATU", ] %*% Y)  
 
-# Compare with summary output
+# compare with summary output
 expect_equal(
   weighted_atu,
   as.numeric(summary_atu["AIPW-ATU", "Estimate"]),  
@@ -297,79 +116,11 @@ expect_equal(
 )
 ```
 
-2) Validate estimate
-
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # Calculate true ATU 
 true_atu <- mean(treatment_effect[D == 0]) 
 
 # Compare with tolerance (increased to 0.2 for small sample)
-cat("Final validation:", 
+cat("Final validation of AIPW-ATU:", 
     isTRUE(all.equal(weighted_atu, true_atu, tolerance = 0.2)), "\n")
-```
-
-
--------------------------------- ALIGNED TO TEST BASELINE (ATE) -------------------------------- 
-
-```{r}
-# Load required libraries
-library(testthat)
-library(grf)
-library(here)
-
-# Source additional scripts from specified directory
-skripte <- list.files(
-  "/Users/laurakreisel/Workspace/uni/semester04/thesis/lalonde/code/outcome_weights/R", 
-  pattern = "\\.R$", 
-  full.names = TRUE)
-for (f in skripte) source(f, local = knitr::knit_global())
-```
-
-1) Validate outcome weights
-
-```{r}
-# Set up sample data
-set.seed(1234)
-n <- 100   # Number of observations
-p <- 3     # Number of covariates
-
-# Generate sample data
-X <- matrix(rbinom(n * p, 1, 0.5), n, p)
-Z <- rbinom(n, 1, 0.5)  # Instrumental variable
-Q <- rbinom(n, 1, 0.5)  # Random assignment
-D <- Q * Z              # Treatment assignment
-tau <- X[, 1] / 2 # True treatment effect and outcomes (ATT-focused)
-#treatment_effect <- ifelse(D == 1, tau, 0)
-Y = rowSums(X[, 1:3]) + tau * D + Q + rnorm(n)
-```
-
-```{r}
-# Perform DML for ATT
-ate_result <- dml_with_smoother(
-  Y = Y,
-  D = D,
-  X = X,
-  estimators = c("AIPW_ATE"),  
-  smoother = "honest_forest",
-  n_reps = 1, 
-  n_cf_folds = 2
-)
-
-# Summarize results
-summary_ate <- summary(ate_result)
-print(summary_ate)
-
-# Validate weights
-omega_ate <- get_outcome_weights(ate_result)
-weighted_ate <- as.numeric(omega_ate$omega["AIPW-ATE", ] %*% Y)  
-
-# Expectation about weights replicating point estimates
-ate <- expect_equal(as.numeric(omega_ate$omega %*% Y), 
-               as.numeric(summary_ate[,1]))
-```
-2) Validate estimate
-
-```{r}
-# Compare with tolerance
-cat("Final validation:", isTRUE(all.equal(weighted_ate, ate)), "\n")
 ```
