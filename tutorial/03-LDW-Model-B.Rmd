@@ -984,6 +984,7 @@ all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim)
 
 # plot results
 par(mfrow = c(2,2))
+par(cex.main = 0.8)
 plot_catt_panels(all_catt, plot_titles)
 ```
 

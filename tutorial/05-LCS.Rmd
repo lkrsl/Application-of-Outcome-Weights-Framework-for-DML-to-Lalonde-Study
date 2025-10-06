@@ -37,6 +37,16 @@ lcs_co$expc <- 1
 lcs_psid_plus <- rbind.data.frame(lcs_psid, lcs_co)
 ```
 
+### Inspect data
+```{r, message=FALSE, warning=FALSE}
+# collect datasets in a list
+data <- list(lcs = lcs, lcs_psid = lcs_psid, lcs_psid_plus = lcs_psid_plus)
+
+# inspect key metrics of each dataset
+summary_stats <- inspect_data(data)
+knitr::kable(summary_stats, caption = "Summary Statistics")
+```
+
 ```{r, message=FALSE, warning=FALSE}
 # define variables
 Y <- "re79"

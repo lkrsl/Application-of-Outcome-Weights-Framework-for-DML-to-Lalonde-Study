@@ -21,7 +21,7 @@ load("data/lalonde.RData")
 set.seed(42)
 ```
 
-### Load and preprocess data (LaLonde (NSW))
+### Load and preprocess data 
 ```{r, message=FALSE, warning=FALSE}
 treat <- "treat"
 nsw_co$treat <- 1
@@ -35,6 +35,16 @@ nsw_psid <- rbind.data.frame(nsw_tr, psid1a)
 
 nsw_cps_plus <- rbind.data.frame(nsw_cps, nsw_co)
 nsw_psid_plus <- rbind.data.frame(nsw_psid, nsw_co)
+```
+
+### Inspect data
+```{r, message=FALSE, warning=FALSE}
+# collect datasets in a list
+data <- list(nsw = nsw, nsw_cps = nsw_cps, nsw_psid = nsw_psid, nsw_cps_plus = nsw_cps_plus, nsw_psid_plus = nsw_psid_plus)
+
+# inspect key metrics of each dataset
+summary_stats <- inspect_data(data)
+knitr::kable(summary_stats, caption = "Summary Statistics")
 ```
 
 ## NSW
