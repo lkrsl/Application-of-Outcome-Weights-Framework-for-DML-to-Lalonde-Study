@@ -1,7 +1,7 @@
 Replication Files for Kreisel (2025)
 ================
 
-This Github repo contains the data and code necessary to replicate
+This Github repository contains the data and code necessary to replicate
 **Kreisel (2025)**: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study (2025)"
 
 **Tutorial**: For a detailed bookdown tutorial, see
@@ -9,7 +9,7 @@ This Github repo contains the data and code necessary to replicate
 
 ## Folder Structure
 
-The folder structure of this repo is as follows:
+The folder structure of this repository is as follows:
 
 | folder | usage                                                      |
 |:-------|:-----------------------------------------------------------|
@@ -37,8 +37,7 @@ LaLonde (1986), Dehejia and Wahba (1999) and Calónico and Smith (2017).
 
 ## Install R Packages
 
-For successful replication, the following R packages need to be
-installed:
+Successful replication requires installation of the following R packages:
 
 ``` r
 # required packages
@@ -59,8 +58,7 @@ install_all(packages)
 ```
 ## Report Errors
 
-To report errors, please contact <laura.kreisel@student.uni-tuebingen.de>. Comments and
-suggestions are welcome.
+To report errors, please contact <laura.kreisel@student.uni-tuebingen.de>. Any suggestions or comments are welcome.
 
 ## References
 
