@@ -1,5 +1,5 @@
 --- 
-title: "Tutorial on Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
+title: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
 author: "Laura Kreisel"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site

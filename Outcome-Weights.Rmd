@@ -1,5 +1,5 @@
 --- 
-title: "Tutorial on Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
+title: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
 author: "Laura Kreisel"
 date: "`r Sys.Date()`"
 site: bookdown::bookdown_site
@@ -2190,10 +2190,7 @@ data <- list(lalonde = lalonde, ldw_tr = ldw_tr, ldw_co = ldw_co, ldw_cps = ldw_
 
 # inspect key metrics of each dataset
 summary_stats <- inspect_data(data)
-print(summary_stats)
-
-# display few observations of each dataset
-lapply(data, head, 5)
+knitr::kable(summary_stats, caption = "Summary Statistics")
 ```
 
 ### Load and preprocess data
@@ -2219,10 +2216,7 @@ datasets <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
 
 # inspect key metrics of each dataset
 summary_stats_plus <- inspect_data(datasets)
-print(summary_stats_plus)
-
-# display few observations of each dataset
-lapply(datasets, head, 5)
+knitr::kable(summary_stats_plus, caption = "Summary Statistics")
 ```
 
 ## Model A
@@ -2265,7 +2259,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 #### Covariate balance
 
 Initial covariate balance checks reveal the degree to which treatment and control groups differ on observed characteristics. We employ the `bal.tab()` function from the cobalt package to generate detailed balance statistics, complemented by visual summaries using `love.plot()`, which depicts standardized mean differences across covariates before and after adjustment.
-```{r, fig.cap='FIGURE A2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGURE A2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
 love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
 love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
@@ -2495,11 +2489,12 @@ for (wcol in weight_columns) {
 We first inspect the variance of the weights. If variance is zero, adaptive weight truncation is not meaningful. 
 ```{r, message=FALSE, warning=FALSE}
 # inspect variance of weights
-results_list <- list()
+cps_results <- list()
+psid_results <- list()
 
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_cps_plus)) {
-    results_list[[paste0("cps_", wcol)]] <- check_weights(ldw_cps_plus, wcol)
+    cps_results[[paste0("cps_", wcol)]] <- check_weights(ldw_cps_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in ldw_cps_plus"))
   }
@@ -2507,14 +2502,17 @@ for (wcol in weight_columns) {
 
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_psid_plus)) {
-    results_list[[paste0("psid_", wcol)]] <- check_weights(ldw_psid_plus, wcol)
+    psid_results[[paste0("psid_", wcol)]] <- check_weights(ldw_psid_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in ldw_psid_plus"))
   }
 }
 
-variance_table <- bind_rows(results_list)
-knitr::kable(variance_table, caption = "Variance of Weights")
+var_cps_table <- bind_rows(cps_results)
+var_psid_table <- bind_rows(psid_results)
+
+knitr::kable(var_cps_table, caption = "Variance of Weights (CPS)")
+knitr::kable(var_psid_table, caption = "Variance of Weights (PSID)")
 ```
 
 Regarding above results, we apply adaptive weight truncation to all weights, where it may help mitigate the influence of extreme weights. 
@@ -2713,7 +2711,7 @@ ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE A3.'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGURE A3.'}
 # visualize covariate balance 
 plot_matchit(methods.cps_plus, "LDW-CPS1-PLUS")
 plot_matchit(methods.psid_plus, "LDW-PSID1-PLUS")
@@ -2754,7 +2752,7 @@ ess_weight.psid_plus <- compute_ess_weight(ldw_psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE A4.'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGURE A4.'}
 # visualize covariate balance
 plot_weighting_methods(ldw_cps_plus, "treat", covar, weight.cps_plus, "LDW-CPS1-PLUS") 
 plot_weighting_methods(ldw_psid_plus, "treat", covar, weight.psid_plus, "LDW-PSID1-PLUS")
@@ -2791,7 +2789,7 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE A5.'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGURE A5.'}
 # visualize covariate balance
 plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
 plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
@@ -2834,13 +2832,13 @@ ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE A6.'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGURE A6.'}
 # visualize overlap
 plot_trim(trim.cps_plus, treat, covar)
 plot_trim(trim.psid_plus, treat, covar)
 ```
 
-```{r, fig.cap='FIGURE A7.'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGURE A7.'}
 # visualize covariate balance
 love.plot(ldw_cps, ldw_cps.trim_match, treat, covar = covar, title = "LDW-CPS1-PLUS - propensity threshold trimming")
 love.plot(ldw_cps, ldw_cps_plus.common, treat, covar, title = "LDW-CPS1-PLUS - common range trimming")
@@ -3077,13 +3075,13 @@ dataset_list_psid <- list(
   "entropy_walker" = entropy_comb.psid_plus[[5]])
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # create datasets corresponding to the top 5 methods for each dataset
 top5_datasets.cps_plus <- create_top5_datasets(dataset_list_cps, top5_methods.cps_plus)
 top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.psid_plus)
 ```
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # save datasets into .RData files
 save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "model_a_cps")
 save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "model_a_psid")
@@ -3144,11 +3142,11 @@ plot_titles <- c(base_titles, top5_titles.cps_plus, top5_titles.psid_plus)
 all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A10. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A10. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.8)
+plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -3168,7 +3166,7 @@ In contrast, PSID1-based subsamples frequently exhibit greater dispersion and su
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- plot_titles
-att_summary
+knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
 ```
 
 The ATT results are presented in the table below:
@@ -3221,13 +3219,12 @@ Then, we employ a modified version of the function `plot_catt()` from @imbens202
 <div class="callout-note">
 Gray dots represent pairs of CATT estimates at covariate values of treated units, while the red crosses indicate pairs of estimated ATTs.
 </div>
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A11. CATT Estimates Model A using LDW Data"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A11. CATT Estimates Model A using LDW Data"}
 # combine all catt objects 
 all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
 
 # plot results
 par(mfrow = c(2,2))
-par(cex.main = 0.8)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -3279,7 +3276,7 @@ qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, tr
 ```
 
 Each plot displays three distinct series for every dataset analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The red line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A12. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
@@ -3340,7 +3337,7 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A13. Outcome Weights Model A using LDW Data"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A13. Outcome Weights Model A using LDW Data"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # plot outcome weights distribution
@@ -3407,12 +3404,12 @@ out15_pl <- out.psid_pl[[5]]
 all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl), out.cps_pl, out.psid_pl)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE A14. Placebo Test Model B: '75 Earnings as the Outcome"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A14. Placebo Test Model B: '75 Earnings as the Outcome"}
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
-ylim_pl <- c(-12000, 2000)
-plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl = c(-15500, 5500), textsize = 0.8)
+ylim_pl = c(-15500, 5500)
+plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl, textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -3424,7 +3421,7 @@ The placebo ATT results are presented in the table below:
 ```{r, message=FALSE, warning=FALSE}
 # print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model A Placebo ATT Estimates and SEs for All Samples and Estimators")
+knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs")
 ```
 
 The placebo analysis reveals that the experimental benchmarks are positive, near zero and statistically insignificant, while all estimators applied to the observational datasets, LDW-CPS1 and LDW-PSID1, yield by majority large, negative ATT estimates.
@@ -3456,7 +3453,7 @@ datasets_sens <- c(list(ldw, ldw_cps, ldw_psid), top5_datasets.cps_plus, top5_da
 filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
 ```
 
-```{r, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A15. Sensitivity Analyses Model A"}
+```{r, warning=FALSE, message=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE A15. Sensitivity Analyses Model A"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # loop over valid datasets and assign index
@@ -3519,10 +3516,7 @@ data <- list(lalonde = lalonde, ldw_tr = ldw_tr, ldw_co = ldw_co, ldw_cps = ldw_
 
 # inspect key metrics of each dataset
 summary_stats <- inspect_data(data)
-print(summary_stats)
-
-# display few observations of each dataset
-lapply(data, head, 5)
+knitr::kable(summary_stats, caption = "Summary Statistics")
 ```
 
 ### Load and preprocess data 
@@ -3546,10 +3540,7 @@ datasets <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
 
 # inspect each dataset
 summary_stats_plus <- inspect_data(datasets)
-print(summary_stats_plus)
-
-# display first 5 rows of each dataset
-lapply(datasets, head, 5)
+knitr::kable(summary_stats_plus, caption = "Summary Statistics")
 ```
 
 ## Model B
@@ -3563,14 +3554,14 @@ covar <- c("age", "education", "black", "hispanic", "married",
 
 ### Assessing overlap and covariate balance
 #### Overlap
-```{r, fig.cap='FIGURE B1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
 # assess overlap
 ldw.ps <- assess_overlap(data = ldw, treat = treat, cov = covar)
 ldw_cps.ps <- assess_overlap(data = ldw_cps, treat = treat, cov = covar) 
 ldw_psid.ps <- assess_overlap(data = ldw_psid, treat = treat, cov = covar) 
 ```
 
-```{r, fig.cap='FIGURE B1. SubfigureD:LDW-CPS1-PLUS. SubfigureE:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B1. SubfigureD:LDW-CPS1-PLUS. SubfigureE:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 # assess overlap
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
 ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar)
@@ -3582,7 +3573,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
 #### Covariate balance
-```{r, fig.cap='FIGURE B2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
 love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
 love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
@@ -3792,11 +3783,12 @@ for (wcol in weight_columns) {
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
 # inspect variance of weights 
-results_list <- list()
+cps_results <- list()
+psid_results <- list()
 
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_cps_plus)) {
-    results_list[[paste0("cps_", wcol)]] <- check_weights(ldw_cps_plus, wcol)
+    cps_results[[paste0("cps_", wcol)]] <- check_weights(ldw_cps_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in ldw_cps_plus"))
   }
@@ -3804,14 +3796,17 @@ for (wcol in weight_columns) {
 
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_psid_plus)) {
-    results_list[[paste0("psid_", wcol)]] <- check_weights(ldw_psid_plus, wcol)
+    psid_results[[paste0("psid_", wcol)]] <- check_weights(ldw_psid_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in ldw_psid_plus"))
   }
 }
 
-variance_table <- bind_rows(results_list)
-knitr::kable(variance_table, caption = "Variance of Weights")
+var_cps_table <- bind_rows(cps_results)
+var_psid_table <- bind_rows(psid_results)
+
+knitr::kable(var_cps_table, caption = "Variance of Weights (CPS)")
+knitr::kable(var_psid_table, caption = "Variance of Weights (PSID)")
 ```
 
 Regarding these results we can apply adaptive weight truncation to all considered weights, where it may help mitigate the influence of extreme weights. 
@@ -4002,7 +3997,7 @@ ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE B3.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B3.'}
 # visualize covariate balance 
 plot_matchit(methods.cps_plus, "LDW-CPS1-PLUS")
 plot_matchit(methods.psid_plus, "LDW-PSID1-PLUS")
@@ -4043,7 +4038,7 @@ ess_weight.psid_plus <- compute_ess_weight(ldw_psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE B4.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B4.'}
 # visualize covariate balance
 plot_weighting_methods(ldw_cps_plus, "treat", covar, weight.cps_plus, "LDW-CPS1-PLUS") 
 plot_weighting_methods(ldw_psid_plus, "treat", covar, weight.psid_plus, "LDW-PSID1-PLUS")
@@ -4080,7 +4075,7 @@ ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE B5.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B5.'}
 # visualize covariate balance
 plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "LDW-CPS1-PLUS")
 plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "LDW-PSID1-PLUS")
@@ -4123,13 +4118,13 @@ ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE B6.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B6.'}
 # visualize overlap
 plot_trim(trim.cps_plus, treat, covar)
 plot_trim(trim.psid_plus, treat, covar)
 ```
 
-```{r, fig.cap='FIGURE B7.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE B7.'}
 # visualize covariate balance
 love.plot(ldw_cps, ldw_cps.trim_match, treat, covar = covar, title = "LDW-CPS1-PLUS - propensity threshold trimming")
 love.plot(ldw_cps_plus, ldw_cps_plus.common, treat, covar, title = "LDW-CPS1-PLUS - common range trimming")
@@ -4412,11 +4407,11 @@ plot_titles <- c(base_titles, top5_titles.cps_plus, top5_titles.psid_plus)
 all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B10. ATT Estimates Model B Given Unconfoundedness using LDW Samples"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE B10. ATT Estimates Model B Given Unconfoundedness using LDW Samples"}
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.8)
+plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -4471,13 +4466,12 @@ catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, trea
 catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B11. CATT Estimates Model B using LDW Data"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE B11. CATT Estimates Model B using LDW Data"}
 # combine all catt objects 
 all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
 
 # plot results
 par(mfrow = c(2,2))
-par(cex.main = 0.8)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -4527,7 +4521,7 @@ qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, tr
 qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B12. QTET Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE B12. QTET Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
@@ -4588,7 +4582,7 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B13. Outcome Weights Model B using LDW Data"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE B13. Outcome Weights Model B using LDW Data"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # plot outcome weights distribution
@@ -4650,12 +4644,12 @@ out15_pl <- out.psid_pl[[5]]
 all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl), out.cps_pl, out.psid_pl)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE B14. Placebo Test Model B: '75 Earnings as the Outcome"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE B14. Placebo Test Model B: '75 Earnings as the Outcome"}
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
-ylim_pl <- c(-12000, 2000)
-plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl = c(-15500, 5500), textsize = 0.8)
+ylim_pl = c(-15500, 5500)
+plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl, textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -4666,7 +4660,7 @@ save_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, "model_b_placebo")
 ```{r, message=FALSE, warning=FALSE}
 # print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Model B Placebo ATT Estimates and SEs for All Samples and Estimators")
+knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs")
 ```
 
 The placebo analysis shows that the experimental benchmarks remain close to zero and statistically insignificant, closely mirroring the results in model A. The results for LDW-CPS1 and LDW-PSID1 are identical to those observed in model A.
@@ -4696,7 +4690,7 @@ datasets_sens <- c(list(ldw, ldw_cps, ldw_psid), top5_datasets.cps_plus, top5_da
 filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
 ```
 
-```{r, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE 15. Sensitivity Analyses Model B"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURE 15. Sensitivity Analyses Model B"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # loop over valid datasets and assign index
@@ -5014,26 +5008,30 @@ for (wcol in weight_columns) {
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
 # inspect variance of weights 
-results_list <- list()
+cps_results <- list()
+psid_results <- list()
 
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_cps_plus)) {
-    results_list[[paste0("cps_", wcol)]] <- check_weights(nsw_cps_plus, wcol)
+    cps_results[[paste0("cps_", wcol)]] <- check_weights(nsw_cps_plus, wcol)
   } else {
-    warning(paste("Column", wcol, "not found in nsw_cps_plus"))
+    warning(paste("Column", wcol, "not found in ldw_cps_plus"))
   }
 }
 
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_psid_plus)) {
-    results_list[[paste0("psid_", wcol)]] <- check_weights(nsw_psid_plus, wcol)
+    psid_results[[paste0("psid_", wcol)]] <- check_weights(nsw_psid_plus, wcol)
   } else {
-    warning(paste("Column", wcol, "not found in nsw_psid_plus"))
+    warning(paste("Column", wcol, "not found in ldw_psid_plus"))
   }
 }
 
-variance_table <- bind_rows(results_list)
-knitr::kable(variance_table, caption = "Variance of Weights")
+var_cps_table <- bind_rows(cps_results)
+var_psid_table <- bind_rows(psid_results)
+
+knitr::kable(var_cps_table, caption = "Variance of Weights (CPS)")
+knitr::kable(var_psid_table, caption = "Variance of Weights (PSID)")
 ```
 
 Regarding these results we apply adaptive weight truncation to all considered weights.
@@ -5635,7 +5633,7 @@ all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.8)
+plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -6066,18 +6064,18 @@ for (wcol in weight_columns) {
 
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
-results_list <- list() 
+psid_results <- list()
 
 for (wcol in weight_columns) {
   if (wcol %in% names(lcs_psid_plus)) {
-    results_list[[wcol]] <- check_weights(lcs_psid_plus, wcol)
+    psid_results[[wcol]] <- check_weights(lcs_psid_plus, wcol)
   } else {
     warning(paste("Column", wcol, "not found in lcs_psid_plus"))
   }
 }
 
-variance_table <- bind_rows(results_list)
-knitr::kable(variance_table, caption = "Variance of Weights")
+var_psid_table <- bind_rows(psid_results)
+knitr::kable(var_psid_table, caption = "Variance of Weights")
 ```
 
 Regarding these results we can apply adaptive weight truncation to all considered weights.
@@ -6480,7 +6478,7 @@ all_outs <- c(list(out1, out2, out3), out.psid_plus)
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.8)
+plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -6669,7 +6667,7 @@ all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl), out.psid_pl)
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
 ylim_pl = c(-1.5, 1)
-plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl = c(-15500, 5500), textsize = 0.8)
+plot_att_panels(all_outs.pl, plot_titles, band_pl, est_pl, ylim_pl, textsize = 0.7)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
