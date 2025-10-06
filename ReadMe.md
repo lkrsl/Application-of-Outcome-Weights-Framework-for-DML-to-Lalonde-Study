@@ -1,9 +1,8 @@
-Replication Files for Kreisel (2025) 
+Tutorial on Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study (2025) 
 ================
 
 This Github repo contains the data and code necessary to replicate
-**Kreisel (2025)**: “Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study” 
-(LINK)
+**Tutorial on Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study (2025)**
 
 **Tutorial**: For a detailed bookdown tutorial, see
 [here](). 
@@ -14,16 +13,19 @@ The folder structure of this repo is as follows:
 
 | folder | usage                                                      |
 |:-------|:-----------------------------------------------------------|
-| code   | R scripts                                                  |
-| data   | Data files, include two subfolders “lalonde”, “cs” & “irs” |
-| graphs | To store graphics                                          |
-| output | To store estimation results                                |
-| tables | To store tables                                            |
+| bookdown| Bookdown files                                             |
+| code    | R scripts                                                  |
+| data    | Data files, including four subfolders “ldw_model_a”, “ldw_model_b”, “nsw” & “lcs” |
+| docs    | HTML documentation and website files from bookdown rendering |
+| graphs  | Graphics including one subfolder "lalonde"                   |
+| package | Local R package including "OutcomeWeights" package source code |
+| tables  | Estimation results                                            |
+| tutorial  | Bookdown RMD files, functions, bibliography, data and style sheets   |
 
 ## Data Files
 
 Kreisel (2024) uses the following datasets, which are based on
-LaLonde (1986), Dehejia and Wahba (1999), Calónico and Smith (2017), and ...
+LaLonde (1986), Dehejia and Wahba (1999) and Calónico and Smith (2017).
 
 | Data.files        | Details                                                          | File_Type | Experimental |
 |:------------------|:-----------------------------------------------------------------|:----------|:-------------|
@@ -52,8 +54,8 @@ installed:
 
 ``` r
 # required packages
-packages <- c("haven", "labelled", "Matching", "grf", "sensemakr", "qte",
-    "estimatr", "CBPS", "hbal", "DoubleML", "mlr3learners", "fixest", "ggplot2")
+packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+)
 
 # install packages
 install_all <- function(packages) {
@@ -64,6 +66,7 @@ install_all <- function(packages) {
     }
   }
 }
+
 install_all(packages)
 ```
 
