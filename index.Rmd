@@ -6,30 +6,30 @@ site: bookdown::bookdown_site
 documentclass: book
 bibliography: [tutorial/book.bib, tutorial/packages.bib]
 description: |
-  This book replicates the LaLonde study as revisited by Imbens & Xu (2024), comparing full 
-  and reduced covariate models to reduce potential confounding. 
-  It evaluates various methods to improve overlap and covariate balance for more robust 
+  This book replicates the LaLonde study by Imbens & Xu (2024) and extends it by comparing a
+  full with a reduced covariate model to mitigate potential confounding. 
+  It evaluates various methods to improve overlap and covariate balance for robust 
   treatment effect estimation and applies the outcome weights framework by Knaus & Pfleiderer (2024) 
-  to LaLonde data variants as well as analyzes the distributional properties of outcome weights.
+  to assess another estimator and analyse the distributional properties of outcome weights.
+  The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
 link-citations: yes
 github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study
 ---
 
 # Preface {-}
 
-This book replicates the LaLonde study as revisited by @imbens2024, comparing full 
-and reduced covariate models to reduce potential confounding. 
-It evaluates various methods to improve overlap and covariate balance for more robust 
-treatment effect estimation and applies the outcome weights framework by @OW_Package 
-to LaLonde data variants as well as analyzes the distributional properties of outcome weights.
+This book replicates the LaLonde study by @imbens2024 and extends it by comparing a
+full with a reduced covariate model to mitigate potential confounding. 
+It evaluates various methods to improve overlap and covariate balance for robust treatment effect estimation and 
+applies the outcome weights framework by @OW_Package to assess another estimator and analyse the distributional properties of outcome weights. 
+The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
 
 ```{r, echo=FALSE, out.width="80%", fig.align="center"}
 knitr::include_graphics("tutorial/Outcome-Weights_files/figure-html/image3.jpg")
 ```
 
 Section 1 introduces required packages and wrapper functions used throughout the analysis. 
-Section 2 replicates and extends the full covariate model from @imbens2024 
-using the LaLonde-Dehejia-Wahba (LDW) dataset. 
-Section 3 applies a reduced covariate set to the same LDW data. 
+Section 2 replicates and extends the full covariate model from @imbens2024 using the LaLonde-Dehejia-Wahba (LDW) dataset. 
+Section 3 applies a reduced covariate set to the same LDW dataset. 
 Section 4 analyzes the original LaLonde dataset following similar methods and 
 section 5 explores the LaLonde-Calónico-Smith (LCS) dataset, focusing on female samples.

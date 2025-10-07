@@ -56,58 +56,86 @@ inspect_data <- function(data) {
 }
 
 # 2. Improving covariate balance and overlap
-## 2.1 Matching
-### 2.1.1 Profile matching
-#### matchit_profile()
-matchit_profile <- function(data, treat, covar) {
-  overall_means <- colMeans(data[, covar], na.rm = TRUE) 
-  cov_matrix <- as.matrix(data[, covar])   
-  dist_from_target <- apply(cov_matrix, 1, function(x) sqrt(sum((x - overall_means)^2)))
-  data$dist_from_target <- dist_from_target 
-  formula <- as.formula(paste(treat, "~", paste(c(covar, "dist_from_target"), collapse = "+")))
-  match_out <- matchit(formula, data = data, method = "nearest", distance = "glm")
-  return(match_out)
-}
-
-## 2.2 Weighting 
-### 2.2.1 Standardized mortality ratio (SMR) treated weights
-#### create_smr_weights()
-create_smr_weights <- function(data, formula, estimand = "ATT") {
-  ps_model <- glm(formula, data = data, family = binomial())
-  ps <- predict(ps_model, type = "response")
-  if (estimand == "ATT") {
-    weights <- ifelse(data$treat == 1, 1/ps, 1/(1-ps)) 
-  } else if (estimand == "ATE") {
-    weights <- ifelse(data$treat == 1, 1/ps, 1/(1-ps)) 
-  }
+## 2.1 Weighting 
+### 2.1.1 Inverse probability of treatment weighting
+#### create_iptw_weights()
+create_iptw_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  weights <- ifelse(data[[treat]] == 1, 1/ps, 1/(1-ps))
   return(weights)
 }
 
-### 2.2.2 Overlap weights
-#### create_overlap_weights()
-create_overlap_weights <- function(data, formula) {
-  ps_model <- glm(formula, data = data, family = binomial())
-  ps <- predict(ps_model, type = "response")
-  return(ifelse(data$treat == 1, 1 - ps, ps))
+### 2.1.2 Standardized mortality ratio (SMR) (un)treated weights
+#### create_smr_weights()
+create_smr_weights <- function(data, treat, covar, estimand = "ATT", seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  if (estimand == "ATT") {
+    weights <- ifelse(data[[treat]] == 1, 1, ps/(1-ps))
+  } else if (estimand == "ATU") {
+    weights <- ifelse(data[[treat]] == 1, (1-ps)/ps, 1)
+  } 
+  return(weights)
 }
 
-## 2.3 Truncation
-### 2.3.1 Fixed maximum value truncation
+### 2.1.3 Matching weights
+#### create_matching_weights()
+create_matching_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  minps <- pmin(ps, 1 - ps)
+  weights <- ifelse(data[[treat]] == 1, minps/ps, minps/(1-ps))
+  return(weights)
+}
+
+### 2.1.4 Overlap weights
+#### create_overlap_weights()
+create_overlap_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  weights <- ifelse(data[[treat]] == 1, 1 - ps, ps)
+  return(weights)
+}
+
+### 2.1.5 Entropy weights
+#### create_entropy_weights()
+create_entropy_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  ent <- -(ps * log(ps) + (1 - ps) * log(1 - ps))
+  weights <- ifelse(data[[treat]] == 1, ent / ps, ent / (1 - ps))
+  return(weights)
+}
+
+## 2.2 Truncation
+### 2.2.1 Fixed maximum value truncation
 #### truncate_weights_fixed()
 truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
   data[[weight_col]] <- pmin(data[[weight_col]], max_weight)
   return(data)
 }
 
-### 2.3.2 At percentile truncation
+### 2.2.2 At percentile truncation
 #### truncate_weights_percentile()
-truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
-  weight_cutoff <- quantile(data[[weight_col]], probs = percentile, na.rm = TRUE)
-  data[[weight_col]] <- pmin(data[[weight_col]], weight_cutoff)
+truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
+  quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
+  data[[weight_col]] <- pmax(data[[weight_col]], quantiles[1])
+  data[[weight_col]] <- pmin(data[[weight_col]], quantiles[2])
   return(data)
-}  
+} 
 
-### 2.3.3 Adaptive weight truncation
+### 2.2.3 Adaptive weight truncation
 #### check_weights()
 check_weights <- function(data, weight_col = "weight") {
   w <- data[[weight_col]]
@@ -121,7 +149,7 @@ check_weights <- function(data, weight_col = "weight") {
 #### truncate_weights_adaptive()
 truncate_weights_adaptive <- function(data, weight_col, c = 3) {
   w <- data[[weight_col]]
-  # Only apply if variance is positive
+  # only apply if variance is above zero
   if (var(w, na.rm = TRUE) > 0) {
     cutoff <- mean(w, na.rm = TRUE) + c * sd(w, na.rm = TRUE)
     data[[weight_col]] <- pmin(w, cutoff)
@@ -129,52 +157,52 @@ truncate_weights_adaptive <- function(data, weight_col, c = 3) {
   return(data)
 }
 
-## 2.4 Trimming
-### 2.4.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
+## 2.3 Trimming
+### 2.3.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
   sub <- data[which(data[, ps] < threshold), ]
   return(sub)
 }
 
-### 2.4.2 Common range trimming
+### 2.3.2 Common range trimming
 #### common_range_trim ()
-common_range_trim <- function(data, ps_col = "ps_assoverlap", treat_col = "treat") {
+common_range_trim <- function(data, ps_col = "ps_assoverlap", treat = "treat") {
   lower_cut <- max(
-    min(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
-    min(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
+    min(data[[ps_col]][data[[treat]] == 1], na.rm = TRUE),
+    min(data[[ps_col]][data[[treat]] == 0], na.rm = TRUE)
   )
   upper_cut <- min(
-    max(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
-    max(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
+    max(data[[ps_col]][data[[treat]] == 1], na.rm = TRUE),
+    max(data[[ps_col]][data[[treat]] == 0], na.rm = TRUE)
   )
   sub <- data[data[[ps_col]] >= lower_cut & data[[ps_col]] <= upper_cut, ]
   return(sub)
 }
 
-### 2.4.3 Crump trimming
+### 2.3.3 Crump trimming
 #### crump_trim ()
 crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9) {
   sub <- data[data[[ps_col]] >= lower & data[[ps_col]] <= upper, ]
   return(sub)
 }
 
-### 2.4.4 Stuermer trimming
+### 2.3.4 Stuermer trimming
 #### stuermer_trim ()
-stuermer_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
-                         lower_percentile = 0.05, upper_percentile = 0.95) {
-  treated_ps   <- data[[ps_col]][data[[treat_col]] == 1]
-  untreated_ps <- data[[ps_col]][data[[treat_col]] == 0]
+stuermer_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap", 
+                          lower_percentile = 0.05, upper_percentile = 0.95) {
+  treated_ps   <- data[[ps_col]][data[[treat]] == 1]
+  untreated_ps <- data[[ps_col]][data[[treat]] == 0]
   lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
   upper_cutoff <- quantile(untreated_ps, probs = upper_percentile, na.rm = TRUE)
   sub <- data[data[[ps_col]] >= lower_cutoff & data[[ps_col]] <= upper_cutoff, ]
   return(sub)
 }
 
-### 2.4.5 Walker trimming
+### 2.3.5 Walker trimming
 #### walker_trim ()
-walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
+walker_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap", 
                         lower_cutoff = 0.3, upper_cutoff = 0.7) {
-  treat_prevalence  <- mean(data[[treat_col]], na.rm = TRUE)
+  treat_prevalence  <- mean(data[[treat]], na.rm = TRUE)
   logit_ps          <- log(data[[ps_col]] / (1 - data[[ps_col]]))
   logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
   preference_score  <- 1 / (1 + exp(-(logit_ps - logit_prevalence)))
@@ -182,7 +210,7 @@ walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap",
   return(sub)
 }
 
-## 2.5 Combination of methods
+## 2.4 Combination of methods
 #### trim_attach_weights()
 trim_attach_weights <- function(trimmed_data, original_data, weight_col){
 trimmed_data$orig_row   <- as.integer(rownames(trimmed_data))

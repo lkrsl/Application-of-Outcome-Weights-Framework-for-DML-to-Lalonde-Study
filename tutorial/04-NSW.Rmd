@@ -196,61 +196,52 @@ m.out.psid_plus.subcl <- matchit(model, data = nsw_psid_plus, method = "subclass
 #### Pure subset selection
 ##### Cardinality profile matching
 ```{r, message=FALSE, warning=FALSE}
-# select largest balanced subsample meeting covariate balance tolerances
+# select largest balanced subsample meeting covariate balance tolerances and a fixed ratio of controls to treated units
 m.out.cps_plus.card <- matchit(model, data = nsw_cps_plus, method = "cardinality", tols = 0.1, ratio = 1)
 m.out.psid_plus.card <- matchit(model, data = nsw_psid_plus, method = "cardinality", tols = 0.1, ratio = 1)
 ```
 
 ##### Profile matching
 ```{r, message=FALSE, warning=FALSE}
-# matching by directly optimizing balance profile measures across covariates
-m.out.cps_plus.profile <- matchit_profile(nsw_cps_plus, treat, covar)
-m.out.psid_plus.profile <- matchit_profile(nsw_psid_plus, treat, covar)
+# select the largest control group subset balanced to the treated group (for ATT), leaving the treated group intact
+m.out.cps_plus.profile <- matchit(model, data = nsw_cps_plus, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs")
+m.out.psid_plus.profile <- matchit(model, data = nsw_psid_plus, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs")
 ```
 
 ### Weighting
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
-# compute weights as inverse of estimated propensity scores 
-w.out.cps_plus.ipw <- weightit(model, data = nsw_cps_plus, method = "ps", estimand = "ATT")
-w.out.psid_plus.ipw <- weightit(model, data = nsw_psid_plus, method = "ps", estimand = "ATT")
-
-nsw_cps_plus$ipw_weight <- w.out.cps_plus.ipw$weights
-nsw_psid_plus$ipw_weight <- w.out.psid_plus.ipw$weights
+# calculate inverse probability weights (IPW) for ATE by assigning weight = 1/PS to treated units and weight = 1/(1-PS) to untreated units
+nsw_cps_plus$ipw_weight <- create_iptw_weights(nsw_cps_plus, treat, covar)
+nsw_psid_plus$ipw_weight <- create_iptw_weights(nsw_psid_plus, treat, covar)
 ```
 
 #### Standardized mortality ratio (SMR) treated weights
 ```{r, message=FALSE, warning=FALSE}
-# calculate weights for ATT by assigning weight = 1 to treated units and weights proportional to odds of treatment for control
-nsw_cps_plus$smr_weight <- create_smr_weights(nsw_cps_plus, model, "ATT")
-nsw_psid_plus$smr_weight <- create_smr_weights(nsw_psid_plus, model, "ATT")
+# calculate weights for ATT by assigning weight = 1 to treated units and weight = PS/(1-PS) to control units
+nsw_cps_plus$smr_weight <- create_smr_weights(nsw_cps_plus, treat, covar, "ATT")
+nsw_psid_plus$smr_weight <- create_smr_weights(nsw_psid_plus, treat, covar, "ATT")
 ```
 
 #### Matching weights
 ```{r, message=FALSE, warning=FALSE}
-# derive optimal matching weights intending to minimize covariate imbalance while targeting ATT
-w.out.cps_plus.opt <- weightit(model, data = nsw_cps_plus, method = "optweight", estimand = "ATT")
-w.out.psid_plus.opt <- weightit(model, data = nsw_psid_plus, method = "optweight", estimand = "ATT")
-
-nsw_cps_plus$opt_weight <- w.out.cps_plus.opt$weights
-nsw_psid_plus$opt_weight <- w.out.psid_plus.opt$weights
+# calculate matching weights by assigning weight = min(PS, 1-PS)/PS to treated units and min(PS, 1-PS)/(1-PS) to controls
+nsw_cps_plus$opt_weight <- create_matching_weights(nsw_cps_plus, treat, covar)
+nsw_psid_plus$opt_weight <- create_matching_weights(nsw_psid_plus, treat, covar)
 ```
 
 #### Overlap weights
 ```{r, message=FALSE, warning=FALSE}
-# calculate overlap weights emphasizing units with propensity scores near 0.5
-nsw_cps_plus$overlap_weight <- create_overlap_weights(nsw_cps_plus, model)
-nsw_psid_plus$overlap_weight <- create_overlap_weights(nsw_psid_plus, model)
+# calculate overlap weights by assigning weight = 1-PS to treated units and weight = PS, emphasizing units with propensity scores near 0.5
+nsw_cps_plus$overlap_weight <- create_overlap_weights(nsw_cps_plus, treat, covar)
+nsw_psid_plus$overlap_weight <- create_overlap_weights(nsw_psid_plus, treat, covar)
 ```
 
 #### Entropy weights
 ```{r, message=FALSE, warning=FALSE}
-# compute entropy balancing weights 
-w.out.cps_plus.ebal <- weightit(model, data = nsw_cps_plus, method = "ebal", estimand = "ATT")
-w.out.psid_plus.ebal <- weightit(model, data = nsw_psid_plus, method = "ebal", estimand = "ATT")
-
-nsw_cps_plus$ebal_weight <- w.out.cps_plus.ebal$weights
-nsw_psid_plus$ebal_weight <- w.out.psid_plus.ebal$weights
+# calculate entropy weights by assigning weight = -[PS × log(PS) + (1 − PS) × log(1 − PS)]/PS to treated units and -[PS × log(PS) + (1 − PS) × log(1 − PS)]/(1 − PS) to control units
+nsw_cps_plus$ebal_weight <- create_entropy_weights(nsw_cps_plus, treat, covar)
+nsw_psid_plus$ebal_weight <- create_entropy_weights(nsw_psid_plus, treat, covar)
 ```
 
 ## Improving primarily overlap
@@ -262,36 +253,36 @@ weight_columns <- c("ipw_weight", "smr_weight", "opt_weight", "overlap_weight", 
 
 #### Fixed maximum value truncation
 ```{r, message=FALSE, warning=FALSE}
-# truncate weights by imposing a maximum threshold of 10
+# truncate weights by imposing a minimum and maximum threshold
 nsw_cps_plus.fixed <- nsw_cps_plus
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_cps_plus.fixed)) {
-    nsw_cps_plus.fixed <- truncate_weights_fixed(nsw_cps_plus.fixed, weight_col = wcol, max_weight = 10)
+    nsw_cps_plus.fixed <- truncate_weights_fixed(nsw_cps_plus.fixed, weight_col = wcol, lower = 0.025, upper = 0.975) 
   }
 }
 
 nsw_psid_plus.fixed <- nsw_psid_plus
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_psid_plus.fixed)) {
-    nsw_psid_plus.fixed <- truncate_weights_fixed(nsw_psid_plus.fixed, weight_col = wcol, max_weight = 10)
+    nsw_psid_plus.fixed <- truncate_weights_fixed(nsw_psid_plus.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
   }
 }
 ```
 
 #### At percentile truncation
 ```{r, message=FALSE, warning=FALSE}
-# truncate weights such that values above the 99th percentile are capped
+# truncate weights such that values below the 5th percentile and above the 95th percentile are capped
 nsw_cps_plus.percent <- nsw_cps_plus
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_cps_plus.percent)) {
-    nsw_cps_plus.percent <- truncate_weights_percentile(nsw_cps_plus.percent, weight_col = wcol, percentile = 0.99)
+    nsw_cps_plus.percent <- truncate_weights_percentile(nsw_cps_plus.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
   }
 }
 
 nsw_psid_plus.percent <- nsw_psid_plus
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_psid_plus.percent)) {
-    nsw_psid_plus.percent <- truncate_weights_percentile(nsw_psid_plus.percent, weight_col = wcol, percentile = 0.99)
+    nsw_psid_plus.percent <- truncate_weights_percentile(nsw_psid_plus.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
   }
 }
 ```

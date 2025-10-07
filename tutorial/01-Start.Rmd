@@ -1,12 +1,12 @@
 # Getting started
 
 <div class="callout-caution">
-The functions presented below constitute the core wrapper functions utilized throughout the analysis, including three adapted function originally from the @imbens2024 tutorial, which were modified to suit specific analytical purpose (highlighted by ***), as well as others integrated without modification. For the full collection of functions by @imbens2024, please consult their official source code available on their GitHub [repository](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study).
+The functions presented below constitute the core wrapper functions utilized throughout the analysis, including three functions originally from the @imbens2024 tutorial, that were modified to suit specific analytical purposes (highlighted by ***), as well as others that were integrated without modification. For the full collection of functions by @imbens2024, please consult their official source code available on their GitHub [repository](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study).
 </div>
 
 ## Installation
 
-Several R packages are required for the data analysis and visualization. The code below checks for all required packages and installs those that are missing. After the installation, the packages need to be loaded.  
+Several R packages are required for the data analysis and visualization. The code below checks for all required packages and installs those that are missing. Once installation is complete, the packages must be loaded.  
 
 <div class="callout-note">
 Since the analysis sources functions directly from the @imbens2024 tutorial, the required packages are automatically installed and loaded as part of that process. Therefore, it is only necessary to install and load any additional packages as well as add custom functions that are required for the analysis.
@@ -50,7 +50,7 @@ library(WeightIt)
 
 ## Wrapper functions
 
-Next, we outline the wrapper functions designed to manage the datasets, address overlap and covariate balance, estimate treatment effects as well as analyze outcome weights. 
+Next, the wrapper functions designed to manage the datasets, address overlap and covariate balance, estimate treatment effects and analyze outcome weights are presented.
 
 <div class="callout-note">
 To use the wrapper functions, the simplest method is to source the R script with the following code.
@@ -59,7 +59,7 @@ To use the wrapper functions, the simplest method is to source the R script with
 source("tutorial/functions.R")
 ```
 
-If RStudio is used, the functions should now be seen in the environment section.
+If RStudio is used, the functions should now appear in the environment section.
 
 ### Overview
 
@@ -76,7 +76,7 @@ If RStudio is used, the functions should now be seen in the environment section.
 
 ### Inspection
 
-`inspect_data()` summarizes one or more datasets by returning a single data frame with each dataset’s name, number of observations, number of variables, and the concatenated names of its variables. 
+`inspect_data()` provides a structured summary of one or multiple datasets by returning a single data frame listing each dataset’s name, number of observations (rows), number of variables (columns), and a concatenated string of variable names.
 ```{r}
 inspect_data <- function(data) {
   if (is.data.frame(data)) {
@@ -102,38 +102,18 @@ inspect_data <- function(data) {
 
 ### Improving covariate balance and overlap
 #### Matching
-
-`matchit_profile()` performs nearest neighbor matching based on a combination of specified covariates and each observation's distance from the overall covariate mean, returning a matchit object for balance diagnostics and matched sampling.
-```{r}
-matchit_profile <- function(data, treat, covar) {
-  overall_means <- colMeans(data[, covar], na.rm = TRUE) 
-  cov_matrix <- as.matrix(data[, covar])   
-  dist_from_target <- apply(cov_matrix, 1, function(x) sqrt(sum((x - overall_means)^2)))
-  data$dist_from_target <- dist_from_target 
-  formula <- as.formula(paste(treat, "~", paste(c(covar, "dist_from_target"), collapse = "+")))
-  match_out <- matchit(formula, data = data, method = "nearest", distance = "glm")
-  return(match_out)
-}
-```
-
-**Arguments**
-
-- `data`: A data frame containing structured data.
-- `treat`: The name of the binary treatment indicator variable as string.
-- `covar`: A vector of covariate names.
+NA
 
 #### Weighting
 
-`create_smr_weights()` calculates standardized mortality ratio (SMR) weights based on estimated propensity scores, allowing for ATT or average treatment effect (ATE) weighting according to the estimand specified.
+`create_iptw_weights()` computes inverse probability of treatment weights based on propensity scores. Treated units receive weight 1/PS and untreated units receive weight 1/(1-PS), where PS is the propensity score.
 ```{r}
-create_smr_weights <- function(data, formula, estimand = "ATT") {
-  ps_model <- glm(formula, data = data, family = binomial())
-  ps <- predict(ps_model, type = "response")
-  if (estimand == "ATT") {
-    weights <- ifelse(data$treat == 1, 1/ps, 1/(1-ps)) 
-  } else if (estimand == "ATE") {
-    weights <- ifelse(data$treat == 1, 1/ps, 1/(1-ps)) 
-  }
+create_iptw_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  weights <- ifelse(data[[treat]] == 1, 1/ps, 1/(1-ps))
   return(weights)
 }
 ```
@@ -141,29 +121,101 @@ create_smr_weights <- function(data, formula, estimand = "ATT") {
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `formula`: The model formula specifying the relation between the treatment variable and a set of covariates, defining the model structure. 
-- `estimand = ATT`: The name of the target estimand (default is ATT).
+- `treat`: The name of the binary treatment indicator variable as string.
+- `covar`: A vector of covariate names.
+- `seed`: Integer to ensure reproducible propensity score estimation.
 
-`create_overlap_weights()` computes overlap weights based on propensity scores.
+`create_smr_weights()` calculates standardized mortality ratio (SMR) weights based on propensity scores, allowing for estimation of the average treatment effect on the treated (ATT) or the average treatment effect on the untreated (ATU), according to the specified estimand. In the case of ATT, the treated units receive weight 1 and untreated units receive weight PS/(1-PS) and in the case of ATU, the treated units receive weight (1-PS)/PS and untreated units receive weight 1.
 ```{r}
-create_overlap_weights <- function(data, formula) {
-  ps_model <- glm(formula, data = data, family = binomial())
-  ps <- predict(ps_model, type = "response")
-  return(ifelse(data$treat == 1, 1 - ps, ps))
+create_smr_weights <- function(data, treat, covar, estimand = "ATT", seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  if (estimand == "ATT") {
+    weights <- ifelse(data[[treat]] == 1, 1, ps/(1-ps))
+  } else if (estimand == "ATU") {
+    weights <- ifelse(data[[treat]] == 1, (1-ps)/ps, 1)
+  } 
+  return(weights)
 }
 ```
 
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `formula`: The model formula specifying the relation between the treatment variable and a set of covariates, defining the model structure. 
+- `treat`: The name of the binary treatment indicator variable as string.
+- `covar`: A vector of covariate names.
+- `estimand`: The name of the target estimand (default is ATT).
+- `seed`: Integer to ensure reproducible propensity score estimation.
+
+`create_matching_weights()` computes matching weights based on propensity scores. Treated units receive weight min(PS, 1-PS)/PS and untreated units receive weight min(PS, 1-PS)/(1-PS).
+```{r}
+create_matching_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  minps <- pmin(ps, 1 - ps)
+  weights <- ifelse(data[[treat]] == 1, minps/ps, minps/(1-ps))
+  return(weights)
+}
+```
+
+**Arguments**
+
+- `data`: The data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
+- `covar`: A vector of covariate names.
+- `seed`: Integer to ensure reproducible propensity score estimation.
+
+`create_overlap_weights()` computes overlap weights based on propensity scores. Treated units receive weight (1-PS) and untreated units receive PS.
+```{r}
+create_overlap_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  weights <- ifelse(data[[treat]] == 1, 1 - ps, ps)
+  return(weights)
+}
+```
+
+**Arguments**
+
+- `data`: The data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
+- `covar`: A vector of covariate names.
+- `seed`: Integer to ensure reproducible propensity score estimation.
+
+`create_entropy_weights()` computes entropy weights based on propensity scores. Treated units receive weight -[PS × log(PS) + (1 − PS) × log(1 − PS)]/PS and untreated units receive -[PS × log(PS) + (1 − PS) × log(1 − PS)]/(1 − PS).
+```{r}
+create_entropy_weights <- function(data, treat, covar, seed = 1234) {
+  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
+  ps <- ps_model$predictions[,2]
+  ps[ps <= 1e-7] <- 1e-7
+  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
+  ent <- -(ps * log(ps) + (1 - ps) * log(1 - ps))
+  weights <- ifelse(data[[treat]] == 1, ent / ps, ent / (1 - ps))
+  return(weights)
+}
+```
+
+**Arguments**
+
+- `data`: The data frame containing structured data.
+- `treat`: The name of the binary treatment indicator variable as string.
+- `covar`: A vector of covariate names.
+- `seed`: Integer to ensure reproducible propensity score estimation.
 
 #### Truncation
 
-`truncate_weights_fixed()` caps weights at a fixed maximum value to limit extreme weight influence.
+`truncate_weights_fixed()` caps weights at a fixed maximum range.
+(with absolute value restricted in [0.025, 0.975]))
 ```{r}
-truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
-  data[[weight_col]] <- pmin(data[[weight_col]], max_weight)
+truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
+  data[[weight_col]] <- pmax(data[[weight_col]], lower)
+  data[[weight_col]] <- pmin(data[[weight_col]], upper)
   return(data)
 }
 ```
@@ -172,22 +224,25 @@ truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
 
 - `data`: The data frame containing structured data.
 - `weight_col`: The column name of the weights in the dataset as string.
-- `max_weight`: The maximum allowed weight value as integer.
+- `lower`: Integer specifying the minimum allowed weight. Weights below this value are set to this lower bound.
+- `upper`: Integer specifying the maximum allowed weight. Weights above this value are set to this upper bound.
 
-`truncate_weights_percentile()` caps weights at a specified percentile threshold to reduce outliers in weight distribution.
+`truncate_weights_percentile()` caps weights at a specified percentile threshold.
 ```{r}
-truncate_weights_percentile <- function(data, weight_col, percentile = 0.99) {
-  weight_cutoff <- quantile(data[[weight_col]], probs = percentile, na.rm = TRUE)
-  data[[weight_col]] <- pmin(data[[weight_col]], weight_cutoff)
+truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
+  quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
+  data[[weight_col]] <- pmax(data[[weight_col]], quantiles[1])
+  data[[weight_col]] <- pmin(data[[weight_col]], quantiles[2])
   return(data)
-}    
+}
 ```
 
 **Arguments**
 
 - `data`: The data frame containing structured data.
 - `weight_col`: The column name of the weights in the dataset as string.
-- `percentile`: The quantile cutoff value as integer.
+- `lower`: Integer between 0 and 1 specifying the lower quantile cutoff. Weights below this percentile are set to the value at this quantile.
+- `upper`: Integer between 0 and 1 specifying the upper quantile cutoff. Weights above this percentile are set to the value at this quantile.
 
 `check_weights()` prints the variance of the specified weight vector to assess variability and relevance for adaptive truncation.
 ```{r}
@@ -204,13 +259,13 @@ check_weights <- function(data, weight_col = "weight") {
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `weight_col`: The column name of the weights in the dataset as string.
+- `weight_col`: The column name of the weights in the dataset as string (default is `weight`)
 
 `truncate_weights_adaptive()` caps weights adaptively at a threshold defined by the mean plus a multiple of the standard deviation.
 ```{r}
 truncate_weights_adaptive <- function(data, weight_col, c = 3) {
   w <- data[[weight_col]]
-  # Only apply if variance is positive
+  # only apply if variance is above zero
   if (var(w, na.rm = TRUE) > 0) {
     cutoff <- mean(w, na.rm = TRUE) + c * sd(w, na.rm = TRUE)
     data[[weight_col]] <- pmin(w, cutoff)
@@ -241,16 +296,16 @@ ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) {
 - `ps`: The name of the propensity score variable as string.
 - `threshold`: The upper limit for propensity score inclusion as integer.
 
-`common_range_trim()` trims the dataset to observations with propensity scores within the common support range for treated and control groups.
+`common_range_trim()` trims the dataset to observations with propensity scores within the common support range for treated and control groups. It takes as lower cutpoint the highest of the lowest propensity scores in each group and as upper cutpoint the lowest of the highest propensity scores in each group.
 ```{r}
-common_range_trim <- function(data, ps_col = "ps_assoverlap", treat_col = "treat") {
+common_range_trim <- function(data, ps_col = "ps_assoverlap", treat = "treat") {
   lower_cut <- max(
-    min(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
-    min(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
+    min(data[[ps_col]][data[[treat]] == 1], na.rm = TRUE),
+    min(data[[ps_col]][data[[treat]] == 0], na.rm = TRUE)
   )
   upper_cut <- min(
-    max(data[[ps_col]][data[[treat_col]] == 1], na.rm = TRUE),
-    max(data[[ps_col]][data[[treat_col]] == 0], na.rm = TRUE)
+    max(data[[ps_col]][data[[treat]] == 1], na.rm = TRUE),
+    max(data[[ps_col]][data[[treat]] == 0], na.rm = TRUE)
   )
   sub <- data[data[[ps_col]] >= lower_cut & data[[ps_col]] <= upper_cut, ]
   return(sub)
@@ -260,10 +315,10 @@ common_range_trim <- function(data, ps_col = "ps_assoverlap", treat_col = "treat
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `ps_col`: The column name of propensity scores as string.
-- `treat_col`: The column name of the (binary) treatment indicator as string.
+- `ps_col`: The column name of propensity scores as string (default is `ps_assoverlap`). 
+- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
 
-`crump_trim()` trims the dataset to observations with propensity scores outside specified lower and upper bounds (default 0.1 and 0.9).
+`crump_trim()` trims the dataset to observations with propensity scores outside specified lower and upper bounds (default 0.1 and 0.9). Only those observations are kept that are within the specified interval (default 0.1 <= PS <= 0.9).
 ```{r}
 crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9) {
   sub <- data[data[[ps_col]] >= lower & data[[ps_col]] <= upper, ]
@@ -274,16 +329,16 @@ crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9)
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `ps_col`: The column name of propensity scores as string.
-- `lower`: The lower bound for inclusion as integer.
-- `upper`: The upper bound for inclusion as integer.
+- `ps_col`: The column name of propensity scores as string (default is `ps_assoverlap`). 
+- `lower`: The lower bound for inclusion as integer (default is 0.1).
+- `upper`: The upper bound for inclusion as integer  (default is 0.9).
 
 `stuermer_trim ()` trims the dataset to observations based on propensity score quantiles separately for treated and control group.
 ```{r}
-stuermer_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
+stuermer_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap", 
                          lower_percentile = 0.05, upper_percentile = 0.95) {
-  treated_ps   <- data[[ps_col]][data[[treat_col]] == 1]
-  untreated_ps <- data[[ps_col]][data[[treat_col]] == 0]
+  treated_ps   <- data[[ps_col]][data[[treat]] == 1]
+  untreated_ps <- data[[ps_col]][data[[treat]] == 0]
   lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
   upper_cutoff <- quantile(untreated_ps, probs = upper_percentile, na.rm = TRUE)
   sub <- data[data[[ps_col]] >= lower_cutoff & data[[ps_col]] <= upper_cutoff, ]
@@ -294,14 +349,16 @@ stuermer_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap",
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `treat_col`: The column name of the (binary) treatment indicator as string.
-- `ps_col`: The column name of propensity scores as string.
+- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
+- `ps_col`: The column name of propensity scores as string (default is `ps_assoverlap`).
+- `lower_percentile`: Integer between 0 and 1 specifying the lower quantile cutoff for propensity scores in the treated group (default is 0.05, i.e., 5th percentile).
+- `upper_percentile`: Integer between 0 and 1 specifying the upper quantile cutoff for propensity scores in the untreated group (default is 0.95, i.e., 95th percentile).
 
 `walker_trim()` trims the dataset to observations based on preference scores that adjust for treatment prevalence using logit transformations.
 ```{r}
-walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap", 
+walker_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap", 
                         lower_cutoff = 0.3, upper_cutoff = 0.7) {
-  treat_prevalence  <- mean(data[[treat_col]], na.rm = TRUE)
+  treat_prevalence  <- mean(data[[treat]], na.rm = TRUE)
   logit_ps          <- log(data[[ps_col]] / (1 - data[[ps_col]]))
   logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
   preference_score  <- 1 / (1 + exp(-(logit_ps - logit_prevalence)))
@@ -313,8 +370,10 @@ walker_trim <- function(data, treat_col = "treat", ps_col = "ps_assoverlap",
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `treat_col`: The column name of the (binary) treatment indicator as string.
-- `ps_col`: The column name of propensity scores as string.
+- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
+- `ps_col`: The column name of propensity scores as string (default is `ps_assoverlap`).
+- `lower_cutoff`: Integer between 0 and 1 specifying the lower cutoff for the preference score (default is 0.3).
+- `upper_cutoff`: Integer between 0 and 1 specifying the upper cutoff for the preference score (default is 0.7).
 
 #### Combined methods
 `trim_attach_weights()` merges trimmed data with original weights, preserving corresponding weight values after trimming.
