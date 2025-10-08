@@ -5,37 +5,40 @@
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>Page not found | Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study</title>
-  <meta name="description" content="<p>This book replicates the LaLonde study as revisited by Imbens &amp; Xu (2024), comparing full
-and reduced covariate models to reduce potential confounding.
-It evaluates various methods to improve overlap and covariate balance for more robust
+  <meta name="description" content="<p>This book replicates the LaLonde study by Imbens &amp; Xu (2024) and extends it by comparing a
+full with a reduced covariate model to mitigate potential confounding.
+It evaluates various methods to improve overlap and covariate balance for robust
 treatment effect estimation and applies the outcome weights framework by Knaus &amp; Pfleiderer (2024)
-to LaLonde data variants as well as analyzes the distributional properties of outcome weights.</p>" />
+to assess another estimator and analyse the distributional properties of outcome weights.
+The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.</p>" />
   <meta name="generator" content="bookdown 0.45 and GitBook 2.6.7" />
 
   <meta property="og:title" content="Page not found | Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study" />
   <meta property="og:type" content="book" />
   
-  <meta property="og:description" content="<p>This book replicates the LaLonde study as revisited by Imbens &amp; Xu (2024), comparing full
-and reduced covariate models to reduce potential confounding.
-It evaluates various methods to improve overlap and covariate balance for more robust
+  <meta property="og:description" content="<p>This book replicates the LaLonde study by Imbens &amp; Xu (2024) and extends it by comparing a
+full with a reduced covariate model to mitigate potential confounding.
+It evaluates various methods to improve overlap and covariate balance for robust
 treatment effect estimation and applies the outcome weights framework by Knaus &amp; Pfleiderer (2024)
-to LaLonde data variants as well as analyzes the distributional properties of outcome weights.</p>" />
+to assess another estimator and analyse the distributional properties of outcome weights.
+The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.</p>" />
   <meta name="github-repo" content="lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study" />
 
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="Page not found | Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study" />
   
-  <meta name="twitter:description" content="<p>This book replicates the LaLonde study as revisited by Imbens &amp; Xu (2024), comparing full
-and reduced covariate models to reduce potential confounding.
-It evaluates various methods to improve overlap and covariate balance for more robust
+  <meta name="twitter:description" content="<p>This book replicates the LaLonde study by Imbens &amp; Xu (2024) and extends it by comparing a
+full with a reduced covariate model to mitigate potential confounding.
+It evaluates various methods to improve overlap and covariate balance for robust
 treatment effect estimation and applies the outcome weights framework by Knaus &amp; Pfleiderer (2024)
-to LaLonde data variants as well as analyzes the distributional properties of outcome weights.</p>" />
+to assess another estimator and analyse the distributional properties of outcome weights.
+The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.</p>" />
   
 
 <meta name="author" content="Laura Kreisel" />
 
 
-<meta name="date" content="2025-10-06" />
+<meta name="date" content="2025-10-08" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -221,20 +224,18 @@ div.csl-indent {
 <li class="chapter" data-level="2.6.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#truncation-3"><i class="fa fa-check"></i><b>2.6.3</b> Truncation</a></li>
 <li class="chapter" data-level="2.6.4" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming-3"><i class="fa fa-check"></i><b>2.6.4</b> Trimming</a></li>
 </ul></li>
-<li class="chapter" data-level="2.7" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#integrated-methods-1"><i class="fa fa-check"></i><b>2.7</b> Integrated methods</a>
+<li class="chapter" data-level="2.7" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#integrated-methods-1"><i class="fa fa-check"></i><b>2.7</b> Integrated methods</a></li>
+<li class="chapter" data-level="2.8" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#top-methods-and-datasets"><i class="fa fa-check"></i><b>2.8</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="2.9" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#estimating-1"><i class="fa fa-check"></i><b>2.9</b> Estimating</a>
 <ul>
-<li class="chapter" data-level="2.7.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#top-methods-and-datasets"><i class="fa fa-check"></i><b>2.7.1</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="2.9.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#average-treatment-effect-on-the-treated-att"><i class="fa fa-check"></i><b>2.9.1</b> Average treatment effect on the treated (ATT)</a></li>
+<li class="chapter" data-level="2.9.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#conditional-average-treatment-effect-on-the-treated-catt-1"><i class="fa fa-check"></i><b>2.9.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
+<li class="chapter" data-level="2.9.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#quantile-treatment-effect-on-the-treated-qtet"><i class="fa fa-check"></i><b>2.9.3</b> Quantile treatment effect on the treated (QTET)</a></li>
+<li class="chapter" data-level="2.9.4" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#assessing-outcome-weights-ow"><i class="fa fa-check"></i><b>2.9.4</b> Assessing outcome weights (OW)</a></li>
 </ul></li>
-<li class="chapter" data-level="2.8" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#estimating-1"><i class="fa fa-check"></i><b>2.8</b> Estimating</a>
-<ul>
-<li class="chapter" data-level="2.8.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#average-treatment-effect-on-the-treated-att"><i class="fa fa-check"></i><b>2.8.1</b> Average treatment effect on the treated (ATT)</a></li>
-<li class="chapter" data-level="2.8.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#conditional-average-treatment-effect-on-the-treated-catt-1"><i class="fa fa-check"></i><b>2.8.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
-<li class="chapter" data-level="2.8.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#quantile-treatment-effect-on-the-treated-qtet"><i class="fa fa-check"></i><b>2.8.3</b> Quantile treatment effect on the treated (QTET)</a></li>
-<li class="chapter" data-level="2.8.4" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#assessing-outcome-weights-ow"><i class="fa fa-check"></i><b>2.8.4</b> Assessing outcome weights (OW)</a></li>
-</ul></li>
-<li class="chapter" data-level="2.9" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#validation-through-placebo-analyses"><i class="fa fa-check"></i><b>2.9</b> Validation through placebo analyses</a></li>
-<li class="chapter" data-level="2.10" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#validation-through-sensitivity-analyses"><i class="fa fa-check"></i><b>2.10</b> Validation through sensitivity analyses</a></li>
-<li class="chapter" data-level="2.11" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#summary"><i class="fa fa-check"></i><b>2.11</b> Summary</a></li>
+<li class="chapter" data-level="2.10" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#validation-through-placebo-analyses"><i class="fa fa-check"></i><b>2.10</b> Validation through placebo analyses</a></li>
+<li class="chapter" data-level="2.11" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#validation-through-sensitivity-analyses"><i class="fa fa-check"></i><b>2.11</b> Validation through sensitivity analyses</a></li>
+<li class="chapter" data-level="2.12" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#summary"><i class="fa fa-check"></i><b>2.12</b> Summary</a></li>
 </ul></li>
 <li class="chapter" data-level="3" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html"><i class="fa fa-check"></i><b>3</b> LaLonde-Dehejia-Wahba (LDW) Data</a>
 <ul>
@@ -266,20 +267,18 @@ div.csl-indent {
 <li class="chapter" data-level="3.5.3" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#truncation-5"><i class="fa fa-check"></i><b>3.5.3</b> Truncation</a></li>
 <li class="chapter" data-level="3.5.4" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#trimming-5"><i class="fa fa-check"></i><b>3.5.4</b> Trimming</a></li>
 </ul></li>
-<li class="chapter" data-level="3.6" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#integrated-methods-3"><i class="fa fa-check"></i><b>3.6</b> Integrated methods</a>
+<li class="chapter" data-level="3.6" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#integrated-methods-3"><i class="fa fa-check"></i><b>3.6</b> Integrated methods</a></li>
+<li class="chapter" data-level="3.7" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#top-methods-and-datasets-1"><i class="fa fa-check"></i><b>3.7</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="3.8" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#estimating-2"><i class="fa fa-check"></i><b>3.8</b> Estimating</a>
 <ul>
-<li class="chapter" data-level="3.6.1" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#top-methods-and-datasets-1"><i class="fa fa-check"></i><b>3.6.1</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="3.8.1" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#average-treatment-effect-on-the-treated-att-1"><i class="fa fa-check"></i><b>3.8.1</b> Average treatment effect on the treated (ATT)</a></li>
+<li class="chapter" data-level="3.8.2" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#conditional-average-treatment-effect-on-the-treated-catt-2"><i class="fa fa-check"></i><b>3.8.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
+<li class="chapter" data-level="3.8.3" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#quantile-treatment-effect-on-the-treated-qtet-1"><i class="fa fa-check"></i><b>3.8.3</b> Quantile treatment effect on the treated (QTET)</a></li>
+<li class="chapter" data-level="3.8.4" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#assessing-outcome-weights-ow-1"><i class="fa fa-check"></i><b>3.8.4</b> Assessing outcome weights (OW)</a></li>
 </ul></li>
-<li class="chapter" data-level="3.7" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#estimating-2"><i class="fa fa-check"></i><b>3.7</b> Estimating</a>
-<ul>
-<li class="chapter" data-level="3.7.1" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#average-treatment-effect-on-the-treated-att-1"><i class="fa fa-check"></i><b>3.7.1</b> Average treatment effect on the treated (ATT)</a></li>
-<li class="chapter" data-level="3.7.2" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#conditional-average-treatment-effect-on-the-treated-catt-2"><i class="fa fa-check"></i><b>3.7.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
-<li class="chapter" data-level="3.7.3" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#quantile-treatment-effect-on-the-treated-qtet-1"><i class="fa fa-check"></i><b>3.7.3</b> Quantile treatment effect on the treated (QTET)</a></li>
-<li class="chapter" data-level="3.7.4" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#assessing-outcome-weights-ow-1"><i class="fa fa-check"></i><b>3.7.4</b> Assessing outcome weights (OW)</a></li>
-</ul></li>
-<li class="chapter" data-level="3.8" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#validation-through-placebo-analyses-1"><i class="fa fa-check"></i><b>3.8</b> Validation through placebo analyses</a></li>
-<li class="chapter" data-level="3.9" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#validation-through-sensitivity-analyses-1"><i class="fa fa-check"></i><b>3.9</b> Validation through sensitivity analyses</a></li>
-<li class="chapter" data-level="3.10" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#summary-1"><i class="fa fa-check"></i><b>3.10</b> Summary</a></li>
+<li class="chapter" data-level="3.9" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#validation-through-placebo-analyses-1"><i class="fa fa-check"></i><b>3.9</b> Validation through placebo analyses</a></li>
+<li class="chapter" data-level="3.10" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#validation-through-sensitivity-analyses-1"><i class="fa fa-check"></i><b>3.10</b> Validation through sensitivity analyses</a></li>
+<li class="chapter" data-level="3.11" data-path="lalonde-dehejia-wahba-ldw-data-1.html"><a href="lalonde-dehejia-wahba-ldw-data-1.html#summary-1"><i class="fa fa-check"></i><b>3.11</b> Summary</a></li>
 </ul></li>
 <li class="chapter" data-level="4" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html"><i class="fa fa-check"></i><b>4</b> LaLonde (NSW) Data</a>
 <ul>
@@ -311,19 +310,17 @@ div.csl-indent {
 <li class="chapter" data-level="4.5.3" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#truncation-7"><i class="fa fa-check"></i><b>4.5.3</b> Truncation</a></li>
 <li class="chapter" data-level="4.5.4" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#trimming-7"><i class="fa fa-check"></i><b>4.5.4</b> Trimming</a></li>
 </ul></li>
-<li class="chapter" data-level="4.6" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#integrated-methods-5"><i class="fa fa-check"></i><b>4.6</b> Integrated methods</a>
+<li class="chapter" data-level="4.6" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#integrated-methods-5"><i class="fa fa-check"></i><b>4.6</b> Integrated methods</a></li>
+<li class="chapter" data-level="4.7" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#top-methods-and-datasets-2"><i class="fa fa-check"></i><b>4.7</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="4.8" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#estimating-3"><i class="fa fa-check"></i><b>4.8</b> Estimating</a>
 <ul>
-<li class="chapter" data-level="4.6.1" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#top-methods-and-datasets-2"><i class="fa fa-check"></i><b>4.6.1</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="4.8.1" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#average-treatment-effect-on-the-treated-att-2"><i class="fa fa-check"></i><b>4.8.1</b> Average treatment effect on the treated (ATT)</a></li>
+<li class="chapter" data-level="4.8.2" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#conditional-average-treatment-effect-on-the-treated-catt-3"><i class="fa fa-check"></i><b>4.8.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
+<li class="chapter" data-level="4.8.3" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#quantile-treatment-effect-on-the-treated-qtet-2"><i class="fa fa-check"></i><b>4.8.3</b> Quantile treatment effect on the treated (QTET)</a></li>
+<li class="chapter" data-level="4.8.4" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#assessing-outcome-weights-ow-2"><i class="fa fa-check"></i><b>4.8.4</b> Assessing outcome weights (OW)</a></li>
 </ul></li>
-<li class="chapter" data-level="4.7" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#estimating-3"><i class="fa fa-check"></i><b>4.7</b> Estimating</a>
-<ul>
-<li class="chapter" data-level="4.7.1" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#average-treatment-effect-on-the-treated-att-2"><i class="fa fa-check"></i><b>4.7.1</b> Average treatment effect on the treated (ATT)</a></li>
-<li class="chapter" data-level="4.7.2" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#conditional-average-treatment-effect-on-the-treated-catt-3"><i class="fa fa-check"></i><b>4.7.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
-<li class="chapter" data-level="4.7.3" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#quantile-treatment-effect-on-the-treated-qtet-2"><i class="fa fa-check"></i><b>4.7.3</b> Quantile treatment effect on the treated (QTET)</a></li>
-<li class="chapter" data-level="4.7.4" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#assessing-outcome-weights-ow-2"><i class="fa fa-check"></i><b>4.7.4</b> Assessing outcome weights (OW)</a></li>
-</ul></li>
-<li class="chapter" data-level="4.8" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#validation-through-sensitivity-analyses-2"><i class="fa fa-check"></i><b>4.8</b> Validation through sensitivity analyses</a></li>
-<li class="chapter" data-level="4.9" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#summary-2"><i class="fa fa-check"></i><b>4.9</b> Summary</a></li>
+<li class="chapter" data-level="4.9" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#validation-through-sensitivity-analyses-2"><i class="fa fa-check"></i><b>4.9</b> Validation through sensitivity analyses</a></li>
+<li class="chapter" data-level="4.10" data-path="lalonde-nsw-data.html"><a href="lalonde-nsw-data.html#summary-2"><i class="fa fa-check"></i><b>4.10</b> Summary</a></li>
 </ul></li>
 <li class="chapter" data-level="5" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html"><i class="fa fa-check"></i><b>5</b> LaLonde-Calónico-Smith (LCS) Data</a>
 <ul>
@@ -352,20 +349,18 @@ div.csl-indent {
 <li class="chapter" data-level="5.4.3" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#truncation-9"><i class="fa fa-check"></i><b>5.4.3</b> Truncation</a></li>
 <li class="chapter" data-level="5.4.4" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#trimming-9"><i class="fa fa-check"></i><b>5.4.4</b> Trimming</a></li>
 </ul></li>
-<li class="chapter" data-level="5.5" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#integrated-methods-6"><i class="fa fa-check"></i><b>5.5</b> Integrated methods</a>
+<li class="chapter" data-level="5.5" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#integrated-methods-6"><i class="fa fa-check"></i><b>5.5</b> Integrated methods</a></li>
+<li class="chapter" data-level="5.6" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#top-methods-and-datasets-3"><i class="fa fa-check"></i><b>5.6</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="5.7" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#estimating-4"><i class="fa fa-check"></i><b>5.7</b> Estimating</a>
 <ul>
-<li class="chapter" data-level="5.5.1" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#top-methods-and-datasets-3"><i class="fa fa-check"></i><b>5.5.1</b> Top methods and datasets</a></li>
+<li class="chapter" data-level="5.7.1" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#average-treatment-effect-on-the-treated-att-3"><i class="fa fa-check"></i><b>5.7.1</b> Average treatment effect on the treated (ATT)</a></li>
+<li class="chapter" data-level="5.7.2" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#conditional-average-treatment-effect-on-the-treated-catt-4"><i class="fa fa-check"></i><b>5.7.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
+<li class="chapter" data-level="5.7.3" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#quantile-treatment-effect-on-the-treated-qtet-3"><i class="fa fa-check"></i><b>5.7.3</b> Quantile treatment effect on the treated (QTET)</a></li>
+<li class="chapter" data-level="5.7.4" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#assessing-outcome-weights-ow-3"><i class="fa fa-check"></i><b>5.7.4</b> Assessing outcome weights (OW)</a></li>
 </ul></li>
-<li class="chapter" data-level="5.6" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#estimating-4"><i class="fa fa-check"></i><b>5.6</b> Estimating</a>
-<ul>
-<li class="chapter" data-level="5.6.1" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#average-treatment-effect-on-the-treated-att-3"><i class="fa fa-check"></i><b>5.6.1</b> Average treatment effect on the treated (ATT)</a></li>
-<li class="chapter" data-level="5.6.2" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#conditional-average-treatment-effect-on-the-treated-catt-4"><i class="fa fa-check"></i><b>5.6.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
-<li class="chapter" data-level="5.6.3" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#quantile-treatment-effect-on-the-treated-qtet-3"><i class="fa fa-check"></i><b>5.6.3</b> Quantile treatment effect on the treated (QTET)</a></li>
-<li class="chapter" data-level="5.6.4" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#assessing-outcome-weights-ow-3"><i class="fa fa-check"></i><b>5.6.4</b> Assessing outcome weights (OW)</a></li>
-</ul></li>
-<li class="chapter" data-level="5.7" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#validation-through-placebo-analyses-2"><i class="fa fa-check"></i><b>5.7</b> Validation through placebo analyses</a></li>
-<li class="chapter" data-level="5.8" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#validation-through-sensitivity-analyses-3"><i class="fa fa-check"></i><b>5.8</b> Validation through sensitivity analyses</a></li>
-<li class="chapter" data-level="5.9" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#summary-3"><i class="fa fa-check"></i><b>5.9</b> Summary</a></li>
+<li class="chapter" data-level="5.8" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#validation-through-placebo-analyses-2"><i class="fa fa-check"></i><b>5.8</b> Validation through placebo analyses</a></li>
+<li class="chapter" data-level="5.9" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#validation-through-sensitivity-analyses-3"><i class="fa fa-check"></i><b>5.9</b> Validation through sensitivity analyses</a></li>
+<li class="chapter" data-level="5.10" data-path="lalonde-calónico-smith-lcs-data.html"><a href="lalonde-calónico-smith-lcs-data.html#summary-3"><i class="fa fa-check"></i><b>5.10</b> Summary</a></li>
 </ul></li>
 <li class="chapter" data-level="" data-path="references.html"><a href="references.html"><i class="fa fa-check"></i>References</a></li>
 <li class="divider"></li>

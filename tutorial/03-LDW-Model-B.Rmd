@@ -223,7 +223,7 @@ ldw_psid_plus$smr_weight <- create_smr_weights(ldw_psid_plus, treat, covar, "ATT
 ```{r, message=FALSE, warning=FALSE}
 # calculate matching weights by assigning weight = min(PS, 1-PS)/PS to treated units and min(PS, 1-PS)/(1-PS) to controls
 ldw_cps_plus$opt_weight <- create_matching_weights(ldw_cps_plus, treat, covar)
-lcs_psid_plus$opt_weight <- create_matching_weights(lcs_psid_plus, treat, covar)
+ldw_psid_plus$opt_weight <- create_matching_weights(ldw_psid_plus, treat, covar)
 ```
 
 #### Overlap weights
@@ -691,7 +691,7 @@ save_comb_hist(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix =
 save_comb_loveplots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix = "model_b")
 ```
 
-### Top methods and datasets
+## Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps_plus <- combine_results("cps_plus")

@@ -695,7 +695,7 @@ save_comb_hist(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix =
 save_comb_loveplots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix = "nsw")
 ```
 
-### Top methods and datasets
+## Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps_plus <- combine_results("cps_plus")

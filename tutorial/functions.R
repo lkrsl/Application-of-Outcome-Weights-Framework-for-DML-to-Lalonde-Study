@@ -121,8 +121,9 @@ create_entropy_weights <- function(data, treat, covar, seed = 1234) {
 ## 2.2 Truncation
 ### 2.2.1 Fixed maximum value truncation
 #### truncate_weights_fixed()
-truncate_weights_fixed <- function(data, weight_col, max_weight = 10) {
-  data[[weight_col]] <- pmin(data[[weight_col]], max_weight)
+truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
+  data[[weight_col]] <- pmax(data[[weight_col]], lower)
+  data[[weight_col]] <- pmin(data[[weight_col]], upper)
   return(data)
 }
 

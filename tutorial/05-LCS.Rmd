@@ -488,7 +488,7 @@ save_comb_hist(comb_meth_psid = comb_meth.psid_plus, treat = "treat", covar = co
 save_comb_loveplots(comb_meth_psid = comb_meth.psid_plus, treat = "treat", covar = covar, prefix = "lcs", prefix_cps = "LCS-CPS1")
 ```
 
-### Top methods and datasets
+## Top methods and datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_psid_plus <- combine_results("psid_plus") 
