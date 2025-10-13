@@ -15,7 +15,7 @@ Since the analysis sources functions directly from the @imbens2024 tutorial, the
 **Packages**: "data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 ```{r, message=FALSE, warning=FALSE}
 # required packages
-packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
 # install packages
@@ -38,6 +38,7 @@ library(ggplot2)
 library(gridExtra)
 library(highr)
 library(highs)
+library(kableExtra)
 library(MatchIt)
 library(optmatch)
 library(optweight)
@@ -76,15 +77,17 @@ If RStudio is used, the functions should now appear in the environment section.
 
 ### Inspection
 
-`inspect_data()` provides a structured summary of one or multiple datasets by returning a single data frame listing each dataset’s name, number of observations (rows), number of variables (columns), and a concatenated string of variable names.
+`inspect_data()` provides a structured summary of one or multiple datasets by returning a single data frame listing each dataset’s name, number of observations (rows), number of treated units, number of control units, number of variables (columns) and a concatenated string of variable names.
 ```{r}
-inspect_data <- function(data) {
+inspect_data <- function(data, treat = "treat") {
   if (is.data.frame(data)) {
     data <- list(dataset = data)
   }
   data.frame(
     dataset = names(data),
     num_obs = sapply(data, nrow),
+    num_treated = sapply(data, function(df) sum(df[[treat]] == 1, na.rm = TRUE)),
+    num_controls = sapply(data, function(df) sum(df[[treat]] == 0, na.rm = TRUE)),
     num_vars = sapply(data, ncol),
     name_vars = sapply(data, function(df) paste(names(df), collapse = ", ")),
     row.names = NULL
@@ -1097,25 +1100,24 @@ save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, tre
 ```{r}
 combine_results <- function(dataset_name) {
   dataset_lower <- tolower(dataset_name)
-  # Retrieve matching results
+  # retrieve matching results
   smd_matching <- get(paste0("smd_matchit.", dataset_lower))
   ess_matching <- get(paste0("ess_matchit.", dataset_lower))
-  # Retrieve trimming results
+  # retrieve trimming results
   smd_trimming <- get(paste0("smd_trim.", dataset_lower))
   ess_trimming <- get(paste0("ess_trim.", dataset_lower))
-  # Retrieve truncation results
+  # retrieve truncation results
   smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
   ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
-  # Retrieve weighting results
+  # retrieve weighting results
   smd_weighting <- get(paste0("smd_weight.", dataset_lower))
   ess_weighting <- get(paste0("ess_weight.", dataset_lower))
-  # Retrieve combined SMD and ESS
-  # Make sure you have these variables in your environment per dataset
+  # retrieve combined SMD and ESS
   smd_combined_var <- paste0("smd_all_comb_meth.", dataset_lower)
   ess_combined_var <- paste0("ess_all_comb_meth.", dataset_lower)
   smd_combined <- get(smd_combined_var)
   ess_combined <- get(ess_combined_var)
-  # Combine all SMD results
+  # combine all SMD results
   smd_all <- do.call(rbind, list(
     smd_matching,
     smd_trimming,
@@ -1123,7 +1125,7 @@ combine_results <- function(dataset_name) {
     smd_weighting,
     smd_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
   ))
-    # Combine all ESS results
+  # combine all ESS results
   ess_all <- do.call(rbind, list(
     ess_matching,
     ess_trimming,
@@ -1131,12 +1133,12 @@ combine_results <- function(dataset_name) {
     ess_weighting,
     ess_combined[, c("Method", "Control", "Treated")]
   ))
-  # Merge SMD and ESS results by Method
+  # merge SMD and ESS results by Method
   final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
-  # Remove dataset suffixes like ".cps_plus" or ".psid_plus" from Method names for cleaner labels
+  # remove dataset suffixes for clean labels
   final_df$Method <- gsub("\\.psid_plus", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps_plus", "", final_df$Method, ignore.case = TRUE)
-    # Reset row names
+  # reset row names
   rownames(final_df) <- NULL
   return(final_df)
 }
@@ -1169,17 +1171,17 @@ assess_methods <- function(df) {
       # ess score
       ess_balance_ratio = pmin(Control, Treated) / pmax(Control, Treated),
       ess_total = Control + Treated,
-      # Normalize balance_ratio and ess_total
+      # normalize balance_ratio and ess_total
       ess_balance_score = (ess_balance_ratio - min(ess_balance_ratio, na.rm = TRUE)) /
         (max(ess_balance_ratio, na.rm = TRUE) - min(ess_balance_ratio, na.rm = TRUE)),
       ess_size_score = (ess_total - min(ess_total, na.rm = TRUE)) /
         (max(ess_total, na.rm = TRUE) - min(ess_total, na.rm = TRUE)),
-      # Combine size and balance equally
+      # combine size and balance equally
       ess_score = 0.5 * ess_balance_score + 0.5 * ess_size_score,
       # smd score
       smd_score = 1 - (Mean_Abs_SMD - min(Mean_Abs_SMD, na.rm = TRUE)) /
         (max(Mean_Abs_SMD, na.rm = TRUE) - min(Mean_Abs_SMD, na.rm = TRUE)),
-      # final score
+      # composite score
       Score = 0.5 * smd_score + 0.5 * ess_score
     ) %>%
     dplyr::select(Method, Score) %>%

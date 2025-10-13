@@ -58,7 +58,7 @@ covar <- c("age", "education", "black", "hispanic", "married",
 
 ### Assessing overlap and covariate balance
 #### Overlap
-```{r, fig.cap='FIGURE C1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
+```{r, fig.cap='FIGUREC1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
 # assess overlap
 nsw.ps <- assess_overlap(data = nsw, treat = treat, cov = covar)
 nsw_cps.ps <- assess_overlap(data = nsw_cps, treat = treat, cov = covar) 
@@ -67,7 +67,7 @@ nsw_psid.ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar)
 
 As anticipated, the NSW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets NSW-CPS1 and NSW-PSID1 display weak overlap. 
 
-```{r, fig.cap='FIGURE C1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, fig.cap='FIGUREC1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 # assess overlap
 nsw_cps_plus.ps <- assess_overlap(data = nsw_cps_plus, treat = treat, cov = covar) 
 nsw_psid_plus.ps <- assess_overlap(data = nsw_psid_plus, treat = treat, cov = covar)
@@ -80,7 +80,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
 #### Covariate balance
-```{r, fig.cap='FIGURE C2. SubfigureA:NSW-CPS1. SubfigureB:NSW-CPS1-PLUS. SubfigureC:NSW-PSID1. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+```{r, fig.cap='FIGUREC2. SubfigureA:NSW-CPS1. SubfigureB:NSW-CPS1-PLUS. SubfigureC:NSW-PSID1. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 love.plot(nsw, nsw_cps, treat, covar = covar, title = "NSW-CPS1")
 love.plot(nsw, nsw_cps_plus, treat, covar = covar, title = "NSW-CPS1-PLUS")
 love.plot(nsw, nsw_psid, treat, covar = covar, title = "NSW-PSID1")
@@ -99,73 +99,73 @@ In the subsequent analysis, that is focused on improving covariate balance and o
 ##### 1:1 Nearest neighbor matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with k=1, logistic propensity score and replacement
-m.out.cps_plus.nearest <- matchit(model, data = nsw_cps_plus, method = "nearest", distance = "logit", replace = TRUE)
-m.out.psid_plus.nearest <- matchit(model, data = nsw_psid_plus, method = "nearest", distance = "logit", replace = TRUE)
+m.out.cps.nearest <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", replace = TRUE)
+m.out.psid.nearest <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", replace = TRUE)
 ```
 
 ##### k:1 matching (k=2)
 ```{r, message=FALSE, warning=FALSE}
 k<-2
 # perform nearest neighbor matching with k=2, logistic propensity score and replacement
-m.out.cps_plus.k2 <- matchit(model, data = nsw_cps_plus, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
-m.out.psid_plus.k2 <- matchit(model, data = nsw_psid_plus, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.cps.k2 <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.psid.k2 <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
 ```
 
 ##### k:1 matching (k=3)
 ```{r, message=FALSE, warning=FALSE}
 k<-3
 # perform nearest neighbor matching with k=3, logistic propensity score and replacement
-m.out.cps_plus.k3 <- matchit(model, data = nsw_cps_plus, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
-m.out.psid_plus.k3 <- matchit(model, data = nsw_psid_plus, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.cps.k3 <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.psid.k3 <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
 ```
 
 ##### Caliper matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
-m.out.cps_plus.caliper <- matchit(model, data = nsw_cps_plus, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
-m.out.psid_plus.caliper <- matchit(model, data = nsw_psid_plus, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
+m.out.cps.caliper <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
+m.out.psid.caliper <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
 ```
 
 ##### Common support restriction matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with exclusion of units outside common support
-m.out.cps_plus.cs <- matchit(model, data = nsw_cps_plus, method = "nearest", distance = "logit", discard = "both", replace = TRUE)
-m.out.psid_plus.cs <- matchit(model, data = nsw_psid_plus, method = "nearest", distance = "logit", discard = "both", replace = TRUE)
+m.out.cps.cs <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", discard = "both", replace = TRUE)
+m.out.psid.cs <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", discard = "both", replace = TRUE)
 ```
 
 ##### Mahalanobis distance matching (mahvars) 
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching using mahalanobis distance on selected covariates
-m.out.cps_plus.mahvars <- matchit(model, data = nsw_cps_plus, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
-m.out.psid_plus.mahvars <- matchit(model, data = nsw_psid_plus, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
+m.out.cps.mahvars <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
+m.out.psid.mahvars <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
 ```
 
 ##### Optimal pair matching
 ```{r, message=FALSE, warning=FALSE}
 # perform optimal pair matching that minimizes total within-pair distance on propensity scores
-m.out.cps_plus.optimal_pair <- matchit(model, data = nsw_cps_plus, method = "optimal", distance = "logit")
-m.out.psid_plus.optimal_pair <- matchit(model, data = nsw_psid_plus, method = "optimal", distance = "logit")
+m.out.cps.optimal_pair <- matchit(model, data = nsw_cps, method = "optimal", distance = "logit")
+m.out.psids.optimal_pair <- matchit(model, data = nsw_psid, method = "optimal", distance = "logit")
 ```
 
 ##### Optimal full matching
 ```{r, message=FALSE, warning=FALSE}
 # perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
-m.out.cps_plus.optimal_full <- matchit(model, data = nsw_cps_plus, method = "full", distance = "logit")
-m.out.psid_plus.optimal_full <- matchit(model, data = nsw_psid_plus, method = "full", distance = "logit")
+m.out.cps.optimal_full <- matchit(model, data = nsw_cps, method = "full", distance = "logit")
+m.out.psid.optimal_full <- matchit(model, data = nsw_psid, method = "full", distance = "logit")
 ```
 
 ##### Generalized full matching
 ```{r, message=FALSE, warning=FALSE}
 # perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
-m.out.cps_plus.general_full <- matchit(model, data = nsw_cps_plus, method = "quick", distance = "logit")
-m.out.psid_plus.general_full <- matchit(model, data = nsw_psid_plus, method = "quick", distance = "logit")
+m.out.cps.general_full <- matchit(model, data = nsw_cps, method = "quick", distance = "logit")
+m.out.psid.general_full <- matchit(model, data = nsw_psid, method = "quick", distance = "logit")
 ```
 
 ##### Genetic matching
 ```{r, message=FALSE, warning=FALSE}
 # perform genetic matching 
-m.out.cps_plus.genetic <- matchit(model, data = nsw_cps_plus, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
-m.out.psid_plus.genetic <- matchit(model, data = nsw_psid_plus, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
+m.out.cps.genetic <- matchit(model, data = nsw_cps, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
+m.out.psid.genetic <- matchit(model, data = nsw_psid, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
 ```
 
 #### Stratum matching
@@ -173,98 +173,98 @@ m.out.psid_plus.genetic <- matchit(model, data = nsw_psid_plus, method = "geneti
 Strata = unique covariate profiles (raw covariates)
 ```{r, message=FALSE, warning=FALSE}
 # match units exactly by raw covariate profiles 
-m.out.cps_plus.exact <- matchit(model, data = nsw_cps_plus, method = "exact")
-m.out.psid_plus.exact <- matchit(model, data = nsw_psid_plus, method = "exact")
+m.out.cps.exact <- matchit(model, data = nsw_cps, method = "exact")
+m.out.psid.exact <- matchit(model, data = nsw_psid, method = "exact")
 ```
 
 ##### Coarsened matching (cem)
 Strata = coarsened versions of covariates
 ```{r, message=FALSE, warning=FALSE}
 # match units exactly within coarse strata 
-m.out.cps_plus.cem <- matchit(model, data = nsw_cps_plus, method = "cem")
-m.out.psid_plus.cem <- matchit(model, data = nsw_psid_plus, method = "cem")
+m.out.cps_plus.cem <- matchit(model, data = nsw_cps, method = "cem")
+m.out.psid_plus.cem <- matchit(model, data = nsw_psid, method = "cem")
 ```
 
 ##### Subclassification 
 Strata = bins of the propensity score
 ```{r, message=FALSE, warning=FALSE}
 # partition sample into fixed number of bins based on propensity score 
-m.out.cps_plus.subcl <- matchit(model, data = nsw_cps_plus, method = "subclass", subclass = 5)
-m.out.psid_plus.subcl <- matchit(model, data = nsw_psid_plus, method = "subclass", subclass = 5)
+m.out.cps.subcl <- matchit(model, data = nsw_cps, method = "subclass", subclass = 5)
+m.out.psid.subcl <- matchit(model, data = nsw_psid, method = "subclass", subclass = 5)
 ```
 
 #### Pure subset selection
 ##### Cardinality profile matching
 ```{r, message=FALSE, warning=FALSE}
 # select largest balanced subsample meeting covariate balance tolerances and a fixed ratio of controls to treated units
-m.out.cps_plus.card <- matchit(model, data = nsw_cps_plus, method = "cardinality", tols = 0.1, ratio = 1)
-m.out.psid_plus.card <- matchit(model, data = nsw_psid_plus, method = "cardinality", tols = 0.1, ratio = 1)
+m.out.cps.card <- matchit(model, data = nsw_cps, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
+m.out.psid.card <- matchit(model, data = nsw_psid, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
 ```
 
 ##### Profile matching
 ```{r, message=FALSE, warning=FALSE}
 # select the largest control group subset balanced to the treated group (for ATT), leaving the treated group intact
-m.out.cps_plus.profile <- matchit(model, data = nsw_cps_plus, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs")
-m.out.psid_plus.profile <- matchit(model, data = nsw_psid_plus, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs")
+m.out.cps.profile <- matchit(model, data = nsw_cps, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs", time = 1200)
+m.out.psid.profile <- matchit(model, data = nsw_psid, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs", time = 1200)
 ```
 
 ### Weighting
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
-# calculate inverse probability weights (IPW) for ATE by assigning weight = 1/PS to treated units and weight = 1/(1-PS) to untreated units
-nsw_cps_plus$ipw_weight <- create_iptw_weights(nsw_cps_plus, treat, covar)
-nsw_psid_plus$ipw_weight <- create_iptw_weights(nsw_psid_plus, treat, covar)
+# 
+w.out.cps.ipw <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "glm")
+nsw_cps$ipw_weight <- w.out.cps.ipw$weights
+w.out.psid.ipw <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "glm")
+nsw_psid$ipw_weight <- w.out.cps.ipw$weights
 ```
 
-#### Standardized mortality ratio (SMR) treated weights
+#### Stable balancing weights 
 ```{r, message=FALSE, warning=FALSE}
-# calculate weights for ATT by assigning weight = 1 to treated units and weight = PS/(1-PS) to control units
-nsw_cps_plus$smr_weight <- create_smr_weights(nsw_cps_plus, treat, covar, "ATT")
-nsw_psid_plus$smr_weight <- create_smr_weights(nsw_psid_plus, treat, covar, "ATT")
+#
+w.out.cps.opt <- optweight::optweight(model, data = nsw_cps, estimand = "ATT")
+nsw_cps$opt_weight <- w.out.cps.opt$weights
+w.out.psid.opt <- optweight::optweight(model, data = nsw_psid, estimand = "ATT")
+nsw_psid$opt_weight <- w.out.psid.opt$weights
 ```
 
-#### Matching weights
+#### Propensity score weights
 ```{r, message=FALSE, warning=FALSE}
-# calculate matching weights by assigning weight = min(PS, 1-PS)/PS to treated units and min(PS, 1-PS)/(1-PS) to controls
-nsw_cps_plus$opt_weight <- create_matching_weights(nsw_cps_plus, treat, covar)
-nsw_psid_plus$opt_weight <- create_matching_weights(nsw_psid_plus, treat, covar)
+w.out.cps.cbps <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "cbps")
+nsw_cps$cbps_weight <- w.out.cps.cbps$weights
+w.out.psid.cbps <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "cbps")
+nsw_psid$cbps_weight <- w.out.psid.cbps$weights
 ```
 
-#### Overlap weights
+#### Entropy balancing weights
 ```{r, message=FALSE, warning=FALSE}
-# calculate overlap weights by assigning weight = 1-PS to treated units and weight = PS, emphasizing units with propensity scores near 0.5
-nsw_cps_plus$overlap_weight <- create_overlap_weights(nsw_cps_plus, treat, covar)
-nsw_psid_plus$overlap_weight <- create_overlap_weights(nsw_psid_plus, treat, covar)
-```
-
-#### Entropy weights
-```{r, message=FALSE, warning=FALSE}
-# calculate entropy weights by assigning weight = -[PS × log(PS) + (1 − PS) × log(1 − PS)]/PS to treated units and -[PS × log(PS) + (1 − PS) × log(1 − PS)]/(1 − PS) to control units
-nsw_cps_plus$ebal_weight <- create_entropy_weights(nsw_cps_plus, treat, covar)
-nsw_psid_plus$ebal_weight <- create_entropy_weights(nsw_psid_plus, treat, covar)
+#
+w.out.cps.ebal <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "ebal")
+nsw_cps$ebal_weight <- w.out.cps.ebal$weights
+w.out.psid.ebal <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "ebal")
+nsw_psid$ebal_weight <- w.out.psid.ebal$weights
 ```
 
 ## Improving primarily overlap
 ### Truncation
 ```{r, message=FALSE, warning=FALSE}
-# list of weight columns to apply truncation 
-weight_columns <- c("ipw_weight", "smr_weight", "opt_weight", "overlap_weight", "ebal_weight")
+# list weight columns to apply truncation 
+weight_columns <- c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight")
 ```
 
 #### Fixed maximum value truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights by imposing a minimum and maximum threshold
-nsw_cps_plus.fixed <- nsw_cps_plus
+nsw_cps.fixed <- nsw_cps
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_cps_plus.fixed)) {
-    nsw_cps_plus.fixed <- truncate_weights_fixed(nsw_cps_plus.fixed, weight_col = wcol, lower = 0.025, upper = 0.975) 
+  if (wcol %in% names(nsw_cps.fixed)) {
+    nsw_cps.fixed <- truncate_weights_fixed(nsw_cps.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
   }
 }
 
-nsw_psid_plus.fixed <- nsw_psid_plus
+nsw_psid.fixed <- nsw_psid
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_psid_plus.fixed)) {
-    nsw_psid_plus.fixed <- truncate_weights_fixed(nsw_psid_plus.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
+  if (wcol %in% names(nsw_psid.fixed)) {
+    nsw_psid.fixed <- truncate_weights_fixed(nsw_psid.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
   }
 }
 ```
@@ -272,17 +272,17 @@ for (wcol in weight_columns) {
 #### At percentile truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights such that values below the 5th percentile and above the 95th percentile are capped
-nsw_cps_plus.percent <- nsw_cps_plus
+nsw_cps.percent <- nsw_cps
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_cps_plus.percent)) {
-    nsw_cps_plus.percent <- truncate_weights_percentile(nsw_cps_plus.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+  if (wcol %in% names(nsw_cps.percent)) {
+    nsw_cps.percent <- truncate_weights_percentile(nsw_cps.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
   }
 }
 
-nsw_psid_plus.percent <- nsw_psid_plus
+nsw_psid.percent <- nsw_psid
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_psid_plus.percent)) {
-    nsw_psid_plus.percent <- truncate_weights_percentile(nsw_psid_plus.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+  if (wcol %in% names(nsw_psid.percent)) {
+    nsw_psid.percent <- truncate_weights_percentile(nsw_psid.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
   }
 }
 ```
@@ -294,624 +294,616 @@ cps_results <- list()
 psid_results <- list()
 
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_cps_plus)) {
-    cps_results[[paste0("cps_", wcol)]] <- check_weights(nsw_cps_plus, wcol)
+  if (wcol %in% names(nsw_cps)) {
+    cps_results[[paste0("cps_", wcol)]] <- check_weights(nsw_cps, wcol)
   } else {
-    warning(paste("Column", wcol, "not found in ldw_cps_plus"))
+    warning(paste("Column", wcol, "not found in NSW-CPS1"))
   }
 }
 
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_psid_plus)) {
-    psid_results[[paste0("psid_", wcol)]] <- check_weights(nsw_psid_plus, wcol)
+  if (wcol %in% names(nsw_psid)) {
+    psid_results[[paste0("psid_", wcol)]] <- check_weights(nsw_psid, wcol)
   } else {
-    warning(paste("Column", wcol, "not found in ldw_psid_plus"))
+    warning(paste("Column", wcol, "not found in NSW-PSID1"))
   }
 }
 
 var_cps_table <- bind_rows(cps_results)
 var_psid_table <- bind_rows(psid_results)
 
-knitr::kable(var_cps_table, caption = "Variance of Weights (CPS)")
-knitr::kable(var_psid_table, caption = "Variance of Weights (PSID)")
+knitr::kable(var_cps_table, caption = "Variance of Weights (NSW-CPS1)")
+knitr::kable(var_psid_table, caption = "Variance of Weights (NSW-PSID1)")
 ```
 
 Regarding these results we apply adaptive weight truncation to all considered weights.
 ```{r, message=FALSE, warning=FALSE}
 # truncate adaptively at mean + 3 standard deviations 
-nsw_cps_plus.adapt <- nsw_cps_plus
+nsw_cps.adapt <- nsw_cps
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_cps_plus.adapt)) {
-    nsw_cps_plus.adapt <- truncate_weights_adaptive(nsw_cps_plus.adapt, weight_col = wcol, c = 3)
+  if (wcol %in% names(nsw_cps.adapt)) {
+    nsw_cps.adapt <- truncate_weights_adaptive(nsw_cps.adapt, weight_col = wcol, c = 3)
   }
 }
 
-nsw_psid_plus.adapt <- nsw_psid_plus
+nsw_psid.adapt <- nsw_psid
 for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_psid_plus.adapt)) {
-    nsw_psid_plus.adapt <- truncate_weights_adaptive(nsw_psid_plus.adapt, weight_col = wcol, c = 3)
+  if (wcol %in% names(nsw_psid.adapt)) {
+    nsw_psid.adapt <- truncate_weights_adaptive(nsw_psid.adapt, weight_col = wcol, c = 3)
   }
 }
 ```
 
 ### Trimming 
-#### Propensity score threshold trimming (analogous to Imbens & Xu (2024))
+#### Propensity score threshold trimming 
+(Similar to Imbens & Xu (2024))
 ```{r, message=FALSE, warning=FALSE}
 # apply trimming with thresholds 0.85 
 nsw_cps_trim <- ps_trim(nsw_cps_plus.ps, threshold = 0.85)
 nsw_psid_trim <- ps_trim(nsw_psid_plus.ps, threshold = 0.85)
 
 # exclude experimental controls, subset trimmed data appropriately
-nsw_cps.trim_match <- subset(nsw_cps_trim, sample %in% c(0,3) & ps_assoverlap)
-nsw_psid.trim_match <- subset(nsw_psid_trim, sample %in% c(0,4) & ps_assoverlap)
+nsw_cps_plus.trim.match <- subset(nsw_cps_trim, sample %in% c(0,3) & ps_assoverlap)
+nsw_psid_plus.trim.match <- subset(nsw_psid_trim, sample %in% c(0,4) & ps_assoverlap)
 
 # re-assign treat variable for controls in sample 3 or 4 (non-treated group)
-nsw_cps.trim_match$treat[nsw_cps.trim_match$sample == 0.5] <- 0
-nsw_psid.trim_match$treat[nsw_psid.trim_match$sample == 0.5] <- 0
+nsw_cps_plus.trim.match$treat[nsw_cps_plus.trim.match$sample == 0.5] <- 0
+nsw_psid_plus.trim.match$treat[nsw_psid_plus.trim.match$sample == 0.5] <- 0
 
 # re-estimate propensity scores on trimmed data and perform 1:1 matching
-nsw_cps.trim_match <- psmatch(data = nsw_cps.trim_match, Y = "re78", treat = "treat", cov = covar)
-nsw_psid.trim_match <- psmatch(data = nsw_psid.trim_match, Y = "re78", treat = "treat", cov = covar)
+nsw_cps_plus.trim.match <- psmatch(data = nsw_cps_plus.trim.match, Y = "re78", treat = "treat", cov = covar)
+nsw_psid_plus.trim.match <- psmatch(data = nsw_psid_plus.trim.match, Y = "re78", treat = "treat", cov = covar)
+```
+
+#### Propensity score threshold trimming 
+```{r, message=FALSE, warning=FALSE}
+# apply trimming with threshold 0.9
+nsw_cps.trim <- ps_trim(nsw_cps.ps, threshold = 0.9)
+nsw_psid.trim <- ps_trim(nsw_psid.ps, threshold = 0.9)
+
+# re-estimate propensity scores on trimmed data 
+nsw_cps.trim <- ps_estimate(data = nsw_cps.trim, Y = "re78", treat = "treat", cov = covar)
+nsw_psid.trim <- ps_estimate(data = nsw_psid.trim, Y = "re78", treat = "treat", cov = covar)
 ```
 
 #### Common range trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations outside the common support region of propensity scores
-nsw_cps_plus.common   <- common_range_trim(nsw_cps_plus.ps)
-nsw_psid_plus.common  <- common_range_trim(nsw_psid_plus.ps)
+nsw_cps.common   <- common_range_trim(nsw_cps.ps)
+nsw_psid.common  <- common_range_trim(nsw_psid.ps)
+
+# re-estimate propensity scores on trimmed data 
+nsw_cps.common <- ps_estimate(data = nsw_cps.common, Y = "re78", treat = "treat", cov = covar)
+nsw_psid.common <- ps_estimate(data = nsw_psid.common, Y = "re78", treat = "treat", cov = covar)
 ```
 
-#### Propensity score trimming (Crump)
+#### Crump trimming 
 ```{r, message=FALSE, warning=FALSE}
 # trim observations with propensity scores outside [0.1, 0.9] interval
-nsw_cps_plus.crump  <- crump_trim(nsw_cps_plus.ps, lower = 0.1, upper = 0.9)
-nsw_psid_plus.crump <- crump_trim(nsw_psid_plus.ps, lower = 0.1, upper = 0.9)
+nsw_cps.crump  <- crump_trim(nsw_cps.ps, lower = 0.1, upper = 0.9)
+nsw_psid.crump <- crump_trim(nsw_psid.ps, lower = 0.1, upper = 0.9)
+
+# re-estimate propensity scores on trimmed data 
+nsw_cps.crump <- ps_estimate(data = nsw_cps.crump, Y = "re78", treat = "treat", cov = covar)
+nsw_psid.crump <- ps_estimate(data = nsw_psid.crump, Y = "re78", treat = "treat", cov = covar)
 ```
 
 #### Stuermer trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations based on propensity score quantiles separately for treated and control
-nsw_cps_plus.stuermer  <- stuermer_trim(nsw_cps_plus.ps)
-nsw_psid_plus.stuermer <- stuermer_trim(nsw_psid_plus.ps)
+nsw_cps.stuermer  <- stuermer_trim(nsw_cps.ps)
+nsw_psid.stuermer <- stuermer_trim(nsw_psid.ps)
+
+# re-estimate propensity scores on trimmed data 
+nsw_cps.stuermer <- ps_estimate(data = nsw_cps.stuermer, Y = "re78", treat = "treat", cov = covar)
+nsw_psid.stuermer <- ps_estimate(data = nsw_psid.stuermer, Y = "re78", treat = "treat", cov = covar)
 ```
 
 #### Walker trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations based on preference scores that adjust for treatment prevalence using logit transformations
-nsw_cps_plus.walker   <- walker_trim(nsw_cps_plus.ps)
-nsw_psid_plus.walker  <- walker_trim(nsw_psid_plus.ps)
+nsw_cps.walker   <- walker_trim(nsw_cps.ps)
+nsw_psid.walker  <- walker_trim(nsw_psid.ps)
+
+# re-estimate propensity scores on trimmed data 
+nsw_cps.walker <- ps_estimate(data = nsw_cps.walker, Y = "re78", treat = "treat", cov = covar)
+nsw_psid.walker <- ps_estimate(data = nsw_psid.walker, Y = "re78", treat = "treat", cov = covar)
 ```
 
 ### Integrated methods
 ```{r, message=FALSE, warning=FALSE}
 # list trimming methods
-trim_names <- c("ps_threshold", "common_range", "stuermer", "walker", "crump")
-trimmed_cps  <- list(ps_threshold = nsw_cps_trim, common_range = nsw_cps_plus.common, stuermer = nsw_cps_plus.stuermer, walker = nsw_cps_plus.walker, crump = nsw_cps_plus.crump)
-trimmed_psid <- list(ps_threshold = nsw_psid_trim, common_range = nsw_psid_plus.common, stuermer = nsw_psid_plus.stuermer, walker = nsw_psid_plus.walker, crump = nsw_psid_plus.crump)
+all_trim.cps  <- list(ps_threshold = nsw_cps.trim, 
+                     common_range = nsw_cps.common, 
+                     stuermer = nsw_cps.stuermer, 
+                     walker = nsw_cps.walker, 
+                     crump = nsw_cps.crump)
+all_trim.psid  <- list(ps_threshold = nsw_psid.trim, 
+                     common_range = nsw_psid.common, 
+                     stuermer = nsw_psid.stuermer, 
+                     walker = nsw_psid.walker, 
+                     crump = nsw_psid.crump)
 ```
 
 #### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
 # apply inverse probability weighting (IPW) with trimming and attach IPW weights
-ipw_comb.cps_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], nsw_cps_plus, "ipw_weight")),
-  trim_names
-)
-ipw_comb.psid_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], nsw_psid_plus, "ipw_weight")),
-  trim_names
-)
+ipw_comb.cps <- trim_attach_weights(all_trim.cps, model, "ipw_weight")
+ipw_comb.psid <- trim_attach_weights(all_trim.psid, model, "ipw_weight")
 ```
 
-#### SMR treated weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+#### Stable balancing weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
-# apply standardized mortality ratio (SMR) weighting with trimming and attach SMR weights
-smr_treat_comb.cps_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], nsw_cps_plus, "smr_weight")),
-  trim_names
-)
-smr_treat_comb.psid_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], nsw_psid_plus, "smr_weight")),
-  trim_names
-)
+# apply stable balancing with trimming and attach stable balance weights
+opt_comb.cps <- trim_attach_weights(all_trim.cps, model, "opt_weight")
+opt_comb.psid <- trim_attach_weights(all_trim.psid, model, "opt_weight")
 ```
 
-#### Overlap weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+#### Propensity score weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
-# apply overlap weighting with trimming and attach overlap weights
-ov_comb.cps_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], nsw_cps_plus, "overlap_weight")),
-  trim_names
-)
-ov_comb.psid_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], nsw_psid_plus, "overlap_weight")),
-  trim_names
-)
+# apply propensity score weighting with trimming and attach propensity score weights
+cbps_comb.cps <- trim_attach_weights(all_trim.cps, model, "cbps_weight")
+cbps_comb.psid <- trim_attach_weights(all_trim.psid, model, "cbps_weight")
 ```
 
-#### Entropy weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+#### Entropy balancing weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
 # apply entropy balancing weights with trimming and attach entropy weights
-entropy_comb.cps_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_cps[[nm]], nsw_cps_plus, "ebal_weight")),
-  trim_names
-)
-entropy_comb.psid_plus <- setNames(
-  lapply(trim_names, function(nm) trim_attach_weights(trimmed_psid[[nm]], nsw_psid_plus, "ebal_weight")),
-  trim_names
-)
+ebal_comb.cps <- trim_attach_weights(all_trim.cps, model, "ebal_weight")
+ebal_comb.psid <- trim_attach_weights(all_trim.psid, model, "ebal_weight")
 ```
 
 ## Reassessing methods
 ### Matching
 ```{r, message=FALSE, warning=FALSE}
-# list all matching methods
-methods.cps_plus <- list(
-  nn = m.out.cps_plus.nearest,
-  k2 = m.out.cps_plus.k2,
-  k3 = m.out.cps_plus.k3,
-  caliper = m.out.cps_plus.caliper,
-  cS = m.out.cps_plus.cs,
-  mahvars = m.out.cps_plus.mahvars,
-  optimal_pair = m.out.cps_plus.optimal_pair,
-  optimal_full = m.out.cps_plus.optimal_full,
-  gen_full = m.out.cps_plus.general_full,
-  genetic = m.out.cps_plus.genetic,
-  exact = m.out.cps_plus.exact,
-  cem = m.out.cps_plus.cem,
-  card = m.out.cps_plus.card,
-  profile = m.out.cps_plus.profile,
-  subcl = m.out.cps_plus.subcl
+# list all matching objects
+all_match.cps <- list(
+  nn = m.out.cps.nearest,
+  k2 = m.out.cps.k2,
+  k3 = m.out.cps.k3,
+  caliper = m.out.cps.caliper,
+  cS = m.out.cps.cs,
+  mahvars = m.out.cps.mahvars,
+  optimal_pair = m.out.cps.optimal_pair,
+  optimal_full = m.out.cps.optimal_full,
+  gen_full = m.out.cps.general_full,
+  genetic = m.out.cps.genetic,
+  exact = m.out.cps.exact,
+  cem = m.out.cps.cem,
+  card = m.out.cps.card,
+  profile = m.out.cps.profile,
+  subcl = m.out.cps.subcl
 )
 
-methods.psid_plus <- list(
-  nn = m.out.psid_plus.nearest,
-  k2 = m.out.psid_plus.k2,
-  k3 = m.out.psid_plus.k3,
-  caliper = m.out.psid_plus.caliper,
-  cs = m.out.psid_plus.cs,
-  mahvars = m.out.psid_plus.mahvars,
-  optimal_pair = m.out.psid_plus.optimal_pair,
-  optimal_full = m.out.psid_plus.optimal_full,
-  gen_full = m.out.psid_plus.general_full,
-  genetic = m.out.psid_plus.genetic,
-  exact = m.out.psid_plus.exact,
-  cem = m.out.psid_plus.cem,
-  card = m.out.psid_plus.card,
-  profile = m.out.psid_plus.profile,
-  subcl = m.out.psid_plus.subcl
+all_match.psid <- list(
+  nn = m.out.psid.nearest,
+  k2 = m.out.psid.k2,
+  k3 = m.out.psid.k3,
+  caliper = m.out.psid.caliper,
+  cs = m.out.psid.cs,
+  mahvars = m.out.psid.mahvars,
+  optimal_pair = m.out.psid.optimal_pair,
+  optimal_full = m.out.psid.optimal_full,
+  gen_full = m.out.psid.general_full,
+  genetic = m.out.psid.genetic,
+  exact = m.out.psid.exact,
+  cem = m.out.psid.cem,
+  card = m.out.psid.card,
+  profile = m.out.psid.profile,
+  subcl = m.out.psid.subcl
 )
 ```
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute SMD
-smd_matchit.cps_plus <- compute_abs_smd_matchit(methods.cps_plus)
-smd_matchit.psid_plus <- compute_abs_smd_matchit(methods.psid_plus)
+smd_matchit.cps <- compute_abs_smd_matchit(all_match.cps)
+smd_matchit.psid <- compute_abs_smd_matchit(all_match.psid)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # calculate balance statistics 
-bal.cps_plus <- cobalt::bal.tab(model, data = nsw_cps_plus, un = TRUE, weights = methods.cps_plus, s.d.denom = "treated")
-bal.psid_plus <- cobalt::bal.tab(model, data = nsw_psid_plus, un = TRUE, weights = methods.psid_plus, s.d.denom = "treated")
+bal.cps <- cobalt::bal.tab(model, data = nsw_cps, un = TRUE, weights = all_match.cps, s.d.denom = "treated")
+bal.psid <- cobalt::bal.tab(model, data = nsw_psid, un = TRUE, weights = all_match.psid, s.d.denom = "treated")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_matchit.cps_plus <- compute_ess_matchit(bal.cps_plus)
-ess_matchit.psid_plus <- compute_ess_matchit(bal.psid_plus)
+ess_matchit.cps <- compute_ess_matchit(bal.cps)
+ess_matchit.psid <- compute_ess_matchit(bal.psid)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE C3.'}
+```{r, fig.cap='FIGUREC3.'}
 # visualize covariate balance 
-plot_matchit(methods.cps_plus, "NSW-CPS1-PLUS")
-plot_matchit(methods.psid_plus, "NSW-PSID1-PLUS")
+plot_matchit(all_match.cps, "NSW-CPS1")
+plot_matchit(all_match.psid, "NSW-PSID1")
 ```
 
 ### Weighting
 ```{r, message=FALSE, warning=FALSE}
 # list all weights
-weight.cps_plus <- list(
-  ipw = nsw_cps_plus$ipw_weight,
-  smr_tr = nsw_cps_plus$smr_weight,
-  mw = nsw_cps_plus$opt_weight,
-  ow = nsw_cps_plus$overlap_weight,
-  ew = nsw_cps_plus$ebal_weight
+all_weight.cps <- list(
+  ipw = nsw_cps$ipw_weight,
+  opt = nsw_cps$opt_weight,
+  cbps = nsw_cps$cbps_weight,
+  ebal = nsw_cps$ebal_weight
 )
 
-weight.psid_plus <- list(
-  ipw = nsw_psid_plus$ipw_weight,
-  smr_tr = nsw_psid_plus$smr_weight,
-  mw = nsw_psid_plus$opt_weight,
-  ow = nsw_psid_plus$overlap_weight,
-  ew = nsw_psid_plus$ebal_weight
+all_weight.psid <- list(
+  ipw = nsw_psid$ipw_weight,
+  opt = nsw_psid$opt_weight,
+  cbps = nsw_psid$cbps_weight,
+  ebal = nsw_psid$ebal_weight
 )
 ```
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute SMD
-smd_weight.cps_plus <- compute_abs_smd_weight(nsw_cps_plus, "treat", covar, weight_columns)
-smd_weight.psid_plus <- compute_abs_smd_weight(nsw_psid_plus, "treat", covar, weight_columns)
+smd_weight.cps <- compute_abs_smd_weight(nsw_cps, treat, covar, all_weight.cps)
+smd_weight.psid <- compute_abs_smd_weight(nsw_psid, treat, covar, all_weight.psid)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_weight.cps_plus <- compute_ess_weight(nsw_cps_plus, "treat", covar, weight_columns)
-ess_weight.psid_plus <- compute_ess_weight(nsw_psid_plus, "treat", covar, weight_columns)
+ess_weight.cps <- compute_ess_weight(nsw_cps, treat, covar, all_weight.cps)
+ess_weight.psid <- compute_ess_weight(nsw_psid, treat, covar, all_weight.psid)
 ```
 
 #### Visuals
 ```{r, fig.cap='FIGURE C4.'}
 # visualize covariate balance
-plot_weighting_methods(nsw_cps_plus, "treat", covar, weight.cps_plus, "NSWW-CPS1-PLUS") 
-plot_weighting_methods(nsw_psid_plus, "treat", covar, weight.psid_plus, "NSW-PSID1-PLUS")
+plot_weighting_methods(nsw_cps, treat, covar, all_weight.cps, "NSW-CPS1") 
+plot_weighting_methods(nsw_psid, treat, covar, all_weight.psid, "NSW-PSID1")
 ```
 
 ### Truncation
 ```{r, message=FALSE, warning=FALSE}
 # list truncation methods
-trunc.cps_plus <- list(
-  fix_max_value_trunc.cps_plus = nsw_cps_plus.fixed,
-  at_perc_trunc.cps_plus = nsw_cps_plus.percent,
-  adap_weight_trunc.cps_plus = nsw_cps_plus.adapt
+all_trunc.cps <- list(
+  fix_max_value = nsw_cps.fixed,
+  at_perc = nsw_cps.percent,
+  adap_weight = nsw_cps.adapt
 )
 
-trunc.psid_plus <- list(
-  fix_max_value_trunc.psid_plus = nsw_psid_plus.fixed,
-  at_perc_trunc.psid_plus = nsw_psid_plus.percent,
-  adap_weight_trunc.psid_plus = nsw_psid_plus.adapt
+all_trunc.psid <- list(
+  fix_max_value = nsw_psid.fixed,
+  at_perc = nsw_psid.percent,
+  adap_weight = nsw_psid.adapt
 )
 ```
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute SMD
-smd_trunc.cps_plus <- compute_abs_smd_trunc(trunc.cps_plus, "treat", covar, weight_columns)
-smd_trunc.psid_plus <- compute_abs_smd_trunc(trunc.psid_plus, "treat", covar, weight_columns)
+smd_trunc.cps <- compute_abs_smd_trunc(all_trunc.cps, "treat", covar, weight_columns)
+smd_trunc.psid <- compute_abs_smd_trunc(all_trunc.psid, "treat", covar, weight_columns)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_trunc.cps_plus <- compute_ess_trunc(trunc.cps_plus, "treat", covar, weight_columns)
-ess_trunc.psid_plus <- compute_ess_trunc(trunc.psid_plus, "treat", covar, weight_columns)
+ess_trunc.cps <- compute_ess_trunc(all_trunc.cps, "treat", covar, weight_columns)
+ess_trunc.psid <- compute_ess_trunc(all_trunc.psid, "treat", covar, weight_columns)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE C5.'}
+```{r, fig.cap='FIGUREC5.'}
 # visualize covariate balance
-plot_trunc_methods(trunc.cps_plus, "treat", covar, weight_columns, "NSW-CPS1-PLUS")
-plot_trunc_methods(trunc.psid_plus, "treat", covar, weight_columns, "NSW-PSID1-PLUS")
+plot_trunc_methods(all_trunc.cps, "treat", covar, weight_columns, "NSW-CPS1")
+plot_trunc_methods(all_trunc.psid, "treat", covar, weight_columns, "NSW-PSID1")
 ```
 
 ### Trimming
 ```{r, message=FALSE, warning=FALSE}
-# list trimming objects
-trim.cps_plus <- list(
-  original = nsw_cps_plus,  
-  ps_threshold = nsw_cps.trim_match,  
-  common_range = nsw_cps_plus.common,      
-  crump = nsw_cps_plus.crump,      
-  stuermer = nsw_cps_plus.stuermer,     
-  walker = nsw_cps_plus.walker    
+# list trimming objects plus original
+all_trim.cps <- list(
+  original = nsw_cps,
+  ps_threshold = nsw_cps.trim,
+  common_range = nsw_cps.common,
+  crump = nsw_cps.crump,
+  stuermer = nsw_cps.stuermer,
+  walker = nsw_cps.walker
 )
 
-trim.psid_plus <- list(
-  original = nsw_psid_plus,
-  ps_threshold = nsw_psid.trim_match,
-  common_range = nsw_psid_plus.common,
-  crump = nsw_psid_plus.crump,
-  stuermer = nsw_psid_plus.stuermer,
-  walker = nsw_psid_plus.walker
+all_trim.psid <- list(
+  original = nsw_psid,
+  ps_threshold = nsw_psid.trim,
+  common_range = nsw_psid.common,
+  crump = nsw_psid.crump,
+  stuermer = nsw_psid.stuermer,
+  walker = nsw_psid.walker
 )
 ```
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute SMD
-smd_trim.cps_plus <- compute_abs_smd_trim(trim.cps_plus, "treat", covar)
-smd_trim.psid_plus <- compute_abs_smd_trim(trim.psid_plus, "treat", covar)
+# compute SMDs
+smd_trim.cps <- compute_abs_smd_trim(all_trim.cps, "treat", covar)
+smd_trim.psid <- compute_abs_smd_trim(all_trim.psid, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_trim.cps_plus <- compute_ess_trim(trim.cps_plus, "treat", covar)
-ess_trim.psid_plus <- compute_ess_trim(trim.psid_plus, "treat", covar)
+ess_trim.cps <- compute_ess_trim(all_trim.cps, "treat", covar)
+ess_trim.psid <- compute_ess_trim(all_trim.psid, "treat", covar)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGURE C6.'}
+```{r, fig.cap='FIGUREC6.'}
 # visualize overlap
-plot_trim(trim.cps_plus, treat, covar)
-plot_trim(trim.psid_plus, treat, covar)
-```
-
-```{r, fig.cap='FIGURE C7.'}
-# visualize covariate balance
-love.plot(nsw_cps, nsw_cps.trim_match, treat, covar = covar, title = "NSW-CPS1-PLUS - propensity threshold trimming")
-love.plot(nsw_cps_plus, nsw_cps_plus.common, treat, covar, title = "NSW-CPS1-PLUS - common range trimming")
-love.plot(nsw_cps_plus, nsw_cps_plus.crump,  treat, covar, title = "NSW-CPS1-PLUS - crump trimming") 
-love.plot(nsw_cps_plus, nsw_cps_plus.stuermer, treat, covar, title = "NSW-CPS1-PLUS - stuermer trimming")
-love.plot(nsw_cps_plus, nsw_cps_plus.walker,  treat, covar, title = "NSW-CPS1-PLUS - walker trimming")
-
-love.plot(nsw_psid, nsw_psid.trim_match, treat, covar = covar, title = "NSW-PSID1-PLUS - propensity threshold trimming")
-love.plot(nsw_psid_plus, nsw_psid_plus.common, treat, covar, title = "NSW-PSID1-PLUS - common range trimming")
-love.plot(nsw_psid_plus, nsw_psid_plus.crump, treat, covar, title = "NSW-PSID1-PLUS - crump trimming")
-love.plot(nsw_psid_plus, nsw_psid_plus.stuermer, treat, covar, title = "NSW-PSID1-PLUS - stuermer trimming")
-love.plot(nsw_psid_plus, nsw_psid_plus.walker,  treat, covar, title = "NSW-PSID1-PLUS - walker trimming")
+plot_trim(all_trim.cps, treat, covar)
+plot_trim(all_trim.psid, treat, covar)
 ```
 
 ## Integrated methods
 ```{r, message=FALSE, warning=FALSE}
-# list all combined method results
-comb_meth.cps_plus <- list(
-  ipw = ipw_comb.cps_plus,
-  smr_treated = smr_treat_comb.cps_plus,
-  overlap = ov_comb.cps_plus,
-  entropy = entropy_comb.cps_plus
+# list all combined results
+comb.cps <- list(
+  ipw = ipw_comb.cps,
+  opt = opt_comb.cps,
+  cbps = cbps_comb.cps,
+  ebal = ebal_comb.cps
 )
 
-comb_meth.psid_plus <- list(
-  ipw = ipw_comb.psid_plus,
-  smr_treated = smr_treat_comb.psid_plus,
-  overlap = ov_comb.psid_plus,
-  entropy = entropy_comb.psid_plus
+comb.psid <- list(
+  ipw = ipw_comb.psid,
+  opt = opt_comb.psid,
+  cbps = cbps_comb.psid,
+  ebal = ebal_comb.psid
 )
 ```
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute SMD
-smd_all_comb_meth.cps_plus <- compute_smd_all_datasets(comb_meth.cps_plus, "treat", covar)
-smd_all_comb_meth.psid_plus <- compute_smd_all_datasets(comb_meth.psid_plus, "treat", covar)
+smd_all_comb_meth.cps <- compute_smd_all_datasets(comb.cps, "treat", covar)
+smd_all_comb_meth.psid <- compute_smd_all_datasets(comb.psid, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_all_comb_meth.cps_plus <- compute_ess_all_datasets(comb_meth.cps_plus, "treat", covar)
-ess_all_comb_meth.psid_plus <- compute_ess_all_datasets(comb_meth.psid_plus, "treat", covar)
+ess_all_comb_meth.cps <- compute_ess_all_datasets(comb.cps, "treat", covar)
+ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE C8.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC7.'}
 # visualize overlap
-plot_comb_overlap(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
+plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
-```{r, message=FALSE, warning=FALSE, fig.cap='FIGURE C9.'} 
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC8.'} 
 # visualize covariate balance
-plot_comb_love_plots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
+plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = ldw_cps, orig_psid = ldw_psid, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_comb_hist(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix = "nsw")
-save_comb_loveplots(comb_meth.cps_plus, comb_meth.psid_plus, "treat", covar, prefix = "nsw")
+save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
+save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
 ```
 
-## Top methods and datasets
+## Identifying best methods
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
-all_cps_plus <- combine_results("cps_plus")
-all_psid_plus <- combine_results("psid_plus") 
+all_cps <- combine_results("cps")
+all_psid <- combine_results("psid") 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(all_cps_plus, "CPS1_PLUS_all_results_nsw")
-save_csv(all_psid_plus, "PSID1_PLUS_all_results_nsw")
+save_csv(all_cps, "nsw_cps1_all_results")
+save_csv(all_psid, "nsw_psid1_all_results")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# get top 5 methods for each dataset
-ranked_cps_plus  <- assess_methods(all_cps_plus)
-ranked_psid_plus <- assess_methods(all_psid_plus)
+# rank methods 
+ranked_cps  <- assess_methods(all_cps)
+ranked_psid <- assess_methods(all_psid)
+```
 
-top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
-top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
+```{r, message=FALSE, warning=FALSE}
+# get top 5 methods 
+top5_methods.cps <- get_top_methods(ranked_cps, top_n = 5)
+top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
 
 # print results
-top5_methods_df.cps_plus <- ranked_cps_plus %>% arrange(desc(Score)) %>% head(5)
-top5_methods_df.psid_plus <- ranked_psid_plus %>% arrange(desc(Score)) %>% head(5)
-knitr::kable(top5_methods_df.cps_plus, caption = "Top 5 Methods for CPS1-PLUS", booktabs = TRUE)
-knitr::kable(top5_methods_df.psid_plus, caption = "Top 5 Methods for PSID1-PLUS", booktabs = TRUE)
+top5_methods_df.cps <- ranked_cps %>% arrange(desc(Score)) %>% head(5)
+top5_methods_df.psid <- ranked_psid %>% arrange(desc(Score)) %>% head(5)
+knitr::kable(top5_methods_df.cps, caption = "Top 5 Methods for CPS1", booktabs = TRUE)
+knitr::kable(top5_methods_df.psid, caption = "Top 5 Methods for PSID1", booktabs = TRUE)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(top5_methods.cps_plus, "CPS1_PLUS_top5_methods_nsw")
-save_csv(top5_methods.psid_plus, "PSID1_PLUS_top5_methods_nsw")
+save_csv(top5_methods.cps_plus, "nsw_cps1_top5_methods")
+save_csv(top5_methods.psid_plus, "nsw_psid1_top5_methods")
 ```
 
 The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 ```{r, message=FALSE, warning=FALSE}
 dataset_list_cps <- list(
-  "All" = nsw_cps_plus,
-  "original" = nsw_cps_plus,
-  "nn" = m.out.cps_plus.nearest, 
-  "caliper" = m.out.cps_plus.caliper,
-  "card" = m.out.cps_plus.card,
-  "cem" = m.out.cps_plus.cem,
-  "cS" = m.out.cps_plus.cs,
-  "k2"  = m.out.cps_plus.k2,
-  "k3" = m.out.cps_plus.k3,
-  "mahvars" = m.out.cps_plus.mahvars,
-  "optimal_full" = m.out.cps_plus.optimal_full,
-  "optimal_pair" = m.out.cps_plus.optimal_pair,
-  "gen_full" = m.out.cps_plus.general_full,
-  "genetic" = m.out.cps_plus.genetic,
-  "exact" = m.out.cps_plus.exact,
-  "subcl" = m.out.cps_plus.subcl,
-  "profile"  = m.out.cps_plus.profile,
-  "ipw_weight" = nsw_cps_plus$ipw_weight, 
-  "smr_weight" = nsw_cps_plus$smr_weight,
-  "opt_weight" = nsw_cps_plus$opt_weight,
-  "overlap_weight" = nsw_cps_plus$overlap_weight,
-  "ebal_weight" = nsw_cps_plus$ebal_weight,
-  "fix_max_value_trunc_ebal_weight" = nsw_cps_plus.fixed,
-  "fix_max_value_trunc_ipw_weight" = nsw_cps_plus.fixed,
-  "fix_max_value_trunc_opt_weight" = nsw_cps_plus.fixed,
-  "fix_max_value_trunc_overlap_weight" = nsw_cps_plus.fixed,
-  "fix_max_value_trunc_smr_weight" = nsw_cps_plus.fixed,
-  "at_perc_trunc_ebal_weight" = nsw_cps_plus.percent,
-  "at_perc_trunc_ipw_weight"  = nsw_cps_plus.percent,
-  "at_perc_trunc_opt_weight"  = nsw_cps_plus.percent,
-  "at_perc_trunc_overlap_weight" = nsw_cps_plus.percent,
-  "at_perc_trunc_smr_weight" = nsw_cps_plus.percent,
-  "adap_weight_trunc_ebal_weight" = nsw_cps_plus.adapt,
-  "adap_weight_trunc_ipw_weight" = nsw_cps_plus.adapt,
-  "adap_weight_trunc_opt_weight" = nsw_cps_plus.adapt,
-  "adap_weight_trunc_overlap_weight" = nsw_cps_plus.adapt,
-  "adap_weight_trunc_smr_weight" = nsw_cps_plus.adapt,
-  "ps_threshold" = nsw_cps.trim_match,
-  "common_range" = nsw_cps_plus.common,
-  "stuermer" = nsw_cps_plus.stuermer,
-  "walker" = nsw_cps_plus.walker,
-  "crump" = nsw_cps_plus.crump,
-  "ipw_common_range" = ipw_comb.cps_plus[[1]],
-  "ipw_crump" = ipw_comb.cps_plus[[2]],
-  "ipw_ps_threshold" = ipw_comb.cps_plus[[3]],
-  "ipw_stuermer" = ipw_comb.cps_plus[[4]],
-  "ipw_walker" = ipw_comb.cps_plus[[5]],
-  "smr_treated_common_range" = smr_treat_comb.cps_plus[[1]],
-  "smr_treated_crump" = smr_treat_comb.cps_plus[[2]],
-  "smr_treated_ps_threshold" = smr_treat_comb.cps_plus[[3]],
-  "smr_treated_stuermer" = smr_treat_comb.cps_plus[[4]],
-  "smr_treated_walker" = smr_treat_comb.cps_plus[[5]],
-  "overlap_common_range" = ov_comb.cps_plus[[1]],
-  "overlap_crump" = ov_comb.cps_plus[[2]],
-  "overlap_ps_threshold" = ov_comb.cps_plus[[3]],
-  "overlap_stuermer" = ov_comb.cps_plus[[4]],
-  "overlap_walker" = ov_comb.cps_plus[[5]],
-  "entropy_common_range" = entropy_comb.cps_plus[[1]],
-  "entropy_crump" = entropy_comb.cps_plus[[2]],
-  "entropy_ps_threshold" = entropy_comb.cps_plus[[3]],
-  "entropy_stuermer" = entropy_comb.cps_plus[[4]],
-  "entropy_walker" = entropy_comb.cps_plus[[5]])
+  "All" = nsw_cps,
+  "nn" = m.out.cps.nearest, 
+  "caliper" = m.out.cps.caliper,
+  "card" = m.out.cps.card,
+  "cem" = m.out.cps.cem,
+  "cS" = m.out.cps.cs,
+  "k2"  = m.out.cps.k2,
+  "k3" = m.out.cps.k3,
+  "mahvars" = m.out.cps.mahvars,
+  "optimal_full" = m.out.cps.optimal_full,
+  "optimal_pair" = m.out.cps.optimal_pair,
+  "gen_full" = m.out.cps.general_full,
+  "genetic" = m.out.cps.genetic,
+  "exact" = m.out.cps.exact,
+  "subcl" = m.out.cps.subcl,
+  "profile"  = m.out.cps.profile,
+  "ipw_weight" = nsw_cps$ipw_weight, 
+  "opt_weight" = nsw_cps$opt_weight,
+  "cbps_weight" = nsw_cps$cbps_weight,
+  "ebal_weight" = nsw_cps$ebal_weight,
+  "fix_max_value_ipw_weight" = nsw_cps.fixed$ipw_weight,
+  "fix_max_value_opt_weight" = nsw_cps.fixed$opt_weight,
+  "fix_max_value_cbps_weight" = nsw_cps.fixed$cbps_weight,
+  "fix_max_value_ebal_weight" = nsw_cps.fixed$ebal_weight,
+  "at_perc_ipw_weight" = nsw_cps.percent$ipw_weight,
+  "at_perc_opt_weight" = nsw_cps.percent$opt_weight,
+  "at_perc_cbps_weight" = nsw_cps.percent$cbps_weight,
+  "at_perc_ebal_weight" = nsw_cps.percent$ebal_weight,
+  "adap_weight_ipw_weight" = nsw_cps.adapt$ipw_weight,
+  "adap_weight_opt_weight" = nsw_cps.adapt$opt_weight,
+  "adap_weight_cbps_weight" = nsw_cps.adapt$cbps_weight,
+  "adap_weight_ebal_weight" = nsw_cps.adapt$ebal_weight,
+  "ps_threshold" = nsw_cps.trim,
+  "common_range" = nsw_cps.common,
+  "stuermer" = nsw_cps.stuermer,
+  "walker" = nsw_cps.walker,
+  "crump" = nsw_cps.crump,
+  "ipw_common_range" = ipw_comb.cps[[1]],
+  "ipw_crump"= ipw_comb.cps[[2]],
+  "ipw_ps_threshold"= ipw_comb.cps[[3]],
+  "ipw_stuermer"= ipw_comb.cps[[4]],
+  "ipw_walker" = ipw_comb.cps[[5]],
+  "opt_common_range" = opt_comb.cps[[1]],
+  "opt_crump" = opt_comb.cps[[2]],
+  "opt_ps_threshold" = opt_comb.cps[[3]],
+  "opt_stuermer" = opt_comb.cps[[4]],
+  "opt_walker" = opt_comb.cps[[5]],
+  "cbps_common_range" = cbps_comb.cps[[1]],
+  "cbps_crump" = cbps_comb.cps[[2]],
+  "cbps_ps_threshold"  = cbps_comb.cps[[3]],
+  "cbps_stuermer" = cbps_comb.cps[[4]],
+  "cbps_walker"= cbps_comb.cps[[5]],
+  "ebal_common_range" = ebal_comb.cps[[1]],
+  "ebal_crump" = ebal_comb.cps[[2]],
+  "ebal_ps_threshold" = ebal_comb.cps[[3]],
+  "ebal_stuermer" = ebal_comb.cps[[4]],
+  "ebal_walker" = ebal_comb.cps[[5]])
 
 dataset_list_psid <- list(
-  "All" = nsw_psid_plus, 
-  "original" = nsw_psid_plus, 
-  "nn" = m.out.psid_plus.nearest, 
-  "caliper"= m.out.psid_plus.caliper,
-  "card" = m.out.psid_plus.card,
-  "cem" = m.out.psid_plus.cem,
-  "cS" = m.out.psid_plus.cs,
-  "k2" = m.out.psid_plus.k2,
-  "k3" = m.out.psid_plus.k3,
-  "mahvars" = m.out.psid_plus.mahvars,
-  "optimal_full" = m.out.psid_plus.optimal_full,
-  "optimal_pair" = m.out.psid_plus.optimal_pair,
-  "gen_full" = m.out.psid_plus.general_full,
-  "genetic" = m.out.psid_plus.genetic,
-  "exact" = m.out.psid_plus.exact,
-  "subcl" = m.out.psid_plus.subcl,
-  "profile" = m.out.psid_plus.profile,
-  "ipw_weight" = nsw_psid_plus$ipw_weight, 
-  "smr_weight" = nsw_psid_plus$smr_weight,
-  "opt_weight" = nsw_psid_plus$opt_weight,
-  "overlap_weight" = nsw_psid_plus$overlap_weight,
-  "ebal_weight" = nsw_psid_plus$ebal_weight,
-  "fix_max_value_trunc_ebal_weight" = nsw_psid_plus.fixed,
-  "fix_max_value_trunc_ipw_weight" = nsw_psid_plus.fixed,
-  "fix_max_value_trunc_opt_weight" = nsw_psid_plus.fixed,
-  "fix_max_value_trunc_overlap_weight" = nsw_psid_plus.fixed,
-  "fix_max_value_trunc_smr_weight" = nsw_psid_plus.fixed,
-  "at_perc_trunc_ebal_weight" = nsw_psid_plus.percent,
-  "at_perc_trunc_ipw_weight" = nsw_psid_plus.percent,
-  "at_perc_trunc_opt_weight" = nsw_psid_plus.percent,
-  "at_perc_trunc_overlap_weight" = nsw_psid_plus.percent,
-  "at_perc_trunc_smr_weight" = nsw_psid_plus.percent,
-  "adap_weight_trunc_ebal_weight" = nsw_psid_plus.adapt,
-  "adap_weight_trunc_ipw_weight" = nsw_psid_plus.adapt,
-  "adap_weight_trunc_opt_weight" = nsw_psid_plus.adapt,
-  "adap_weight_trunc_overlap_weight" = nsw_psid_plus.adapt,
-  "adap_weight_trunc_smr_weight" = nsw_psid_plus.adapt,
-  "ps_threshold" = nsw_psid.trim_match,
-  "common_range" = nsw_psid_plus.common,
-  "stuermer" = nsw_psid_plus.stuermer,
-  "walker" = nsw_psid_plus.walker,
-  "crump" = nsw_psid_plus.crump,
-  "ipw_common_range" = ipw_comb.psid_plus[[1]],
-  "ipw_crump"= ipw_comb.psid_plus[[2]],
-  "ipw_ps_threshold"= ipw_comb.psid_plus[[3]],
-  "ipw_stuermer"= ipw_comb.psid_plus[[4]],
-  "ipw_walker" = ipw_comb.psid_plus[[5]],
-  "smr_treated_common_range" = smr_treat_comb.psid_plus[[1]],
-  "smr_treated_crump"= smr_treat_comb.psid_plus[[2]],
-  "smr_treated_ps_threshold" = smr_treat_comb.psid_plus[[3]],
-  "smr_treated_stuermer" = smr_treat_comb.psid_plus[[4]],
-  "smr_treated_walker" = smr_treat_comb.psid_plus[[5]],
-  "overlap_common_range" = ov_comb.psid_plus[[1]],
-  "overlap_crump" = ov_comb.psid_plus[[2]],
-  "overlap_ps_threshold"  = ov_comb.psid_plus[[3]],
-  "overlap_stuermer" = ov_comb.psid_plus[[4]],
-  "overlap_walker"= ov_comb.psid_plus[[5]],
-  "entropy_common_range" = entropy_comb.psid_plus[[1]],
-  "entropy_crump" = entropy_comb.psid_plus[[2]],
-  "entropy_ps_threshold" = entropy_comb.psid_plus[[3]],
-  "entropy_stuermer" = entropy_comb.psid_plus[[4]],
-  "entropy_walker" = entropy_comb.psid_plus[[5]])
+  "All" = nsw_psid,
+  "nn" = m.out.psid.nearest, 
+  "caliper" = m.out.psid.caliper,
+  "card" = m.out.psid.card,
+  "cem" = m.out.psid.cem,
+  "cS" = m.out.psid.cs,
+  "k2"  = m.out.psid.k2,
+  "k3" = m.out.psid.k3,
+  "mahvars" = m.out.psid.mahvars,
+  "optimal_full" = m.out.psid.optimal_full,
+  "optimal_pair" = m.out.psid.optimal_pair,
+  "gen_full" = m.out.psid.general_full,
+  "genetic" = m.out.psid.genetic,
+  "exact" = m.out.psid.exact,
+  "subcl" = m.out.psid.subcl,
+  "profile"  = m.out.psid.profile,
+  "ipw_weight" = nsw_psid$ipw_weight, 
+  "opt_weight" = nsw_psid$opt_weight,
+  "cbps_weight" = nsw_psid$cbps_weight,
+  "ebal_weight" = nsw_psid$ebal_weight,
+  "fix_max_value_ipw_weight" = nsw_psid.fixed$ipw_weight,
+  "fix_max_value_opt_weight" = nsw_psid.fixed$opt_weight,
+  "fix_max_value_cbps_weight" = nsw_psid.fixed$cbps_weight,
+  "fix_max_value_ebal_weight" = nsw_psid.fixed$ebal_weight,
+  "at_perc_ipw_weight" = nsw_psid.percent$ipw_weight,
+  "at_perc_opt_weight" = nsw_psid.percent$opt_weight,
+  "at_perc_cbps_weight" = nsw_psid.percent$cbps_weight,
+  "at_perc_ebal_weight" = nsw_psid.percent$ebal_weight,
+  "adap_weight_ipw_weight" = nsw_psid.adapt$ipw_weight,
+  "adap_weight_opt_weight" = nsw_psid.adapt$opt_weight,
+  "adap_weight_cbps_weight" = nsw_psid.adapt$cbps_weight,
+  "adap_weight_ebal_weight" = nsw_psid.adapt$ebal_weight,
+  "ps_threshold" = nsw_psid.trim,
+  "common_range" = nsw_psid.common,
+  "stuermer" = nsw_psid.stuermer,
+  "walker" = nsw_psid.walker,
+  "crump" = nsw_psid.crump,
+  "ipw_common_range" = ipw_comb.psid[[1]],
+  "ipw_crump"= ipw_comb.psid[[2]],
+  "ipw_ps_threshold"= ipw_comb.psid[[3]],
+  "ipw_stuermer"= ipw_comb.psid[[4]],
+  "ipw_walker" = ipw_comb.psid[[5]],
+  "opt_common_range" = opt_comb.psid[[1]],
+  "opt_crump" = opt_comb.psid[[2]],
+  "opt_ps_threshold" = opt_comb.psid[[3]],
+  "opt_stuermer" = opt_comb.psid[[4]],
+  "opt_walker" = opt_comb.psid[[5]],
+  "cbps_common_range" = cbps_comb.psid[[1]],
+  "cbps_crump" = cbps_comb.psid[[2]],
+  "cbps_ps_threshold"  = cbps_comb.psid[[3]],
+  "cbps_stuermer" = cbps_comb.psid[[4]],
+  "cbps_walker"= cbps_comb.psid[[5]],
+  "ebal_common_range" = ebal_comb.psid[[1]],
+  "ebal_crump" = ebal_comb.psid[[2]],
+  "ebal_ps_threshold" = ebal_comb.psid[[3]],
+  "ebal_stuermer" = ebal_comb.psid[[4]],
+  "ebal_walker" = ebal_comb.psid[[5]])
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # create datasets corresponding to the top 5 methods for each dataset
-top5_datasets.cps_plus <- create_top5_datasets(dataset_list_cps, top5_methods.cps_plus)
-top5_datasets.psid_plus <- create_top5_datasets(dataset_list_psid, top5_methods.psid_plus)
+top5_datasets.cps <- create_top5_datasets(dataset_list_cps, top5_methods.cps)
+top5_datasets.psid <- create_top5_datasets(dataset_list_psid, top5_methods.psid)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save datasets into .RData files
-save_top5_individual_files(dataset_list_cps, top5_methods.cps_plus, prefix = "nsw_cps")
-save_top5_individual_files(dataset_list_psid, top5_methods.psid_plus, prefix = "nsw_psid")
+save_top5_individual_files(dataset_list_cps, top5_methods.cps, prefix = "nsw_cps1")
+save_top5_individual_files(dataset_list_psid, top5_methods.psid, prefix = "nsw_psid1")
 ```
 
 ## Estimating
 ### Average treatment effect on the treated (ATT)
 ```{r, message=FALSE, warning=FALSE}
+# estimate ATT
 out1 <- estimate_all(nsw, "re78", "treat", covar)
 out2 <- estimate_all(nsw_cps, "re78", "treat", covar)
 out3 <- estimate_all(nsw_psid, "re78", "treat", covar)
-out4 <- estimate_all(nsw_cps.trim_match, "re78", "treat", covar) 
-out5 <- estimate_all(nsw_psid.trim_match, "re78", "treat", covar)
+out4 <- estimate_all(nsw_cps_plus.trim, "re78", "treat", covar)
+out5 <- estimate_all(nsw_psid_plus.trim, "re78", "treat", covar)
+out6 <- estimate_all(nsw_cps.trim, "re78", "treat", covar) 
+out7 <- estimate_all(nsw_psid.trim, "re78", "treat", covar)
 
-out.cps_plus <- lapply(top5_datasets.cps_plus, function(d) estimate_all(d, "re78", "treat", covar))
-out.psid_plus <- lapply(top5_datasets.psid_plus, function(d) estimate_all(d, "re78", "treat", covar))
-out6 <- out.cps_plus[[1]]
-out7 <- out.cps_plus[[2]]
-out8 <- out.cps_plus[[3]]
-out9 <- out.cps_plus[[4]]
-out10 <- out.cps_plus[[5]]
-out11 <- out.psid_plus[[1]]
-out12 <- out.psid_plus[[2]]
-out13 <- out.psid_plus[[3]]
-out14 <- out.psid_plus[[4]]
-out15 <- out.psid_plus[[5]]
+out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
+out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
+
+out8 <- out.cps[[1]]
+out9 <- out.cps[[2]]
+out10 <- out.cps[[3]]
+out11 <- out.cps[[4]]
+out12 <- out.cps[[5]]
+
+out13 <- out.psid[[1]]
+out14 <- out.psid[[2]]
+out15 <- out.psid[[3]]
+out16 <- out.psid[[4]]
+out17 <- out.psid[[5]]
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # build plot titles 
-base_titles <- c("(A) NSW-Experimental", "(B) NSW-CPS1" , "(C) NSW-PSID1", "(D) Trimmed NSW-CPS1 ", "(E) Trimmed NSW-PSID1")
-top_start <- 6 
-num_cps <- length(top5_methods.cps_plus)
-num_psid <- length(top5_methods.psid_plus)
+base_titles <- c("(A) NSW-Experimental", "(B) NSW-CPS1" , "(C) NSW-PSID1", "(D) Trimmed NSW-CPS1 ", "(E) Trimmed NSW-PSID1", "(F) Trimmed NSW-CPS1-PLUS ", "(G) Trimmed NSW-PSID1-PLUS")
+top_start <- 8 # H is 8th letter
+num_cps <- length(top5_methods.cps)
+num_psid <- length(top5_methods.psid)
 top_letters_cps <- LETTERS[top_start:(top_start + num_cps - 1)]
 top_letters_psid <- LETTERS[(top_start + num_cps):(top_start + num_cps + num_psid - 1)]
-top5_titles.cps_plus <- paste0("(", top_letters_cps, ") Top CPS1: ", top5_methods.cps_plus)
-top5_titles.psid_plus <- paste0("(", top_letters_psid, ") Top PSID1: ", top5_methods.psid_plus)
-plot_titles <- c(base_titles, top5_titles.cps_plus, top5_titles.psid_plus)
+top5_titles.cps <- paste0("(", top_letters_cps, ") Top CPS1: ", top5_methods.cps)
+top5_titles.psid <- paste0("(", top_letters_psid, ") Top PSID1: ", top5_methods.psid)
+plot_titles <- c(base_titles, top5_titles.cps, top5_titles.psid)
 
 # combine all results
-all_outs <- c(list(out1, out2, out3, out4, out5), out.cps_plus, out.psid_plus)
+all_outs <- c(list(out1, out2, out3, out4, out5, out6, out7), out.cps, out.psid)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C10. ATT Estimates Given Unconfoundedness using NSW Samples"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC9. ATT Estimates Given Unconfoundedness using NSW Samples"}
 # plot results
 band <- out1[1, 3:4]
 est  <- out1[1, 1]
@@ -941,7 +933,7 @@ knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
 ```{r, message=FALSE, warning=FALSE}
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs")
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE)
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(O) summarize results for the trimmed and top-ranked samples for both NSW-CPS1 and NSW-PSID1.
@@ -951,30 +943,33 @@ For all CPS1-based samples, ATT estimates remain negative, but are relatively cl
 Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain methods can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(result_mat, "NSW_att_estimates")
+save_csv(result_mat, "nsw_att_estimates")
 ```
 
 ### Conditional average treatment effect on the treated (CATT)
 ```{r, message=FALSE, warning=FALSE}
-catt.nsw <- catt(nsw, Y, treat, covar)
+# estimate CATT
+catt.ldw <- catt(nsw, Y, treat, covar)
 catt.cps <- catt(nsw_cps, Y, treat, covar)
 catt.psid <- catt(nsw_psid, Y, treat, covar)
-catt.cps.trim <- catt(nsw_cps.trim_match, Y, treat, covar)
-catt.psid.trim <- catt(nsw_psid.trim_match, Y, treat, covar)
+catt.cps.trim <- catt(nsw_cps.trim, Y, treat, covar)
+catt.psid.trim <- catt(nsw_psid.trim, Y, treat, covar)
+catt.cps_plus.trim <- catt(nsw_cps_plus.trim, Y, treat, covar) # similar to Imbens & Xu (2024)
+catt.psid_plus.trim <- catt(nsw_psid_plus.trim, Y, treat, covar) # similar to Imbens & Xu (2024)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-catt.top5_cps_plus <- lapply(top5_datasets.cps_plus, function(d) catt(d, Y, treat, covar))
-catt.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) catt(d, Y, treat, covar))
+catt.top5_cps <- lapply(top5_datasets.cps, function(d) catt(d, Y, treat, covar))
+catt.top5_psid <- lapply(top5_datasets.psid, function(d) catt(d, Y, treat, covar))
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C11. CATT Estimates using NSW Data"}
 # combine all catt objects 
-all_catt <- c(list(catt.nsw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim), catt.top5_cps_plus, catt.top5_psid_plus)
+all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim, catt.cps_plus.trim, catt.psid_plus.trim), catt.top5_cps, catt.top5_psid)
 
 # plot results
 par(mfrow = c(2,2))
-par(cex.main = 0.8)
+par(cex.main = 0.9)
 plot_catt_panels(all_catt, plot_titles)
 ```
 
@@ -1003,76 +998,90 @@ qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
 ```{r, message=FALSE, warning=FALSE}
 qte.nsw_cps <- est_qte(Y, treat, covar, data = nsw_cps)
 qte.nsw_psid <- est_qte(Y, treat, covar, data = nsw_psid)
-qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps.trim_match)
-qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid.trim_match) 
+qte.nsw_cps_plus <- est_qte(Y, treat, covar, data = nsw_cps_plus)
+qte.nsw_psid_plus <- est_qte(Y, treat, covar, data = nsw_psid_plus)
+qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps.trim)
+qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid.trim) 
+qte.nsw_cps_plus.trim <- est_qte(Y, treat, covar, data = nsw_cps_plus.trim)
+qte.nsw_psid_plus.trim <- est_qte(Y, treat, covar, data = nsw_psid_plus.trim) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-qte.top5_cps_plus  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, covar, data = d))
-qte.top5_psid_plus <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 qte.nsw0 <- est_qte(Y, treat, NULL, data = nsw)
 qte.nsw.cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
 qte.nsw.psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
-qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps.trim_match)
-qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid.trim_match)
-qte.top5_cps_plus0  <- lapply(top5_datasets.cps_plus,  function(d) est_qte(Y, treat, NULL, data = d))
-qte.top5_psid_plus0 <- lapply(top5_datasets.psid_plus, function(d) est_qte(Y, treat, NULL, data = d))
+qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps.trim)
+qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid.trim)
+qte.nsw_cps_plus.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps_plus.trim)
+qte.nsw_psid_plus.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid_plus.trim)
+qte.top5_cps0  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
-# CPS
-plot_qte(qte.nsw_cps, qte.nsw.cps0, qte.nsw, main = "(B) NSW-CPS", ylim = c(-25000, 15000))
+# CPS1
+plot_qte(qte.nsw_cps, qte.nsw.cps0, qte.nsw, main = "(B) NSW-CPS1", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# PSID
-plot_qte(qte.nsw_psid, qte.nsw.psid0, qte.nsw, main = "(C) NSW-PSID", ylim = c(-25000, 15000))
+# PSID1
+plot_qte(qte.nsw_psid, qte.nsw.psid0, qte.nsw, main = "(C) NSW-PSID1", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-## CPS trimmed
-plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw_cps, main = "(D) NSW-CPS (Trimmed)", ylim = c(-25000, 15000))
+## CPS1 trimmed
+plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw_cps, main = "(D) NSW-CPS1 (Trimmed)", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# PSID trimmed
-plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw_psid, main = "(E) NSW-PSID (Trimmed)", ylim = c(-25000, 15000))
+# PSID1 trimmed
+plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw_psid, main = "(E) NSW-PSID1 (Trimmed)", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# CPS top methods
-plot_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.nsw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000))
+## CPS1-PLUS trimmed
+plot_qte(qte.nsw_cps_plus.trim, qte.nsw_cps_plus.trim0, qte.nsw_cps_plus, main = "(F) NSW-CPS1-PLUS (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# PSID top methods
-plot_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.nsw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000))
+# PSID1-PLUS trimmed
+plot_qte(qte.nsw_psid_plus.trim, qte.nsw_psid_plus.trim0, qte.nsw_psid_plus, main = "(G) NSW-PSID1-PLUS (Trimmed)", ylim = c(-25000, 15000))
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# CPS1 top methods
+plot_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw_cps, plot_titles, main_start = 8, ylim = c(-25000, 15000))
+
+# PSID1 top methods
+plot_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw_psid, plot_titles, main_start = 13, ylim = c(-25000, 15000))
 ```
 
 These figures display QTET estimates derived from both the NSW experimental and various observational samples. The QTETs estimated from trimmed NSW-CPS1 sample (D) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the original NSW-CPS1, the original NSW-PSID1 and its trimmed subsample (B, C and E) show clear biases when compared to the experimental benchmark, which clusters near zero. Among the top-ranked subsamples, CPS1-based QTETs (F–J) consistently track the true QTET closely. In contrast, PSID1-based QTETs (K–O) generally perform well, aligning closely with the true QTET, except for subsamples `mahvars` and `card`, which exhibit increased bias and noticeably wider confidence intervals, reflecting greater estimation uncertainty.
 ```{r, message=FALSE, warning=FALSE}
 # list results
-plots_nsw <- list(
-  list(mod = qte.nsw_cps, mod0 = qte.nsw.cps0, bm = qte.nsw, main = "(A) NSW CPS"),
-  list(mod = qte.nsw_psid, mod0 = qte.nsw.psid0, bm = qte.nsw, main = "(B) NSW PSID"),
-  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw_cps, main = "(C) NSW CPS (Trimmed)"),
-  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw_psid, main = "(D) NSW PSID (Trimmed)")
+plots_ldw <- list(
+  list(mod = qte.nsw_cps, mod0 = qte.nsw.cps0, bm = qte.nsw, main = "(B) NSW CPS1"),
+  list(mod = qte.nsw_psid, mod0 = qte.nsw.psid0, bm = qte.nsw, main = "(C) NSW PSID1"),
+  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw_cps, main = "(D) NSW CPS1 (Trimmed)"),
+  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw_psid, main = "(E) NSW PSID1 (Trimmed)"),
+  list(mod = qte.nsw_cps_plus.trim, mod0 = qte.nsw_cps_plus.trim0, bm = qte.nsw_cps_plus, main = "(F) NSW CPS1-PLUS (Trimmed)"),
+  list(mod = qte.nsw_psid_plus.trim, mod0 = qte.nsw_psid_plus.trim0, bm = qte.nsw_psid_plus, main = "(G) NSW PSID1-PLUS (Trimmed)")
 )
+
 # save results
 save_qtet(plots_nsw, prefix = "nsw", ylim = c(-25000, 15000))
-save_qte_top(qte.top5_cps_plus, qte.top5_cps_plus0, qte.nsw_cps, plot_titles, main_start = 6, ylim = c(-25000, 15000), prefix = "nsw_top")
-save_qte_top(qte.top5_psid_plus, qte.top5_psid_plus0, qte.nsw_psid, plot_titles, main_start = 11, ylim = c(-25000, 15000), prefix = "nsw_top")
+save_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw_cps, plot_titles, main_start = 8, ylim = c(-25000, 15000), prefix = "nsw_top")
+save_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw_psid, plot_titles, main_start = 13, ylim = c(-25000, 15000), prefix = "nsw_top")
 ```
 
 ### Assessing outcome weights (OW)
 ```{r, message=FALSE, warning=FALSE}
 # list all datasets
-all_datasets <- c(
-  list(nsw, nsw_cps, nsw_psid, nsw_cps.trim_match, nsw_psid.trim_match),
-  top5_datasets.cps_plus,
-  top5_datasets.psid_plus
-)
+all_datasets <- c(list(nsw, nsw_cps, nsw_psid, nsw_cps.trim, nsw_psid.trim, nsw_cps_plus.trim.match, nsw_psid_plus.trim.match), top5_datasets.cps, top5_datasets.psid)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1117,8 +1126,7 @@ bm <- c("re75")
 
 ```{r, message=FALSE, warning=FALSE}
 # check for valid datasets 
-datasets_sens <- c(list(nsw, nsw_cps, nsw_psid), top5_datasets.cps_plus, top5_datasets.psid_plus)
-filtered_datasets_sens <- check_filter_datasets(datasets_sens, Y, treat, covar, bm)
+filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGURE C14. Sensitivity Analyses NSW"}
@@ -1126,7 +1134,7 @@ par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
-    idx <- which(sapply(datasets_sens, identical, filtered_datasets_sens[[i]]))
+    idx <- which(sapply(all_datasets, identical, filtered_datasets_sens[[i]]))
     sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = plot_titles[idx])
 }

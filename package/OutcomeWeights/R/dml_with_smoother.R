@@ -145,7 +145,6 @@ dml_with_smoother = function(Y,D,X,Z=NULL,
     psi.b = Y.hat.z1 - Y.hat.z0 + Z * (Y - Y.hat.z1) / Z.hat - (1 - Z) * (Y - Y.hat.z0) / (1-Z.hat)
     dml_Wald_AIPW = dml_inference(psi.a,psi.b)
   }
-  
   if ("AIPW_ATT" %in% estimators) {
     p.hat =  mean(D)
     D.hat = NuPa.hat$predictions$D.hat 
@@ -154,7 +153,6 @@ dml_with_smoother = function(Y,D,X,Z=NULL,
     psi.b = (D * (Y - Y.hat.d0) / p.hat) - ((1 - D) * D.hat * (Y - Y.hat.d0) / (p.hat * (1 - D.hat)))
     dml_AIPW_ATT = dml_inference(psi.a,psi.b)
   }
-  
   if ("AIPW_ATU" %in% estimators) {
     p.hat = mean(D)
     D.hat = NuPa.hat$predictions$D.hat 
