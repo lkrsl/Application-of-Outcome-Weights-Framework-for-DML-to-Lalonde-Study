@@ -335,12 +335,12 @@ for (wcol in weight_columns) {
 (Similar to tutorial of @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # apply trimming with thresholds 0.9 and 0.8 
-ldw_cps_plus_trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
-ldw_psid_plus_trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
+ldw_cps_plus.trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
+ldw_psid_plus.trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 
 # exclude experimental controls, subset trimmed data appropriately
-ldw_cps_plus.trim.match <- subset(ldw_cps_plus_trim, sample %in% c(1,3) & ps_assoverlap)
-ldw_psid_plus.trim.match <- subset(ldw_psid_plus_trim, sample %in% c(1,4) & ps_assoverlap)
+ldw_cps_plus.trim.match <- subset(ldw_cps_plus.trim, sample %in% c(1,3) & ps_assoverlap)
+ldw_psid_plus.trim.match <- subset(ldw_psid_plus.trim, sample %in% c(1,4) & ps_assoverlap)
 
 # re-assign treat variable for controls in sample 3 or 4 (non-treated group)
 ldw_cps_plus.trim.match$treat[ldw_cps_plus.trim.match$sample == 3] <- 0
@@ -671,7 +671,7 @@ ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREB7.'}
 # visualize overlap
-plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
+#plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREB8.'} 
@@ -726,6 +726,7 @@ save_csv(top5_methods.psid, "ldw_model_b_psid1_top5_methods")
 ```{r, message=FALSE, warning=FALSE}
 dataset_list_cps <- list(
   "All" = ldw_cps,
+  "original" = ldw_cps,
   "nn" = m.out.cps.nearest, 
   "caliper" = m.out.cps.caliper,
   "card" = m.out.cps.card,
@@ -785,6 +786,7 @@ dataset_list_cps <- list(
 
 dataset_list_psid <- list(
   "All" = ldw_psid,
+  "original" = ldw_psid,
   "nn" = m.out.psid.nearest, 
   "caliper" = m.out.psid.caliper,
   "card" = m.out.psid.card,
@@ -862,7 +864,7 @@ save_top5_individual_files(dataset_list_psid, top5_methods.psid, prefix = "ldw_m
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
-out4 <- estimate_all(ldw_cps_plus.trim, "re78", "treat", covar)
+out4 <- estimate_all(ldw_cps_plus.trim, "re78", "treat", covar) 
 out5 <- estimate_all(ldw_psid_plus.trim, "re78", "treat", covar)
 out6 <- estimate_all(ldw_cps.trim, "re78", "treat", covar) 
 out7 <- estimate_all(ldw_psid.trim, "re78", "treat", covar)

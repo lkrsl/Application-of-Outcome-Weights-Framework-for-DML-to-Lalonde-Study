@@ -1,7 +1,8 @@
 # 1 Set up
 # 1.1 Installation
-packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs", "MatchIt", "optmatch", "optweight", "quickmatch", 
-  "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs", 
+              "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
+              "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
 #### install_all()
@@ -24,6 +25,7 @@ library(ggplot2)
 library(gridExtra)
 library(highr)
 library(highs)
+library(kableExtra)
 library(MatchIt)
 library(optmatch)
 library(optweight)
@@ -42,13 +44,15 @@ for (f in skripte) source(f, local = knitr::knit_global())
 
 # 1.2 Data inspection
 #### inspect_datasets()
-inspect_data <- function(data) {
+inspect_data <- function(data, treat = "treat") {
   if (is.data.frame(data)) {
     data <- list(dataset = data)
   }
   data.frame(
     dataset = names(data),
     num_obs = sapply(data, nrow),
+    num_treated = sapply(data, function(df) sum(df[[treat]] == 1, na.rm = TRUE)),
+    num_controls = sapply(data, function(df) sum(df[[treat]] == 0, na.rm = TRUE)),
     num_vars = sapply(data, ncol),
     name_vars = sapply(data, function(df) paste(names(df), collapse = ", ")),
     row.names = NULL
@@ -56,67 +60,7 @@ inspect_data <- function(data) {
 }
 
 # 2. Improving covariate balance and overlap
-## 2.1 Weighting 
-### 2.1.1 Inverse probability of treatment weighting
-#### create_iptw_weights()
-create_iptw_weights <- function(data, treat, covar, seed = 1234) {
-  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
-  ps <- ps_model$predictions[,2]
-  ps[ps <= 1e-7] <- 1e-7
-  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
-  weights <- ifelse(data[[treat]] == 1, 1/ps, 1/(1-ps))
-  return(weights)
-}
-
-### 2.1.2 Standardized mortality ratio (SMR) (un)treated weights
-#### create_smr_weights()
-create_smr_weights <- function(data, treat, covar, estimand = "ATT", seed = 1234) {
-  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = seed)
-  ps <- ps_model$predictions[,2]
-  ps[ps <= 1e-7] <- 1e-7
-  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
-  if (estimand == "ATT") {
-    weights <- ifelse(data[[treat]] == 1, 1, ps/(1-ps))
-  } else if (estimand == "ATU") {
-    weights <- ifelse(data[[treat]] == 1, (1-ps)/ps, 1)
-  } 
-  return(weights)
-}
-
-### 2.1.3 Matching weights
-#### create_matching_weights()
-create_matching_weights <- function(data, treat, covar, seed = 1234) {
-  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
-  ps <- ps_model$predictions[,2]
-  ps[ps <= 1e-7] <- 1e-7
-  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
-  minps <- pmin(ps, 1 - ps)
-  weights <- ifelse(data[[treat]] == 1, minps/ps, minps/(1-ps))
-  return(weights)
-}
-
-### 2.1.4 Overlap weights
-#### create_overlap_weights()
-create_overlap_weights <- function(data, treat, covar, seed = 1234) {
-  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
-  ps <- ps_model$predictions[,2]
-  ps[ps <= 1e-7] <- 1e-7
-  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
-  weights <- ifelse(data[[treat]] == 1, 1 - ps, ps)
-  return(weights)
-}
-
-### 2.1.5 Entropy weights
-#### create_entropy_weights()
-create_entropy_weights <- function(data, treat, covar, seed = 1234) {
-  ps_model <- probability_forest(X = data[, covar], Y = as.factor(data[[treat]]), seed = seed)
-  ps <- ps_model$predictions[,2]
-  ps[ps <= 1e-7] <- 1e-7
-  ps[ps >= 1 - 1e-7] <- 1 - 1e-7
-  ent <- -(ps * log(ps) + (1 - ps) * log(1 - ps))
-  weights <- ifelse(data[[treat]] == 1, ent / ps, ent / (1 - ps))
-  return(weights)
-}
+## 2.1 Weighting
 
 ## 2.2 Truncation
 ### 2.2.1 Fixed maximum value truncation
@@ -159,6 +103,17 @@ truncate_weights_adaptive <- function(data, weight_col, c = 3) {
 }
 
 ## 2.3 Trimming
+### ps_reestimate() ***
+ps_estimate <- function(data, Y, treat, cov, num.trees = 4000, seed = 42) {
+  set.seed(seed)
+  data$ps_estimate <- probability_forest(
+    X = data[, cov],
+    Y = as.factor(data[, treat]),
+    seed = seed, num.trees = num.trees
+  )$predictions[, 2]
+  return(data)
+}
+
 ### 2.3.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
   sub <- data[which(data[, ps] < threshold), ]
@@ -167,44 +122,44 @@ ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) {
 
 ### 2.3.2 Common range trimming
 #### common_range_trim ()
-common_range_trim <- function(data, ps_col = "ps_assoverlap", treat = "treat") {
+common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   lower_cut <- max(
-    min(data[[ps_col]][data[[treat]] == 1], na.rm = TRUE),
-    min(data[[ps_col]][data[[treat]] == 0], na.rm = TRUE)
+    min(data[[ps]][data[[treat]] == 1], na.rm = TRUE),
+    min(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
   )
   upper_cut <- min(
-    max(data[[ps_col]][data[[treat]] == 1], na.rm = TRUE),
-    max(data[[ps_col]][data[[treat]] == 0], na.rm = TRUE)
+    max(data[[ps]][data[[treat]] == 1], na.rm = TRUE),
+    max(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
   )
-  sub <- data[data[[ps_col]] >= lower_cut & data[[ps_col]] <= upper_cut, ]
+  sub <- data[data[[ps]] >= lower_cut & data[[ps]] <= upper_cut, ]
   return(sub)
 }
 
 ### 2.3.3 Crump trimming
 #### crump_trim ()
-crump_trim <- function(data, ps_col = "ps_assoverlap", lower = 0.1, upper = 0.9) {
-  sub <- data[data[[ps_col]] >= lower & data[[ps_col]] <= upper, ]
+crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
+  sub <- data[data[[ps]] >= lower & data[[ps]] <= upper, ]
   return(sub)
 }
 
 ### 2.3.4 Stuermer trimming
 #### stuermer_trim ()
-stuermer_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap", 
+stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                           lower_percentile = 0.05, upper_percentile = 0.95) {
-  treated_ps   <- data[[ps_col]][data[[treat]] == 1]
-  untreated_ps <- data[[ps_col]][data[[treat]] == 0]
+  treated_ps   <- data[[ps]][data[[treat]] == 1]
+  untreated_ps <- data[[ps]][data[[treat]] == 0]
   lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
   upper_cutoff <- quantile(untreated_ps, probs = upper_percentile, na.rm = TRUE)
-  sub <- data[data[[ps_col]] >= lower_cutoff & data[[ps_col]] <= upper_cutoff, ]
+  sub <- data[data[[ps]] >= lower_cutoff & data[[ps]] <= upper_cutoff, ]
   return(sub)
 }
 
 ### 2.3.5 Walker trimming
 #### walker_trim ()
-walker_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap", 
+walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                         lower_cutoff = 0.3, upper_cutoff = 0.7) {
   treat_prevalence  <- mean(data[[treat]], na.rm = TRUE)
-  logit_ps          <- log(data[[ps_col]] / (1 - data[[ps_col]]))
+  logit_ps          <- log(data[[ps]] / (1 - data[[ps]]))
   logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
   preference_score  <- 1 / (1 + exp(-(logit_ps - logit_prevalence)))
   sub <- data[preference_score >= lower_cutoff & preference_score <= upper_cutoff, ]
@@ -213,19 +168,26 @@ walker_trim <- function(data, treat = "treat", ps_col = "ps_assoverlap",
 
 ## 2.4 Combination of methods
 #### trim_attach_weights()
-trim_attach_weights <- function(trimmed_data, original_data, weight_col){
-trimmed_data$orig_row   <- as.integer(rownames(trimmed_data))
-original_data$orig_row  <- as.integer(rownames(original_data))
-trimmed_data <- merge(
-  trimmed_data,
-  original_data[, c("orig_row", weight_col)],
-  by = "orig_row",
-  all.x = TRUE
-)
-colnames(trimmed_data)[colnames(trimmed_data) == weight_col] <- "weight"
-trimmed_data$orig_row <- NULL
-original_data$orig_row <- NULL
-return(trimmed_data)
+trim_attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
+  weight_type <- match.arg(weight_type)
+  weight_fun <- function(data) {
+    if (weight_type == "ipw_weight") {
+      w.obj <- WeightIt::weightit(model, data = data, estimand = estimand, method = "glm")
+      data$ipw_weight <- w.obj$weights
+    } else if (weight_type == "opt_weight") {
+      w.obj <- optweight::optweight(model, data = data, estimand = estimand)
+      data$opt_weight <- w.obj$weights
+    } else if (weight_type == "cbps_weight") {
+      w.obj <- WeightIt::weightit(model, data = data, estimand = estimand, method = "cbps")
+      data$cbps_weight <- w.obj$weights
+    } else if (weight_type == "ebal_weight") {
+      w.obj <- WeightIt::weightit(model, data = data, estimand = estimand, method = "ebal")
+      data$ebal_weight <- w.obj$weights
+    }
+    return(data)
+  }
+  weighted_list <- lapply(trimmed_list, weight_fun)
+  return(weighted_list)
 }
 
 # 3. Reassessing methods
@@ -266,29 +228,67 @@ compute_ess_matchit <- function(bal_tab_object) {
 }
 
 ### 3.1.3 Visuals
-#### plot_matchit()
-plot_matchit <- function(match_list, dataset_name) {
-  for (method_name in names(match_list)) {
-    match_obj <- match_list[[method_name]]
-    if (method_name == "subcl") {
-      plot(summary(match_obj, subclass = TRUE), 
-           main = paste0(dataset_name, " - ", method_name," matching"))
-    } else {
-      plot(summary(match_obj), 
-           main = paste0(dataset_name, " - ", method_name," matching"))
-    }
+#### plot_matching_balance()***
+plot_matching_balance <- function(matchit_objects, threshold = 0.1, title = NULL) {
+  if (!is.list(matchit_objects)) {
+    matchit_objects <- list(single = matchit_objects)
   }
-} 
+  plot_list <- list()
+  for (name in names(matchit_objects)) {
+    matchit_object <- matchit_objects[[name]]
+    bal <- cobalt::bal.tab(matchit_object, un = TRUE)
+    smd_df <- data.frame(
+      Variable = rownames(bal$Balance),
+      Pre = bal$Balance[,"Diff.Un"],
+      Post = bal$Balance[,"Diff.Adj"]
+    )
+    # remove propensity score or non-covariate rows if present
+    smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
+    # convert to long format
+    smd_long <- pivot_longer(
+      smd_df,
+      cols = c("Pre", "Post"),
+      names_to = "Matching",
+      values_to = "Std_Diff"
+    )
+    smd_long$Matching <- factor(
+      smd_long$Matching, 
+      levels = c("Pre", "Post"), 
+      labels = c("Pre-Matching", "Post-Matching")
+    )
+    # build titles
+    plot_title <- if (length(matchit_objects) > 1) paste(title, "-", name) else title
+    # create ggplot 
+    p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Matching)) +
+      geom_point(size = 3) +
+      geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+      geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
+      geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
+      coord_flip() +
+      labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+      theme_minimal() +
+      theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
+            plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
+      scale_color_manual(values = c("Pre-Matching" = "#00CFC1", "Post-Matching" = "#FC766A"))
+    plot_list[[name]] <- p
+  }
+  
+  if (length(plot_list) == 1) {
+    return(plot_list[[1]])
+  } else {
+    return(plot_list)
+  }
+}
 
 ## 3.2 Weighting
 ### 3.2.1 SMD
 #### compute_abs_smd_weight()
-compute_abs_smd_weight <- function(data, treat, covar, weight_cols) {
-  smd_list <- lapply(weight_cols, function(wcol) {
+compute_abs_smd_weight <- function(data, treat, covar, weights_list) {
+  smd_list <- lapply(names(weights_list), function(method) {
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
-      weights = data[[wcol]],
+      weights = weights_list[[method]],
       un = TRUE,
       s.d.denom = "treated"
     )
@@ -297,7 +297,7 @@ compute_abs_smd_weight <- function(data, treat, covar, weight_cols) {
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
-      Method = wcol,
+      Method = method,
       Mean_Abs_SMD = mean_smd,
       Max_Abs_SMD  = max_smd
     ))
@@ -307,12 +307,12 @@ compute_abs_smd_weight <- function(data, treat, covar, weight_cols) {
 
 ### 3.2.2 ESS
 #### compute_ess_weight()
-compute_ess_weight <- function(data, treat, covar, weight_cols) {
-  ess_list <- lapply(weight_cols, function(wcol) {
+compute_ess_weight <- function(data, treat, covar, weights_list) {
+  ess_list <- lapply(names(weights_list), function(method) {
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
-      weights = data[[wcol]],
+      weights = weights_list[[method]],
       un = FALSE
     )
     samples <- bal_obj$Observations
@@ -321,7 +321,7 @@ compute_ess_weight <- function(data, treat, covar, weight_cols) {
     } else {
       df <- samples[1, c("Control", "Treated"), drop = FALSE]
     }
-    df <- cbind(Method = wcol, df)
+    df <- cbind(Method = method, df)
     rownames(df) <- NULL
     return(df)
   })
@@ -329,26 +329,52 @@ compute_ess_weight <- function(data, treat, covar, weight_cols) {
 }
 
 ### 3.2.3 Visuals
-#### plot_weighting_methods()
-plot_weighting_methods <- function(data, treat, covar, weight_list, dataset_name = NULL) {
-  for (wcol in names(weight_list)) {
-    bal_obj <- cobalt::bal.tab(
+#### plot_weighting_balance()***
+plot_weighting_balance <- function(data, treat, covar, weight_list, title = NULL) {
+  plot_list <- list()
+  for (wname in names(weight_list)) {
+    bal <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
-      weights = weight_list[[wcol]],
+      weights = weight_list[[wname]],
       un = TRUE,
       s.d.denom = "treated"
     )
-    title_text <- if (!is.null(dataset_name)) paste(dataset_name, "-", wcol, "weighting") else wcol
-    lp <- cobalt::love.plot(
-      bal_obj,
-      stats = "mean.diffs",
-      abs = TRUE,
-      var.order = "unadjusted",
-      thresholds = c(m = 0.1),
-      title = title_text
+    smd_df <- data.frame(
+      Variable = rownames(bal$Balance),
+      Pre  = bal$Balance[,"Diff.Un"],
+      Post = bal$Balance[,"Diff.Adj"]
     )
-    print(lp)
+    smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
+    smd_long <- pivot_longer(
+      smd_df,
+      cols = c("Pre", "Post"),
+      names_to = "Weighting",
+      values_to = "Std_Diff"
+    )
+    smd_long$Weighting <- factor(
+      smd_long$Weighting,
+      levels = c("Pre", "Post"),
+      labels = c("Pre-Weighting", "Post-Weighting")
+    )
+    plot_title <- if (length(weight_list) > 1) paste(title, "-", wname) else title
+    p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Weighting)) +
+      geom_point(size = 3) +
+      geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+      geom_hline(yintercept = 0.1, linetype = "dashed", color = "red") +
+      geom_hline(yintercept = -0.1, linetype = "dashed", color = "red") +
+      coord_flip() +
+      labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+      theme_minimal() +
+      theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
+            plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
+      scale_color_manual(values = c("Pre-Weighting" = "#00CFC1", "Post-Weighting" = "#FC766A"))
+    plot_list[[wname]] <- p
+  }
+  if (length(plot_list) == 1) {
+    return(plot_list[[1]])
+  } else {
+    return(plot_list)
   }
 }
 
@@ -428,12 +454,13 @@ compute_ess_trunc <- function(trunc_list, treat, covar, weight_cols) {
 }
 
 ### 3.3.3 Visuals
-#### plot_trunc_methods()
-plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL) {
-  for(trunc_name in names(trunc_list)) {
+#### plot_trunc_balance()
+plot_trunc_balance <- function(trunc_list, treat, covar, weight_cols, dataset_name = NULL, threshold = 0.1) {
+  plot_list <- list()
+  for (trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
-    for(wcol in weight_cols) {
-      if(wcol %in% names(dataset)) {
+    for (wcol in weight_cols) {
+      if (wcol %in% names(dataset)) {
         bal_obj <- cobalt::bal.tab(
           as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
           data = dataset,
@@ -441,23 +468,48 @@ plot_trunc_methods <- function(trunc_list, treat, covar, weight_cols, dataset_na
           un = TRUE,
           s.d.denom = "treated"
         )
-        title_text <- if (!is.null(dataset_name)) {
-          paste(dataset_name, "-", trunc_name, "-", wcol, "truncation")
-        } else {
-          paste(trunc_name, wcol, "truncation")
-        }
-        lp <- cobalt::love.plot(
-          bal_obj,
-          stats = "mean.diffs",
-          abs = TRUE,
-          var.order = "unadjusted",
-          thresholds = c(m = 0.1),
-          stars = "none",
-          title = title_text
+        smd_df <- data.frame(
+          Variable = rownames(bal_obj$Balance),
+          Pre = bal_obj$Balance[,"Diff.Un"],
+          Post = bal_obj$Balance[,"Diff.Adj"]
         )
-        print(lp)
+        smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
+        smd_long <- pivot_longer(
+          smd_df,
+          cols = c("Pre", "Post"),
+          names_to = "Truncation",
+          values_to = "Std_Diff"
+        )
+        smd_long$Truncation <- factor(
+          smd_long$Truncation,
+          levels = c("Pre", "Post"),
+          labels = c("Pre-Truncation", "Post-Truncation")
+        )
+        plot_title <- paste0(
+          if (!is.null(dataset_name)) paste0(dataset_name, " - ") else "",
+          trunc_name, "_", wcol, " truncation"
+        )
+        p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Truncation)) +
+          geom_point(size = 3) +
+          geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+          geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
+          geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
+          coord_flip() +
+          labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+          theme_minimal() +
+          theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
+                plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
+          scale_color_manual(values = c("Pre-Truncation" = "#00CFC1", "Post-Truncation" = "#FC766A"))
+        plot_list[[paste(trunc_name, wcol, sep = "_")]] <- p
+      } else {
+        message(sprintf("Column %s not found in %s", wcol, trunc_name))
       }
     }
+  }
+  if (length(plot_list) == 1) {
+    return(plot_list[[1]])
+  } else {
+    return(plot_list)
   }
 }
 
@@ -506,11 +558,16 @@ compute_ess_trim <- function(trimming_list, treat, covar) {
 }
 
 ### 3.4.3 Visuals
-#### plot_trim()
-plot_trim <- function(data_list, treat, covar) {
-  par(mfrow = c(2,3))
-  for (data_obj in data_list) {
+#### plot_trim_overlap()
+plot_trim_overlap <- function(data_list, treat, covar, prefix = NULL, 
+                              main.size = 1.1, lab.size = 1, axis.size = 1) {
+  par(mfrow = c(2, 3), mar = c(4, 4, 1, 1),
+      cex.lab = lab.size, font.lab = 1,
+      cex.axis = axis.size, font.axis = 1)
+  for (name in names(data_list)) {
+    data_obj <- data_list[[name]]
     assess_overlap(data_obj, treat = treat, cov = covar)
+    title(main = paste0(prefix, " - ", name), cex.main = main.size, font.main = 1)
   }
 }
 
@@ -522,7 +579,7 @@ compute_smd_all_datasets <- function(combined_list, treat, covar) {
     method_list <- combined_list[[weight_method]]
     res <- lapply(names(method_list), function(trim_method) {
       data <- method_list[[trim_method]]
-      # Use equal weights if weight column missing
+      # use equal weights if weight column missing
       if (!"weight" %in% colnames(data)) {
         data$weight <- rep(1, nrow(data))
       }
@@ -556,7 +613,7 @@ compute_ess_all_datasets <- function(combined_list, treat, covar) {
     method_list <- combined_list[[weight_method]]
     res <- lapply(names(method_list), function(trim_method) {
       data <- method_list[[trim_method]]
-      # Use equal weights if weight column missing
+      # use equal weights if weight column missing
       if (!"weight" %in% colnames(data)) {
         data$weight <- rep(1, nrow(data))
       }
@@ -592,101 +649,16 @@ compute_ess_all_datasets <- function(combined_list, treat, covar) {
 ### 3.5.3 Visuals
 #### plot_comb_overlap()
 plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                              prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
-  all_combined_list <- list()
-  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
-  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
-  for (ds_name in names(all_combined_list)) {
-    combined_list <- all_combined_list[[ds_name]]
-    plot_list <- list()
-    method_names <- character()
-    for (weight_method in names(combined_list)) {
-      for (trim_method in names(combined_list[[weight_method]])) {
-        full_method_name <- paste(weight_method, trim_method, sep = "_")
-        plot_list[[full_method_name]] <- list(
-          data = combined_list[[weight_method]][[trim_method]],
-          method_name = full_method_name
-        )
-        method_names <- c(method_names, full_method_name)
-      }
-    }
-    total_plots <- length(plot_list)
-    plots_per_page <- 4  # 2x2 layout
-    for (i in seq(1, total_plots, by = plots_per_page)) {
-      page_plots <- plot_list[i:min(i + plots_per_page - 1, total_plots)]
-      par(mfrow = c(2, 2), mar = c(4, 4, 2, 1))
-      for (p in page_plots) {
-        assess_overlap(p$data, treat = treat, cov = covar)
-        idx <- match(p$method_name, method_names)
-        prefix <- if (ds_name == "CPS" && idx <= 25) prefix_cps else
-          if (ds_name == "PSID" && idx <= 25) prefix_psid else ""
-        
-        title(main = paste0(prefix, " - ", p$method_name))
-      }
-    }
-  }
-}
-
-#### plot_comb_love_plots()
-plot_comb_love_plots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                                 prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1") {
-  all_datasets <- list()
-  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
-  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
-  for (ds_name in names(all_datasets)) {
-    method_list <- all_datasets[[ds_name]]
-    method_names <- unlist(lapply(names(method_list), function(weighting) {
-      trimmed_list <- method_list[[weighting]]
-      sapply(names(trimmed_list), function(trim) paste(weighting, trim, sep = "_"))
-    }))
-    plot_counter <- 0
-    for (weighting in names(method_list)) {
-      trimmed_list <- method_list[[weighting]]
-      for (trim in names(trimmed_list)) {
-        df <- trimmed_list[[trim]]
-        plot_counter <- plot_counter + 1
-        if (!"weight" %in% names(df)) df$weight <- 1
-        bal <- cobalt::bal.tab(
-          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-          data = df,
-          weights = df$weight,
-          un = TRUE,
-          s.d.denom = "treated"
-        )
-        method_name <- paste(weighting, trim, sep = "_")
-        prefix <- ""
-        if (ds_name == "CPS" && plot_counter <= 25) prefix <- prefix_cps
-        if (ds_name == "PSID" && plot_counter <= 25) prefix <- prefix_psid
-        title_text <- paste(prefix, method_name, sep = " - ")
-        lp <- cobalt::love.plot(
-          bal,
-          stats = "mean.diffs",
-          absolute = TRUE,
-          var.order = "unadjusted",
-          thresholds = c(m = .1),
-          title = title_text
-        )
-        print(lp)
-      }
-    }
-  }
-}
-
-#### save_comb_hist()
-save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                           prefix = "model_a",
-                           prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
-                           path = "../graphs/lalonde") {
-  dir.create(path, showWarnings = FALSE, recursive = TRUE)
+                              prefix_cps = NULL, prefix_psid = NULL,
+                              main.size = 1.1, lab.size = 1, axis.size = 1) {
   all_combined_list <- list()
   if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
   if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
   
-  file_index <- 1
   for (ds_name in names(all_combined_list)) {
     combined_list <- all_combined_list[[ds_name]]
-    method_names <- character()
     plot_list <- list()
+    method_names <- character()
     for (weight_method in names(combined_list)) {
       for (trim_method in names(combined_list[[weight_method]])) {
         full_method_name <- paste(weight_method, trim_method, sep = "_")
@@ -695,15 +667,145 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
       }
     }
     total_plots <- length(plot_list)
-    for (i in seq_len(total_plots)) {
-      data <- plot_list[[i]]
-      pdf_file <- file.path(path, sprintf("%s_overlap_%d.pdf", prefix, file_index))
-      pdf(pdf_file, width = 8, height = 6)
-      invisible(capture.output({
-        assess_overlap(data, treat = treat, cov = covar)
+    plots_per_page <- 6
+    for (i in seq(1, total_plots, by = plots_per_page)) {
+      start_idx <- i
+      end_idx <- min(i + plots_per_page - 1, total_plots)
+      par(mfrow = c(2, 3), mar = c(4, 4, 1, 1), 
+          cex.lab = lab.size, font.lab = 1,
+          cex.axis = axis.size, font.axis = 1)
+      for (j in start_idx:end_idx) {
+        data <- plot_list[[j]]
+        prefix <- if (ds_name == "CPS") prefix_cps else prefix_psid
+        invisible(assess_overlap(data, treat = treat, cov = covar))
+        title(main = paste0(prefix, " - ", method_names[j]), cex.main = main.size, font.main = 1)
+      }
+      if ((end_idx - start_idx + 1) < plots_per_page) {
+        for (k in seq_len(plots_per_page - (end_idx - start_idx + 1))) plot.new()
+      }
+    }
+  }
+}
+
+#### plot_comb_balance()
+plot_comb_balance <- function(
+    comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
+    orig_cps = NULL, orig_psid = NULL,
+    prefix_cps = NULL, prefix_psid = NULL, threshold = 0.1
+) {
+  all_datasets <- list()
+  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
+  orig_data_list <- list(CPS = orig_cps, PSID = orig_psid)
+  plot_list <- list()
+  plot_counter <- 0
+  for (ds_name in names(all_datasets)) {
+    method_list <- all_datasets[[ds_name]]
+    orig_data <- orig_data_list[[ds_name]]
+    for (weighting in names(method_list)) {
+      trimmed_list <- method_list[[weighting]]
+      for (trim in names(trimmed_list)) {
+        df <- trimmed_list[[trim]]
+        plot_counter <- plot_counter + 1
+        method_name <- paste(weighting, trim, sep = "_")
+        prefix <- ""
+        if (ds_name == "CPS" && plot_counter <= 25) prefix <- prefix_cps
+        if (ds_name == "PSID" && plot_counter <= 25) prefix <- prefix_psid
+        plot_title <- paste(prefix, method_name, sep = " - ")
+        weight_col <- grep("weight", names(df), value = TRUE)
+        if (length(weight_col) == 0) stop("No weight column found in trimmed dataset")
+        weights <- df[[weight_col]]
+        bal_pre <- cobalt::bal.tab(
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
+          data = orig_data,
+          un = TRUE,
+          s.d.denom = "treated"
+        )
+        bal_post <- cobalt::bal.tab(
+          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
+          data = df,
+          weights = weights,
+          un = FALSE,
+          s.d.denom = "treated"
+        )
+        smd_df <- data.frame(
+          Variable = rownames(bal_pre$Balance),
+          Pre = bal_pre$Balance[, "Diff.Un"],
+          Post = bal_post$Balance[, "Diff.Adj"]
+        )
+        smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
+        smd_long <- pivot_longer(
+          smd_df,
+          cols = c("Pre", "Post"),
+          names_to = "Weighting",
+          values_to = "Std_Diff"
+        )
+        smd_long$Weighting <- factor(
+          smd_long$Weighting,
+          levels = c("Pre", "Post"),
+          labels = c("Pre-Trimming-Weighting", "Post-Trimming-Weighting")
+        )
+        p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Weighting)) +
+          geom_point(size = 3) +
+          geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+          geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
+          geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
+          coord_flip() +
+          labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+          theme_minimal() +
+          theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
+                plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
+          scale_color_manual(values = c(
+            "Pre-Trimming-Weighting" = "#00CFC1",
+            "Post-Trimming-Weighting" = "#FC766A"
+          ))
+        plot_list[[paste(ds_name, method_name, sep = "_")]] <- p
+      }
+    }
+  }
+  return(plot_list)
+}
+
+#### save_comb_hist()
+save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
+                           prefix = NULL,
+                           prefix_cps = NULL, prefix_psid = NULL,
+                           path = "graphs/lalonde") {
+  dir.create(path, showWarnings = FALSE, recursive = TRUE)
+  print(getwd())
+  all_combined_list <- list()
+  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
+  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
+  
+  file_index <- 1
+  for (ds_name in names(all_combined_list)) {
+    combined_list <- all_combined_list[[ds_name]]
+    plot_list <- list()
+    method_names <- character()
+    for (weight_method in names(combined_list)) {
+      for (trim_method in names(combined_list[[weight_method]])) {
+        full_method_name <- paste(weight_method, trim_method, sep = "_")
+        plot_list[[full_method_name]] <- combined_list[[weight_method]][[trim_method]]
+        method_names <- c(method_names, full_method_name)
+      }
+    }
+    total_plots <- length(plot_list)
+    plots_per_page <- 4
+    for (i in seq(1, total_plots, by = plots_per_page)) {
+      start_idx <- i
+      end_idx <- min(i + plots_per_page - 1, total_plots)
+      pdf_file <- file.path(path, sprintf("%s_ov_%d.pdf", prefix, file_index))
+      pdf(pdf_file, width = 10, height = 8)
+      par(mfrow = c(2, 2), mar = c(4, 4, 2, 1), cex.lab = 1, font.lab = 1, cex.axis = 1, font.axis = 1)
+      for (j in start_idx:end_idx) {
+        data <- plot_list[[j]]
         prefix_str <- if (ds_name == "CPS") prefix_cps else prefix_psid
-        title(main = paste0(prefix_str, " - ", method_names[i]))
-      }, type = "output"))
+        assess_overlap(data, treat = treat, cov = covar)
+        title(main = paste0(prefix_str, " - ", method_names[j]), cex.main = 1, font.main = 1)
+      }
+      if ((end_idx - start_idx + 1) < 4) {
+        for (k in seq_len(4 - (end_idx - start_idx + 1))) plot.new()
+      }
       dev.off()
       file_index <- file_index + 1
     }
@@ -712,10 +814,11 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
 
 #### save_comb_loveplots()
 save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                                prefix = "model_a",
-                                prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1",
-                                path = "../graphs/lalonde") {
+                                prefix = NULL,
+                                prefix_cps = NULL, prefix_psid = NULL,
+                                path = "graphs/lalonde") {
   dir.create(path, showWarnings = FALSE, recursive = TRUE)
+  print(getwd()) 
   all_datasets <- list()
   if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
   if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
@@ -763,25 +866,24 @@ save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, tre
 #### combine_results()
 combine_results <- function(dataset_name) {
   dataset_lower <- tolower(dataset_name)
-  # Retrieve matching results
+  # retrieve matching results
   smd_matching <- get(paste0("smd_matchit.", dataset_lower))
   ess_matching <- get(paste0("ess_matchit.", dataset_lower))
-  # Retrieve trimming results
+  # retrieve trimming results
   smd_trimming <- get(paste0("smd_trim.", dataset_lower))
   ess_trimming <- get(paste0("ess_trim.", dataset_lower))
-  # Retrieve truncation results
+  # retrieve truncation results
   smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
   ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
-  # Retrieve weighting results
+  # retrieve weighting results
   smd_weighting <- get(paste0("smd_weight.", dataset_lower))
   ess_weighting <- get(paste0("ess_weight.", dataset_lower))
-  # Retrieve combined SMD and ESS
-  # Make sure you have these variables in your environment per dataset
+  # retrieve combined SMD and ESS
   smd_combined_var <- paste0("smd_all_comb_meth.", dataset_lower)
   ess_combined_var <- paste0("ess_all_comb_meth.", dataset_lower)
   smd_combined <- get(smd_combined_var)
   ess_combined <- get(ess_combined_var)
-  # Combine all SMD results
+  # combine all SMD results
   smd_all <- do.call(rbind, list(
     smd_matching,
     smd_trimming,
@@ -789,7 +891,7 @@ combine_results <- function(dataset_name) {
     smd_weighting,
     smd_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
   ))
-    # Combine all ESS results
+  # combine all ESS results
   ess_all <- do.call(rbind, list(
     ess_matching,
     ess_trimming,
@@ -797,19 +899,19 @@ combine_results <- function(dataset_name) {
     ess_weighting,
     ess_combined[, c("Method", "Control", "Treated")]
   ))
-  # Merge SMD and ESS results by Method
+  # merge SMD and ESS results by Method
   final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
-  # Remove dataset suffixes like ".cps_plus" or ".psid_plus" from Method names for cleaner labels
-  final_df$Method <- gsub("\\.psid_plus", "", final_df$Method, ignore.case = TRUE)
-  final_df$Method <- gsub("\\.cps_plus", "", final_df$Method, ignore.case = TRUE)
-    # Reset row names
+  # remove dataset suffixes for clean labels
+  final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
+  final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
+  # reset row names
   rownames(final_df) <- NULL
   return(final_df)
 }
 
 #### save_csv()
 save_csv <- function(data, filename) {
-  folder <- "../tables"
+  folder <- "tables"
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   file_csv <- file.path(folder, paste0(filename, ".csv"))
   write.csv(data, file = file_csv, row.names = FALSE)
@@ -822,17 +924,17 @@ assess_methods <- function(df) {
       # ess score
       ess_balance_ratio = pmin(Control, Treated) / pmax(Control, Treated),
       ess_total = Control + Treated,
-      # Normalize balance_ratio and ess_total
+      # normalize balance_ratio and ess_total
       ess_balance_score = (ess_balance_ratio - min(ess_balance_ratio, na.rm = TRUE)) /
         (max(ess_balance_ratio, na.rm = TRUE) - min(ess_balance_ratio, na.rm = TRUE)),
       ess_size_score = (ess_total - min(ess_total, na.rm = TRUE)) /
         (max(ess_total, na.rm = TRUE) - min(ess_total, na.rm = TRUE)),
-      # Combine size and balance equally
+      # combine size and balance equally
       ess_score = 0.5 * ess_balance_score + 0.5 * ess_size_score,
       # smd score
       smd_score = 1 - (Mean_Abs_SMD - min(Mean_Abs_SMD, na.rm = TRUE)) /
         (max(Mean_Abs_SMD, na.rm = TRUE) - min(Mean_Abs_SMD, na.rm = TRUE)),
-      # final score
+      # composite score
       Score = 0.5 * smd_score + 0.5 * ess_score
     ) %>%
     dplyr::select(Method, Score) %>%
@@ -898,7 +1000,7 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 
 # 4. Estimating
 ## 4.1 ATT
-#### estimate_all()
+#### estimate_all() ***
 # difference in means
 diff <- function(data, Y, treat) {
   fml <- as.formula(paste(Y, "~", treat))
@@ -924,10 +1026,11 @@ matching <- function(data, Y, treat, covar) {
   return(out)
 }
 
+
 # psm
 psm <- function(data, Y, treat, covar) {
   ps <- probability_forest(X = data[, covar],
-                           Y = as.factor(data[,treat]), seed = 1234, num.trees = 4000)$predictions[,2]
+                           Y = as.factor(data[,treat]), seed = 42, num.trees = 4000)$predictions[,2]
   m.out <- Match(Y = data[, Y], Tr = data[, treat], X = matrix(ps, nrow(data), 1),
                  estimand = "ATT", M = 5, replace = TRUE, ties = FALSE, BiasAdjust = FALSE)
   if (is.null(m.out$se)==FALSE) {
@@ -966,7 +1069,7 @@ om.grf <- function(data, Y, treat, covar) {
 
 # IPW
 ipw <- function(data, Y, treat, covar) {
-  ps <- probability_forest(X = data[, covar, drop = FALSE], Y = as.factor(data[, treat]), seed = 1234)$predictions[,2]
+  ps <- probability_forest(X = data[, covar, drop = FALSE], Y = as.factor(data[, treat]), seed = 42)$predictions[,2]
   fml <- as.formula(paste(Y, "~", treat))
   weights <- rep(1, nrow(data))
   co <- which(data[, treat] == 0)
@@ -1006,19 +1109,24 @@ ebal <- function(data, Y, treat, covar) {
 
 # aipw_grf
 aipw <- function(data, Y, treat, covar) {
-  #library("grf")
-  for (var in c(Y, treat, covar)) {
-    data[, var] <- as.vector(data[, var])
-  }
-  c.forest <- causal_forest(X = data[, covar, drop = FALSE], Y = data[, Y],
-                            W = data[, treat], seed = 1234)
-  att <- average_treatment_effect(c.forest, target.sample = "treated", method = "AIPW")
-  att <- c(att, att[1] - 1.96 * att[2], att[1] + 1.96 * att[2])
-  return(att)
+  tryCatch({
+    #library("grf")
+    for (var in c(Y, treat, covar)) {
+      data[, var] <- as.vector(data[, var])
+    }
+    c.forest <- causal_forest(X = data[, covar, drop = FALSE], Y = data[, Y],
+                              W = data[, treat], seed = 42)
+    att <- average_treatment_effect(c.forest, target.sample = "treated", method = "AIPW")
+    att <- c(att, att[1] - 1.96 * att[2], att[1] + 1.96 * att[2])
+    return(att)
+  }, error = function(e) {
+    cat("Error in aipw_grf method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
 aipw.match <- function(data, Y, treat, covar) { # match on ps
-  ps <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = 1234)$predictions[,2]
+  ps <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = 42)$predictions[,2]
   m.out <- Match(Y = data[, Y], Tr = data[, treat], X = ps,
                  estimand = "ATT", M = 1, replace = FALSE, ties = FALSE, BiasAdjust = FALSE)
   mb <- quiet(MatchBalance(treat ~ ps, data = data, match.out = m.out, nboots= 0))
@@ -1030,68 +1138,77 @@ aipw.match <- function(data, Y, treat, covar) { # match on ps
 }
 
 aipw_ow <- function(data, Y, treat, covar) {
-  for (var in c(Y, treat, covar)) {
-    data[, var] <- as.vector(data[, var])
-  }
-  X <- data[, covar, drop = FALSE]
-  Y <- data[, Y]
-  W <- data[, treat]
-  # run dml_with_smoother with AIPW_ATT
-  dml_fit <- dml_with_smoother(Y = Y, D = W, X = X,
-                               estimators = c("AIPW_ATT"),
-                               smoother = "honest_forest",
-                               n_cf_folds = 5,
-                               n_reps = 1)
-  # extract estimate and SE from summary
-  summ <- summary(dml_fit, quiet = TRUE)
-  est <- summ["AIPW-ATT", "Estimate"]
-  se <- summ["AIPW-ATT", "SE"]
-  ci_lower <- est - 1.96 * se
-  ci_upper <- est + 1.96 * se
-  return(c(est, se, ci_lower, ci_upper))
+  tryCatch({
+    for (var in c(Y, treat, covar)) {
+      data[, var] <- as.vector(data[, var])
+    }
+    X <- data[, covar, drop = FALSE]
+    Y <- data[, Y]
+    W <- data[, treat]
+    # run dml_with_smoother with AIPW_ATT
+    dml_fit <- dml_with_smoother(Y = Y, D = W, X = X,
+                                 estimators = c("AIPW_ATT"),
+                                 smoother = "honest_forest",
+                                 n_cf_folds = 5,
+                                 n_reps = 1)
+    # extract estimate and SE from summary
+    summ <- summary(dml_fit, quiet = TRUE)
+    est <- summ["AIPW-ATT", "Estimate"]
+    se <- summ["AIPW-ATT", "SE"]
+    ci_lower <- est - 1.96 * se
+    ci_upper <- est + 1.96 * se
+    return(c(est, se, ci_lower, ci_upper))
+  }, error = function(e) {
+    cat("Error in aipw_ow method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
 ### This script checks for robustness by estimating original model
 ### using double/debiased machine learning using DoubleML package
 dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_l = lrn("regr.lm"), ml_m = lrn("regr.lm")){
-  if(is.null(covar)){
-    stop("No controls in specification.")
-  }
-  #require(DoubleML)
-  #require(mlr3learners)
-  #require(fixest)
-  #require(ggplot2)
-  if(is.null(clust_var) == TRUE){
-    dat = data[,c(Y,treat,covar)]
-    dat = na.omit(dat)
-    dml_dat = DoubleMLData$new(dat,
-                               y_col = Y,
-                               d_cols = treat,
-                               use_other_treat_as_covariate = FALSE,
-                               x_cols = covar)
-  }else{
-    dat = data[,c(Y, treat, covar, clust_var)]
-    dat[,clust_var] = as.numeric(factor(dat[,clust_var]))
-    dat = dat[is.na(dat[,Y]) == FALSE,]
-    dat = dat[is.na(dat[,D]) == FALSE,]
-    features = data.frame(model.matrix(formula(paste(c('~ 1',treat,covar), collapse="+")), dat))
-    dat = cbind(dat[,c(Y,clust_var)],features)
-    dml_dat = DoubleMLClusterData$new(dat,
-                                      y_col = Y,
-                                      d_cols = treat,
-                                      cluster_cols = clust_var,
-                                      use_other_treat_as_covariate = FALSE,
-                                      x_cols = covar)
-  }
-  # Set active treatment treatment
-  dml_dat$set_data_model(treat)
-  # Estimate with DML
-  set.seed(pi)
-  dml_mod = DoubleMLPLR$new(dml_dat, ml_l=ml_l, ml_m=ml_m)
-  quiet(dml_mod$fit())
-  out = c(dml_mod$coef[treat], dml_mod$se[treat], dml_mod$confint()[treat,])
-  return(out)
-  
+  tryCatch({
+    if(is.null(covar)){
+      stop("No controls in specification.")
+    }
+    #require(DoubleML)
+    #require(mlr3learners)
+    #require(fixest)
+    #require(ggplot2)
+    if(is.null(clust_var) == TRUE){
+      dat = data[,c(Y,treat,covar)]
+      dat = na.omit(dat)
+      dml_dat = DoubleMLData$new(dat,
+                                 y_col = Y,
+                                 d_cols = treat,
+                                 use_other_treat_as_covariate = FALSE,
+                                 x_cols = covar)
+    }else{
+      dat = data[,c(Y, treat, covar, clust_var)]
+      dat[,clust_var] = as.numeric(factor(dat[,clust_var]))
+      dat = dat[is.na(dat[,Y]) == FALSE,]
+      dat = dat[is.na(dat[,D]) == FALSE,]
+      features = data.frame(model.matrix(formula(paste(c('~ 1',treat,covar), collapse="+")), dat))
+      dat = cbind(dat[,c(Y,clust_var)],features)
+      dml_dat = DoubleMLClusterData$new(dat,
+                                        y_col = Y,
+                                        d_cols = treat,
+                                        cluster_cols = clust_var,
+                                        use_other_treat_as_covariate = FALSE,
+                                        x_cols = covar)
+    }
+    # Set active treatment treatment
+    dml_dat$set_data_model(treat)
+    # Estimate with DML
+    set.seed(pi)
+    dml_mod = DoubleMLPLR$new(dml_dat, ml_l=ml_l, ml_m=ml_m)
+    quiet(dml_mod$fit())
+    out = c(dml_mod$coef[treat], dml_mod$se[treat], dml_mod$confint()[treat,])
+    return(out)
+  }, error = function(e) {
+    cat("Error in dml method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
 # execute all estimators
@@ -1248,9 +1365,9 @@ plot_att_panels <- function(all_outs, plot_titles, band, est, ylim = c(-15500, 5
 
 #### save_att_panels()
 save_att_panels <- function(
-    all_outs, plot_titles, band, est, prefix,
-    plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  folder <- "../graphs/lalonde"
+  all_outs, plot_titles, band, est, prefix,
+  plots_per_page = 4, ylab = "Estimate", textsize = 1) {
+  folder <- "graphs/lalonde"
   ylim   <- c(-15500, 5500)
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   num_pages <- ceiling(length(all_outs) / plots_per_page)
@@ -1274,7 +1391,7 @@ create_matrix_results <- function(all_outs, sample_names) {
   n_samples <- length(sample_names)
   n_estimators <- nrow(all_outs[[1]])
   result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
-  # Set up alternating column names
+  # set up alternating column names
   cnames <- character(n_samples * 2)
   for (j in seq_along(sample_names)) {
     cnames[(j-1)*2 + 1] <- sample_names[j]
@@ -1283,7 +1400,7 @@ create_matrix_results <- function(all_outs, sample_names) {
   colnames(result_mat) <- cnames
   estimator_names <- rownames(all_outs[[1]])
   rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
-  # Fill values
+  # fill values
   for (j in seq_along(all_outs)) {
     out <- all_outs[[j]]
     result_mat[1, (j-1)*2 + 1] <- sprintf("%.2f", out[1, 1])
@@ -1296,7 +1413,7 @@ create_matrix_results <- function(all_outs, sample_names) {
   return(result_mat)
 }
 
-####  eval_att()
+#### eval_att()
 eval_att <- function(result) {
   data.frame(
     Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error across all estimator results
@@ -1344,7 +1461,7 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
 
 #### save_catt_panels()
 save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), prefix = "model_a", plots_per_page = 4) {
-  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   catt_ldw <- all_catt[[1]]$catt
   att_ldw  <- all_catt[[1]]$att[1]
   id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
@@ -1354,7 +1471,7 @@ save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), pref
     start_idx <- (page - 1) * plots_per_page + 2  # always skip all_catt[[1]]
     end_idx   <- min(page * plots_per_page + 1, length(all_catt))
     plots_this_page <- end_idx - start_idx + 1
-    file_name <- sprintf("../graphs/lalonde/%s_catt_estimates_%d.pdf", prefix, page)
+    file_name <- sprintf("graphs/lalonde/%s_catt_estimates_%d.pdf", prefix, page)
     pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
     for (i in start_idx:end_idx) {
@@ -1418,13 +1535,13 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
 
 #### save_qtet()
 save_qtet <- function(plots, plot_titles = NULL, main_start = 1, ylim = NULL, col = NULL, prefix = "model_a") {
-  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   n <- length(plots)
   for (i in seq_len(n)) {
     p <- plots[[i]]
     main_title <- if (is.null(plot_titles)) p$main else plot_titles[main_start + i - 1]
     clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
-    file_name <- sprintf("../graphs/lalonde/%s_qtet_estimates_%s.pdf", prefix, clean_title)
+    file_name <- sprintf("graphs/lalonde/%s_qtet_estimates_%s.pdf", prefix, clean_title)
     pdf(file = file_name, width = 7, height = 5)
     plot_qte(p$mod, p$mod0, p$bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
@@ -1437,13 +1554,13 @@ save_qtet <- function(plots, plot_titles = NULL, main_start = 1, ylim = NULL, co
 save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
                                 ylim = NULL, col = NULL, prefix = "model_a_top") {
   n <- length(qtet_top)
-  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_len(n)) {
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
     main_title <- plot_titles[main_start + i - 1]
     clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
-    file_name <- sprintf("../graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
+    file_name <- sprintf("graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
     pdf(file = file_name, width = 7, height = 5)
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
@@ -1494,10 +1611,10 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
 }
 
 #### eval_ow()
-eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat_var = "treat", estimator = "AIPW-ATT") {
+eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
   results <- lapply(seq_along(outcome_weights), function(i) {
     ow <- outcome_weights[[i]]$omega[estimator, ]
-    treat <- dataset_list[[i]][[treat_var]]
+    treat <- dataset_list[[i]][[treat]]
     method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
     sum_treated <- sum(ow[treat == 1])
     sum_untreated <- sum(ow[treat == 0])
@@ -1515,10 +1632,10 @@ eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat_var
 save_ow <- function(outcome_weights, plot_titles = NULL,
                     breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
                     prefix = "model_a", estimand = "AIPW-ATT") {
-  dir.create("../graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
+  dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
-    file_name <- sprintf("../graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
+    file_name <- sprintf("graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
     pdf(file = file_name, width = 8, height = 6)
     weights <- outcome_weights[[i]]$omega[estimand, ]
     main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
@@ -1566,7 +1683,7 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
 
 #### save_sensitivity_plots()
 save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_titles, prefix) {
-  folder <- "../graphs/lalonde"
+  folder <- "graphs/lalonde"
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   for (i in seq_along(filtered_datasets)) {
     idx <- i
