@@ -360,10 +360,10 @@ plot_matching_balance(all_match.psid, title = "LCS-PSID1")
 ```{r, message=FALSE, warning=FALSE}
 # list all weights
 all_weight.psid <- list(
-  ipw = lcs_psid$ipw_weight,
-  opt = lcs_psid$opt_weight,
-  cbps = lcs_psid$cbps_weight,
-  ebal = lcs_psid$ebal_weight
+  ipw_weight = lcs_psid$ipw_weight,
+  opt_weight = lcs_psid$opt_weight,
+  cbps_weight = lcs_psid$cbps_weight,
+  ebal_weight = lcs_psid$ebal_weight
 )
 ```
 
@@ -384,7 +384,6 @@ ess_weight.psid <- compute_ess_weight(lcs_psid, treat, covar, all_weight.psid)
 # visualize covariate balance
 plot_weighting_balance(lcs_psid, treat, covar, all_weight.psid, "LCS-PSID1")
 ```
-
 
 ### Truncation
 ```{r, message=FALSE, warning=FALSE}
@@ -518,7 +517,8 @@ save_csv(top5_methods.psid, "PSID1_top5_methods_lcs")
 The table shows that CPS1 and PSID1 share the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
 ```{r}
 dataset_list_psid <- list(
-  "All" = lcs_psid, 
+  "All" = lcs_psid,
+  "original" = lcs_psid,
   "card" = m.out.psid.card,
   "optimal_full" = m.out.psid.optimal_full,
   "optimal_pair" = m.out.psid.optimal_pair,
@@ -567,7 +567,6 @@ dataset_list_psid <- list(
   "ebal_stuermer" = ebal_comb.psid[[4]],
   "ebal_walker" = ebal_comb.psid[[5]])
 ```
-
 
 ```{r, message=FALSE, warning=FALSE}
 # create the datasets from combined lists for your top 5 methods:
@@ -637,7 +636,7 @@ knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
 ```{r, warning=FALSE, message=FALSE}
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) 
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) %>% scroll_box(width = "600px", height = "400px")
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LCS-Experimental sample, column (B) for the LCS-PSID1 sample, and column (C) for its trimmed version. Columns (D)-(H) show results of the top-ranked subsample of LCS-PSID1.

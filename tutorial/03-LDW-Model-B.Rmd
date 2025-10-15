@@ -521,17 +521,17 @@ plot_matching_balance(all_match.psid, title = "LDW-PSID1")
 ```{r, message=FALSE, warning=FALSE}
 # list all weights
 all_weight.cps <- list(
-  ipw = ldw_cps$ipw_weight,
-  opt = ldw_cps$opt_weight,
-  cbps = ldw_cps$cbps_weight,
-  ebal = ldw_cps$ebal_weight
+  ipw_weight = ldw_cps$ipw_weight,
+  opt_weight = ldw_cps$opt_weight,
+  cbps_weight = ldw_cps$cbps_weight,
+  ebal_weight = ldw_cps$ebal_weight
 )
 
 all_weight.psid <- list(
-  ipw = ldw_psid$ipw_weight,
-  opt = ldw_psid$opt_weight,
-  cbps = ldw_psid$cbps_weight,
-  ebal = ldw_psid$ebal_weight
+  ipw_weight = ldw_psid$ipw_weight,
+  opt_weight = ldw_psid$opt_weight,
+  cbps_weight = ldw_psid$cbps_weight,
+  ebal_weight = ldw_psid$ebal_weight
 )
 ```
 
@@ -671,18 +671,18 @@ ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREB7.'}
 # visualize overlap
-#plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
+plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREB8.'} 
 # visualize covariate balance
-#plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = ldw_cps, orig_psid = ldw_psid, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
+plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = ldw_cps, orig_psid = ldw_psid, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-#save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "model_b", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
-#save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar,  prefix = "model_b", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
+save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "model_b", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
+save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar,  prefix = "model_b", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
 ```
 
 
@@ -1222,4 +1222,3 @@ After reexamining model B, which uses the LaLonde-Dehejia-Wahba (LDW) data with 
 Conditional and quantile treatment effect analyses confirm that, while some methods bring estimates closer to the experimental benchmark, considerable heterogeneity and estimator-dependent variability remain. Placebo tests using pre-treatment earnings as the outcome reveal that, despite some improvements, bias and deviation from the true effect persist. Sensitivity analyses indicate that most treatment effect estimates are fairly robust to increasing confounder strength, but some upward shifts are observed compared to model A.
 
 Overall, these results reinforce the importance of overlap, covariate balance, and careful method selection, while underscoring the ongoing difficulty of recovering unbiased causal effects from observational data.
-

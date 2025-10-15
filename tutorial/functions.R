@@ -1,7 +1,7 @@
 # 1 Set up
 # 1.1 Installation
-packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs", 
-              "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
+packages <- c("data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
+              "hbal", "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
               "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
@@ -21,6 +21,8 @@ install_all(packages)
 library(cobalt)
 library(data.table)
 library(dplyr)
+library(ebal)
+library(hbal)
 library(ggplot2)
 library(gridExtra)
 library(highr)
@@ -1017,7 +1019,7 @@ reg <- function(data, Y, treat, covar) {
 }
 
 # matching
-#library(Matching)
+# library(Matching)
 matching <- function(data, Y, treat, covar) {
   m.out <- Match(Y = data[, Y], Tr = data[, treat], X = data[, covar], Z = data[, covar],
                  estimand = "ATT", M = 5, replace = TRUE, ties = TRUE, BiasAdjust = TRUE)
@@ -1056,7 +1058,7 @@ om.reg <- function(data, Y, treat, covar) {
 }
 
 # OM (grf)
-#library(grf)
+# library(grf)
 om.grf <- function(data, Y, treat, covar) {
   tr <- which(data[, treat] == 1)
   co <- which(data[, treat] == 0)
@@ -1080,7 +1082,7 @@ ipw <- function(data, Y, treat, covar) {
 }
 
 # CBPS
-#library("CBPS")
+# library("CBPS")
 cbps <- function(data, Y, treat, covar) {
   fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
   ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
@@ -1133,7 +1135,7 @@ aipw.match <- function(data, Y, treat, covar) { # match on ps
   ks <- mb$AfterMatching[[1]]$ks$ks$statistic
   s <- data[c(m.out$index.treated, m.out$index.control), ]
   out <- aipw(s, Y, treat, covar)
-  #return(out)
+  # return(out)
   return(c(out, ks))
 }
 
@@ -1197,9 +1199,9 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
                                         use_other_treat_as_covariate = FALSE,
                                         x_cols = covar)
     }
-    # Set active treatment treatment
+    # set active treatment treatment
     dml_dat$set_data_model(treat)
-    # Estimate with DML
+    # estimate with DML
     set.seed(pi)
     dml_mod = DoubleMLPLR$new(dml_dat, ml_l=ml_l, ml_m=ml_m)
     quiet(dml_mod$fit())

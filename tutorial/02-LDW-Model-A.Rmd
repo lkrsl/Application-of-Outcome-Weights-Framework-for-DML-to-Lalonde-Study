@@ -67,7 +67,7 @@ ldw_psid_plus <- rbind.data.frame(
 
 datasets <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
 
-# inspect key metrics of each dataset
+# inspect each dataset
 summary_stats_plus <- inspect_data(datasets)
 knitr::kable(summary_stats_plus, caption = "Summary Statistics")
 ```
@@ -100,7 +100,7 @@ As anticipated, LDW-Experimental exhibits an almost perfect overlap. In contrast
 Next, the overlap of the expanded observational datasets is examined.
 ```{r, fig.cap='FIGUREA1. SubfigureD:LDW-CPS1-PLUS. SubfigureE:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
-ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar) 
+ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar)
 ```
 
 As expected, the datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS show an improved overlap compared to their non-plus states.
@@ -174,8 +174,8 @@ m.out.psid.cs <- matchit(model, data = ldw_psid, method = "nearest", distance = 
 ##### Mahalanobis distance matching (mahvars) 
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching using mahalanobis distance on selected covariates
-m.out.cps.mahvars <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re74 + re75, replace = FALSE)
-m.out.psid.mahvars <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re74 + re75, replace = FALSE)
+m.out.cps.mahvars <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
+m.out.psid.mahvars <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
 ```
 
 ##### Optimal pair matching
@@ -286,6 +286,7 @@ w.out.psid.ebal <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", 
 ldw_psid$ebal_weight <- w.out.psid.ebal$weights
 ```
 
+
 ## Improving primarily overlap
 
 Truncation aims at limiting the influence of extreme weights by capping them at a specified threshold. This helps to reduce variance and improve the stability of causal effect estimates. In the following, several truncation methods are applied, following similar approaches outlined by @Matsouaka_2023 and @Schwab_2013.
@@ -389,12 +390,12 @@ The purpose of trimming is to remove units whose propensity scores are too dissi
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # apply trimming with thresholds 0.9 and 0.8 
-ldw_cps_plus_trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
-ldw_psid_plus_trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
+ldw_cps_plus.trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
+ldw_psid_plus.trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 
 # exclude experimental controls, subset trimmed data appropriately
-ldw_cps_plus.trim.match <- subset(ldw_cps_plus_trim, sample %in% c(1,3) & ps_assoverlap)
-ldw_psid_plus.trim.match <- subset(ldw_psid_plus_trim, sample %in% c(1,4) & ps_assoverlap)
+ldw_cps_plus.trim.match <- subset(ldw_cps_plus.trim, sample %in% c(1,3) & ps_assoverlap)
+ldw_psid_plus.trim.match <- subset(ldw_psid_plus.trim, sample %in% c(1,4) & ps_assoverlap)
 
 # re-assign treat variable for controls in sample 3 or 4 (non-treated group)
 ldw_cps_plus.trim.match$treat[ldw_cps_plus.trim.match$sample == 3] <- 0
@@ -580,17 +581,17 @@ plot_matching_balance(all_match.psid, title = "LDW-PSID1")
 ```{r, message=FALSE, warning=FALSE}
 # list all weights
 all_weight.cps <- list(
-  ipw = ldw_cps$ipw_weight,
-  opt = ldw_cps$opt_weight,
-  cbps = ldw_cps$cbps_weight,
-  ebal = ldw_cps$ebal_weight
+  ipw_weight = ldw_cps$ipw_weight,
+  opt_weight = ldw_cps$opt_weight,
+  cbps_weight = ldw_cps$cbps_weight,
+  ebal_weight = ldw_cps$ebal_weight
 )
 
 all_weight.psid <- list(
-  ipw = ldw_psid$ipw_weight,
-  opt = ldw_psid$opt_weight,
-  cbps = ldw_psid$cbps_weight,
-  ebal = ldw_psid$ebal_weight
+  ipw_weight = ldw_psid$ipw_weight,
+  opt_weight = ldw_psid$opt_weight,
+  cbps_weight = ldw_psid$cbps_weight,
+  ebal_weight = ldw_psid$ebal_weight
 )
 ```
 
@@ -782,14 +783,15 @@ knitr::kable(top5_methods_df.psid, caption = "Top 5 Methods for PSID1", booktabs
 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(top5_methods.cps_plus, "ldw_model_a_cps1_top5_methods")
-save_csv(top5_methods.psid_plus, "ldw_model_a_psid1_top5_methods")
+save_csv(top5_methods.cps, "ldw_model_a_cps1_top5_methods")
+save_csv(top5_methods.psid, "ldw_model_a_psid1_top5_methods")
 ```
 
 For estimation, we match the selected top method names back to their corresponding datasets, objects or vectors and construct corresponding datasets. 
 ```{r, message=FALSE, warning=FALSE}
 dataset_list_cps <- list(
   "All" = ldw_cps,
+  "original" = ldw_cps,
   "nn" = m.out.cps.nearest, 
   "caliper" = m.out.cps.caliper,
   "card" = m.out.cps.card,
@@ -849,6 +851,7 @@ dataset_list_cps <- list(
 
 dataset_list_psid <- list(
   "All" = ldw_psid,
+  "original" = ldw_psid,
   "nn" = m.out.psid.nearest, 
   "caliper" = m.out.psid.caliper,
   "card" = m.out.psid.card,
@@ -907,16 +910,19 @@ dataset_list_psid <- list(
   "ebal_walker" = ebal_comb.psid[[5]])
 ```
 
+
 ```{r, message=FALSE, warning=FALSE}
 # create datasets corresponding to the top 5 methods for each dataset
 top5_datasets.cps <- create_top5_datasets(dataset_list_cps, top5_methods.cps)
 top5_datasets.psid <- create_top5_datasets(dataset_list_psid, top5_methods.psid)
 ```
 
+
+
 ```{r, message=FALSE, warning=FALSE}
 # save datasets into .RData files
-save_top5_individual_files(dataset_list_cps, top5_methods.cps, prefix = "ldw_model_a_cps1")
-save_top5_individual_files(dataset_list_psid, top5_methods.psid, prefix = "ldw_model_a_psid1")
+save_top5_individual_files(dataset_list_cps, top5_methods.cps, prefix = "ldw_model_b_cps1")
+save_top5_individual_files(dataset_list_psid, top5_methods.psid, prefix = "ldw_model_b_psid1")
 ```
 
 ## Estimating
@@ -929,10 +935,11 @@ We employ a broad set of estimators, including difference-in-means, regression, 
 We utilize the `estimate_all()` and `plot_coef()` functions as defined by @imbens2024.
 ```{r, message=FALSE, warning=FALSE}
 # estimate ATT
+library(hbal)
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
-out4 <- estimate_all(ldw_cps_plus.trim, "re78", "treat", covar)
+out4 <- estimate_all(ldw_cps_plus.trim, "re78", "treat", covar) 
 out5 <- estimate_all(ldw_psid_plus.trim, "re78", "treat", covar)
 out6 <- estimate_all(ldw_cps.trim, "re78", "treat", covar) 
 out7 <- estimate_all(ldw_psid.trim, "re78", "treat", covar)
@@ -978,7 +985,7 @@ plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsi
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_att_panels(all_outs, plot_titles, band, est, "model_a")
+save_att_panels(all_outs, plot_titles, band, est, "ldw_model_a")
 ```
 
 The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS1, LDW-PSID1, trimmed versions of the LDW-CPS1 and LDW-PSID1 samples (similar to @imbens2024) and a series of top-ranked subsamples of both LDW-CPS1 and LDW-PSID1 based on various matching, weighting, truncation and trimming criteria.
@@ -1000,7 +1007,7 @@ The ATT results are presented in the table below:
 ```{r, message=FALSE, warning=FALSE}
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, caption = "ATT Estimates and SEs", booktabs = TRUE) %>% kable_styling(full_width = TRUE) 
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) 
 ```
 
 <div class="callout-note">
@@ -1083,7 +1090,6 @@ qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate QTET
 qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
 qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
 qte.ldw_cps_plus <- est_qte(Y, treat, covar, data = ldw_cps_plus)
@@ -1095,13 +1101,11 @@ qte.ldw_psid_plus.trim <- est_qte(Y, treat, covar, data = ldw_psid_plus.trim)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate QTET
 qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate QTET
 qte.ldw0 <- est_qte(Y, treat, NULL, data = ldw)
 qte.ldw.cps0 <- est_qte(Y, treat, NULL, data = ldw_cps)
 qte.ldw.psid0 <- est_qte(Y, treat, NULL, data = ldw_psid)
@@ -1182,7 +1186,7 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA12. Outcome Weights Model A using LDW Data"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREB12. Outcome Weights Model B using LDW Data"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # plot outcome weights distribution
@@ -1190,7 +1194,7 @@ plot_ow(ow_att, plot_titles)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#evaluate results
+# evaluate results
 res_ow <- eval_ow(ow_att, all_datasets, plot_titles, treat, "AIPW-ATT")
 knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) 
 ```
@@ -1216,7 +1220,7 @@ covar_pl <- c("age", "education", "black", "hispanic", "married", "nodegree", "r
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate placebo ATT on experimental and observational datasets
+# estimate placebo ATT on original and observational datasets
 out1_pl <- estimate_all(ldw, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(ldw_cps, Y_pl, "treat", covar_pl)
 out3_pl <- estimate_all(ldw_psid, Y_pl, "treat", covar_pl)
@@ -1249,7 +1253,7 @@ out17 <- out.psid_pl[[5]]
 all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl, out4_pl, out5_pl, out6_pl, out7_pl), out.cps_pl, out.psid_pl)
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA13. Placebo Test Model B: '75 Earnings as the Outcome"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREB13. Placebo Test Model B: '75 Earnings as the Outcome"}
 # plot placebo results
 band_pl <- out1_pl[1, 3:4]
 est_pl  <- out1_pl[1, 1]
@@ -1266,7 +1270,7 @@ The placebo ATT results are presented in the table below:
 ```{r, message=FALSE, warning=FALSE}
 # print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>% kable_styling(full_width = TRUE)  
+knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) 
 ```
 
 The placebo analysis reveals that the experimental benchmarks are positive, near zero and statistically insignificant, while all estimators applied to the observational datasets, LDW-CPS1 and LDW-PSID1, yield by majority large, negative ATT estimates.
@@ -1288,7 +1292,7 @@ Finally, a sensitivity analyses using the LDW data is conducted and results are 
 # define variables
 Y <- "re78"
 treat <- "treat"
-covar <- c("age", "education", "black", "hispanic", "married", "nodegree", "re74", "re75", "u74", "u75")
+covar <- c("age", "education", "black", "hispanic", "married", "nodegree", "re75", "u74", "u75")
 bm <- c("re75") 
 ```
 
@@ -1297,7 +1301,7 @@ bm <- c("re75")
 filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
 ```
 
-```{r, warning=FALSE, message=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA14. Sensitivity Analyses Model A"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREB14. Sensitivity Analyses Model B"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # loop over valid datasets and assign index
@@ -1310,7 +1314,7 @@ for (i in seq_along(filtered_datasets_sens)) {
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "ldw_model_a")
+save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "ldw_model_b")
 ```
 
 The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re75`. Notably, some samples such as LDW-PSID1 exhibit a greater sensitivity with more pronounced swings including negative estimates at higher confounder strengths, contrasting with consistent positive effects in LDW-CPS1 variants. This highlights sample-specific differences in robustness against potential unobserved confounding.

@@ -41,7 +41,8 @@ Successful replication requires installation of the following R packages:
 
 ``` r
 # required packages
-packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
+"readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
 # install packages
