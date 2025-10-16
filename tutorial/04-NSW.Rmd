@@ -128,8 +128,8 @@ m.out.psid.caliper <- matchit(model, data = nsw_psid, method = "nearest", distan
 ##### Common support restriction matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with exclusion of units outside common support
-m.out.cps.cs <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", discard = "both", replace = TRUE)
-m.out.psid.cs <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", discard = "both", replace = TRUE)
+m.out.cps.cs <- matchit(model, data = nsw_cps, method = "nearest", distance = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
+m.out.psid.cs <- matchit(model, data = nsw_psid, method = "nearest", distance = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 ```
 
 ##### Mahalanobis distance matching (mahvars) 
@@ -674,18 +674,18 @@ ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC7.'}
 # visualize overlap
-plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
+#plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC8.'} 
 # visualize covariate balance
-plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = nsw_cps, orig_psid = nsw_psid, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
+#plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = nsw_cps, orig_psid = nsw_psid, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
-save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
+#save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
+#save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
 ```
 
 ## Identifying best methods

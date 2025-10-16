@@ -470,18 +470,18 @@ ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGURED8.'}
 # visualize overlap
-plot_comb_overlap(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_psid = "LCS-PSID1")
+#plot_comb_overlap(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_psid = "LCS-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGURED9.'} 
 # visualize covariate balance
-plot_comb_balance(comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_psid = lcs_psid, prefix_psid = "LCS-PSID1")
+#plot_comb_balance(comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_psid = lcs_psid, prefix_psid = "LCS-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_comb_hist(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
-save_comb_loveplots(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
+#save_comb_hist(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
+#save_comb_loveplots(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
 ```
 
 ## Identifying best methods
