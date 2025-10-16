@@ -660,15 +660,15 @@ comb.psid <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute SMD
-smd_all_comb_meth.cps <- compute_smd_all_datasets(comb.cps, "treat", covar)
-smd_all_comb_meth.psid <- compute_smd_all_datasets(comb.psid, "treat", covar)
+smd_all_comb_meth.cps <- compute_abs_smd_comb(comb.cps, "treat", covar)
+smd_all_comb_meth.psid <- compute_abs_smd_comb(comb.psid, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_all_comb_meth.cps <- compute_ess_all_datasets(comb.cps, "treat", covar)
-ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
+ess_all_comb_meth.cps <- compute_ess_comb(comb.cps, "treat", covar)
+ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 ```
 
 #### Visuals
@@ -856,8 +856,8 @@ top5_datasets.psid <- create_top5_datasets(dataset_list_psid, top5_methods.psid)
 
 ```{r, message=FALSE, warning=FALSE}
 # save datasets into .RData files
-save_top5_individual_files(dataset_list_cps, top5_methods.cps, prefix = "nsw_cps1")
-save_top5_individual_files(dataset_list_psid, top5_methods.psid, prefix = "nsw_psid1")
+save_top5_datasets(dataset_list_cps, top5_methods.cps, prefix = "nsw_cps1")
+save_top5_datasets(dataset_list_psid, top5_methods.psid, prefix = "nsw_psid1")
 ```
 
 ## Estimating

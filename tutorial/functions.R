@@ -1,7 +1,7 @@
 # 1 Set up
 # 1.1 Installation
 packages <- c("data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
-              "hbal", "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
+              "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
               "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
@@ -22,7 +22,6 @@ library(cobalt)
 library(data.table)
 library(dplyr)
 library(ebal)
-library(hbal)
 library(ggplot2)
 library(gridExtra)
 library(highr)
@@ -62,10 +61,14 @@ inspect_data <- function(data, treat = "treat") {
 }
 
 # 2. Improving covariate balance and overlap
-## 2.1 Weighting
+# 2.1 Matching
+# NA
 
-## 2.2 Truncation
-### 2.2.1 Fixed maximum value truncation
+# 2.2 Weighting
+# NA
+
+## 2.3 Truncation
+### 2.3.1 Fixed maximum value truncation
 #### truncate_weights_fixed()
 truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
   data[[weight_col]] <- pmax(data[[weight_col]], lower)
@@ -73,7 +76,7 @@ truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.97
   return(data)
 }
 
-### 2.2.2 At percentile truncation
+### 2.3.2 At percentile truncation
 #### truncate_weights_percentile()
 truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
   quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
@@ -82,7 +85,7 @@ truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 
   return(data)
 } 
 
-### 2.2.3 Adaptive weight truncation
+### 2.3.3 Adaptive weight truncation
 #### check_weights()
 check_weights <- function(data, weight_col = "weight") {
   w <- data[[weight_col]]
@@ -104,25 +107,26 @@ truncate_weights_adaptive <- function(data, weight_col, c = 3) {
   return(data)
 }
 
-## 2.3 Trimming
-### ps_reestimate() ***
-ps_estimate <- function(data, Y, treat, cov, num.trees = 4000, seed = 42) {
+## 2.4 Trimming
+### ps_estimate() ***
+ps_estimate <- function(data, Y, treat, covar, num.trees = 4000, seed = 42) {
   set.seed(seed)
   data$ps_estimate <- probability_forest(
-    X = data[, cov],
+    X = data[, covar],
     Y = as.factor(data[, treat]),
     seed = seed, num.trees = num.trees
   )$predictions[, 2]
   return(data)
 }
 
-### 2.3.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
+### 2.4.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
+# ps_trim() *** 
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
   sub <- data[which(data[, ps] < threshold), ]
   return(sub)
 }
 
-### 2.3.2 Common range trimming
+### 2.4.2 Common range trimming
 #### common_range_trim ()
 common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   lower_cut <- max(
@@ -137,14 +141,14 @@ common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   return(sub)
 }
 
-### 2.3.3 Crump trimming
+### 2.4.3 Crump trimming
 #### crump_trim ()
 crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
   sub <- data[data[[ps]] >= lower & data[[ps]] <= upper, ]
   return(sub)
 }
 
-### 2.3.4 Stuermer trimming
+### 2.4.4 Stuermer trimming
 #### stuermer_trim ()
 stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                           lower_percentile = 0.05, upper_percentile = 0.95) {
@@ -156,7 +160,7 @@ stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
   return(sub)
 }
 
-### 2.3.5 Walker trimming
+### 2.4.5 Walker trimming
 #### walker_trim ()
 walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                         lower_cutoff = 0.3, upper_cutoff = 0.7) {
@@ -168,7 +172,7 @@ walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
   return(sub)
 }
 
-## 2.4 Combination of methods
+## 2.5 Combination of methods
 #### trim_attach_weights()
 trim_attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
   weight_type <- match.arg(weight_type)
@@ -575,8 +579,8 @@ plot_trim_overlap <- function(data_list, treat, covar, prefix = NULL,
 
 ## 3.5 Combined methods
 ### 3.5.1 SMD
-#### compute_smd_all_datasets()
-compute_smd_all_datasets <- function(combined_list, treat, covar) {
+#### compute_smd_comb()
+compute_abs_smd_comb <- function(combined_list, treat, covar) {
   smd_list <- lapply(names(combined_list), function(weight_method) {
     method_list <- combined_list[[weight_method]]
     res <- lapply(names(method_list), function(trim_method) {
@@ -609,8 +613,8 @@ compute_smd_all_datasets <- function(combined_list, treat, covar) {
 }
 
 ### 3.5.2 ESS
-#### compute_ess_all_datasets()
-compute_ess_all_datasets <- function(combined_list, treat, covar) {
+#### compute_ess_comb()
+compute_ess_comb <- function(combined_list, treat, covar) {
   ess_list <- lapply(names(combined_list), function(weight_method) {
     method_list <- combined_list[[weight_method]]
     res <- lapply(names(method_list), function(trim_method) {
@@ -920,8 +924,8 @@ save_csv <- function(data, filename) {
 }
 
 #### assess_methods
-assess_methods <- function(df) {
-  df %>%
+assess_methods <- function(data) {
+  data %>%
     mutate(
       # ess score
       ess_balance_ratio = pmin(Control, Treated) / pmax(Control, Treated),
@@ -986,8 +990,8 @@ create_top5_datasets <- function(dataset_list, top5_method_names) {
   })
 }
 
-#### save_top5_individual_files()
-save_top5_individual_files <- function(combined_methods_list, top5_method_names, prefix) {
+#### save_top5_datasets()
+save_top5_datasets <- function(combined_methods_list, top5_method_names, prefix) {
   for (i in seq_along(top5_method_names)) {
     method_name <- top5_method_names[i]
     if (!method_name %in% names(combined_methods_list)) {
@@ -1002,8 +1006,8 @@ save_top5_individual_files <- function(combined_methods_list, top5_method_names,
 
 # 4. Estimating
 ## 4.1 ATT
-#### estimate_all() ***
 # difference in means
+# diff()
 diff <- function(data, Y, treat) {
   fml <- as.formula(paste(Y, "~", treat))
   out <- summary(lm_robust(fml, data = data, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
@@ -1011,6 +1015,7 @@ diff <- function(data, Y, treat) {
 }
 
 # regression adjustment
+# reg()
 reg <- function(data, Y, treat, covar) {
   fml <- as.formula(paste(Y, "~", treat, "+", paste(covar, collapse = " + ")))
   out <- summary(lm_robust(fml, data = data, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
@@ -1020,6 +1025,7 @@ reg <- function(data, Y, treat, covar) {
 
 # matching
 # library(Matching)
+# matching()
 matching <- function(data, Y, treat, covar) {
   m.out <- Match(Y = data[, Y], Tr = data[, treat], X = data[, covar], Z = data[, covar],
                  estimand = "ATT", M = 5, replace = TRUE, ties = TRUE, BiasAdjust = TRUE)
@@ -1029,7 +1035,7 @@ matching <- function(data, Y, treat, covar) {
 }
 
 
-# psm
+# psm()
 psm <- function(data, Y, treat, covar) {
   ps <- probability_forest(X = data[, covar],
                            Y = as.factor(data[,treat]), seed = 42, num.trees = 4000)$predictions[,2]
@@ -1046,6 +1052,7 @@ psm <- function(data, Y, treat, covar) {
 }
 
 # OM (reg)
+# om.reg()
 om.reg <- function(data, Y, treat, covar) {
   tr <- which(data[, treat] == 1)
   co <- which(data[, treat] == 0)
@@ -1059,6 +1066,7 @@ om.reg <- function(data, Y, treat, covar) {
 
 # OM (grf)
 # library(grf)
+# om.grf()
 om.grf <- function(data, Y, treat, covar) {
   tr <- which(data[, treat] == 1)
   co <- which(data[, treat] == 0)
@@ -1070,6 +1078,7 @@ om.grf <- function(data, Y, treat, covar) {
 }
 
 # IPW
+# ipw()
 ipw <- function(data, Y, treat, covar) {
   ps <- probability_forest(X = data[, covar, drop = FALSE], Y = as.factor(data[, treat]), seed = 42)$predictions[,2]
   fml <- as.formula(paste(Y, "~", treat))
@@ -1083,6 +1092,7 @@ ipw <- function(data, Y, treat, covar) {
 
 # CBPS
 # library("CBPS")
+# cbps()
 cbps <- function(data, Y, treat, covar) {
   fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
   ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
@@ -1094,7 +1104,7 @@ cbps <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# ebal
+# ebal()
 #library(hbal)
 ebal <- function(data, Y, treat, covar) {
   ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
@@ -1109,7 +1119,7 @@ ebal <- function(data, Y, treat, covar) {
 #   return(out)
 # }
 
-# aipw_grf
+# aipw_grf()
 aipw <- function(data, Y, treat, covar) {
   tryCatch({
     #library("grf")
@@ -1127,6 +1137,7 @@ aipw <- function(data, Y, treat, covar) {
   })
 }
 
+# aipw.match()
 aipw.match <- function(data, Y, treat, covar) { # match on ps
   ps <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = 42)$predictions[,2]
   m.out <- Match(Y = data[, Y], Tr = data[, treat], X = ps,
@@ -1139,6 +1150,7 @@ aipw.match <- function(data, Y, treat, covar) { # match on ps
   return(c(out, ks))
 }
 
+# aipw_ow() ***
 aipw_ow <- function(data, Y, treat, covar) {
   tryCatch({
     for (var in c(Y, treat, covar)) {
@@ -1213,7 +1225,7 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
   })
 }
 
-# execute all estimators
+# estimate_all ***
 estimate_all <- function(data, Y, treat, covar, 
                          methods = c("diff", "reg", "om.reg", "om.grf",
                                      "matching", "psm", "ipw", "cbps", "ebal", 
@@ -1278,7 +1290,7 @@ estimate_all <- function(data, Y, treat, covar,
   return(results)
 }
 
-#### plot_coef()
+#### plot_coef() ***
 plot_coef <- function(out, 
                       methods = c("diff", "reg", "om.reg", "om.grf", 
                                   "matching", "psm", "ipw", "cbps", "ebal", 
@@ -1648,7 +1660,7 @@ save_ow <- function(outcome_weights, plot_titles = NULL,
 }
 
 # 5. Sensitivity Analysis
-#### check_filter_data()
+#### check_filter_datasets()
 check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
   valid_datasets <- list()
   for (i in seq_along(datasets)) {

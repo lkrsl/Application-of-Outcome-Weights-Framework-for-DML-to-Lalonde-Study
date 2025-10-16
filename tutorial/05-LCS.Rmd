@@ -458,13 +458,13 @@ comb.psid <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute SMD
-smd_all_comb_meth.psid <- compute_smd_all_datasets(comb.psid, "treat", covar)
+smd_all_comb_meth.psid <- compute_abs_smd_comb(comb.psid, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_all_comb_meth.psid <- compute_ess_all_datasets(comb.psid, "treat", covar)
+ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 ```
 
 #### Visuals
@@ -575,7 +575,7 @@ top5_datasets.psid <- create_top5_datasets(dataset_list_psid, top5_methods.psid)
 
 ```{r, message=FALSE, warning=FALSE}
 # save them into .RData files
-save_top5_individual_files(dataset_list_psid, top5_methods.psid, prefix = "lcs_psid1")
+save_top5_datasets(dataset_list_psid, top5_methods.psid, prefix = "lcs_psid1")
 ```
 
 ## Estimating
@@ -636,7 +636,7 @@ knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
 ```{r, warning=FALSE, message=FALSE}
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) %>% scroll_box(width = "600px", height = "400px")
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) 
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LCS-Experimental sample, column (B) for the LCS-PSID1 sample, and column (C) for its trimmed version. Columns (D)-(H) show results of the top-ranked subsample of LCS-PSID1.
