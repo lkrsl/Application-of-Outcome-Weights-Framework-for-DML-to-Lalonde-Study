@@ -12,10 +12,10 @@ Several R packages are required for the data analysis and visualization. The cod
 Since the analysis sources functions directly from the @imbens2024 tutorial, the required packages are automatically installed and loaded as part of that process. Therefore, it is only necessary to install and load any additional packages as well as add custom functions that are required for the analysis.
 </div>
 
-**Packages**: "data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+**Packages**: "cobalt", "data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs" , "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 ```{r, message=FALSE, warning=FALSE}
 # required packages
-packages <- c("data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr",  "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+packages <- c("cobalt", "data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr",  "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
 )
 
 # install packages
@@ -365,7 +365,7 @@ compute_abs_smd_matchit <- function(match_list) {
     row.names = NULL
   )
   return(smd_df)
-} 
+}
 ```
 
 **Argument**
@@ -429,11 +429,15 @@ plot_matching_balance <- function(matchit_objects, threshold = 0.1, title = NULL
       scale_color_manual(values = c("Pre-Matching" = "#00CFC1", "Post-Matching" = "#FC766A"))
     plot_list[[name]] <- p
   }
-  
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
+  n_plots <- length(plot_list)
+  plots_per_page <- 6
+  if (n_plots == 1) {
+    print(plot_list[[1]])
   } else {
-    return(plot_list)
+    for (i in seq(1, n_plots, by = plots_per_page)) {
+      gridExtra::grid.arrange(grobs = plot_list[i:min(i + plots_per_page - 1, n_plots)],
+                              ncol = 3, nrow = 2)
+    }
   }
 }
 ```
@@ -552,10 +556,15 @@ plot_weighting_balance <- function(data, treat, covar, weight_list, title = NULL
       scale_color_manual(values = c("Pre-Weighting" = "#00CFC1", "Post-Weighting" = "#FC766A"))
     plot_list[[wname]] <- p
   }
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
+  n_plots <- length(plot_list)
+  plots_per_page <- 6
+  if (n_plots == 1) {
+    print(plot_list[[1]])
   } else {
-    return(plot_list)
+    for (i in seq(1, n_plots, by = plots_per_page)) {
+      gridExtra::grid.arrange(grobs = plot_list[i:min(i + plots_per_page - 1, n_plots)],
+                              ncol = 3, nrow = 2)
+    }
   }
 }
 ```
@@ -713,10 +722,15 @@ plot_trunc_balance <- function(trunc_list, treat, covar, weight_cols, dataset_na
       }
     }
   }
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
+  n_plots <- length(plot_list)
+  plots_per_page <- 6
+  if (n_plots == 1) {
+    print(plot_list[[1]])
   } else {
-    return(plot_list)
+    for (i in seq(1, n_plots, by = plots_per_page)) {
+      gridExtra::grid.arrange(grobs = plot_list[i:min(i + plots_per_page - 1, n_plots)],
+                              ncol = 3, nrow = 2)
+    }
   }
 }
 ```
@@ -1385,7 +1399,6 @@ matching <- function(data, Y, treat, covar) {
            m.out$est[1] + 1.96 * m.out$se[1])
   return(out)
 }
-
 
 # psm()
 psm <- function(data, Y, treat, covar) {

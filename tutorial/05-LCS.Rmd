@@ -143,24 +143,28 @@ m.out.psid.profile <- matchit(model, data = lcs_psid, method = "cardinality", es
 ### Weighting
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
+# estimates propensity scores with a parametric generalized linear model and converts them into weights
 w.out.ipw <- WeightIt::weightit(model, data = lcs_psid, estimand = "ATT", method = "glm")
 lcs_psid$ipw_weight <- w.out.ipw$weights
 ```
 
 #### Stable balancing weights 
 ```{r, message=FALSE, warning=FALSE}
+# estimates weights by solving a quadratic programming problem 
 w.out.opt <- optweight::optweight(model, data = lcs_psid, estimand = "ATT")
 lcs_psid$opt_weight <- w.out.opt$weights
 ```
 
-#### Propensity score weights
+#### Covariate balance propensity score weights
 ```{r, message=FALSE, warning=FALSE}
+# estimates propensity scores using generalized method of moments and then converts them into weights
 w.out.cbps <- WeightIt::weightit(model, data = lcs_psid, estimand = "ATT", method = "cbps")
 lcs_psid$cbps_weight <- w.out.cbps$weights
 ```
 
 #### Entropy balancing weights
 ```{r, message=FALSE, warning=FALSE}
+# estimates weights by minimizing the negative entropy of the weights subject to exact moment balancing constraints
 w.out.ebal <- WeightIt::weightit(model, data = lcs_psid, estimand = "ATT", method = "ebal")
 lcs_psid$ebal_weight <- w.out.ebal$weights
 ```
@@ -470,18 +474,18 @@ ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGURED8.'}
 # visualize overlap
-#plot_comb_overlap(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_psid = "LCS-PSID1")
+plot_comb_overlap(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_psid = "LCS-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGURED9.'} 
 # visualize covariate balance
-#plot_comb_balance(comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_psid = lcs_psid, prefix_psid = "LCS-PSID1")
+plot_comb_balance(comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_psid = lcs_psid, prefix_psid = "LCS-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-#save_comb_hist(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
-#save_comb_loveplots(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
+save_comb_hist(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
+save_comb_loveplots(comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "lcs", prefix_psid = "lcs_psid1")
 ```
 
 ## Identifying best methods
@@ -584,8 +588,8 @@ save_top5_datasets(dataset_list_psid, top5_methods.psid, prefix = "lcs_psid1")
 # get estimates
 out1 <- estimate_all(lcs, "re79", "treat", covar)
 out2 <- estimate_all(lcs_psid, "re79", "treat", covar)
-out3 <- estimate_all(lcs_psid_plus.trim, "re79", "treat", covar) # similar to Imbens & Xu (2024)
-out4 <- estimate_all(lcs_psid.trim, "re79", "treat", covar)  
+out3 <- estimate_all(lcs_psid.trim, "re79", "treat", covar)  
+out4 <- estimate_all(lcs_psid_plus.trim, "re79", "treat", covar) # similar to Imbens & Xu (2024)
 
 out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re79", "treat", covar))
 out5 <- out.psid[[1]]
@@ -597,7 +601,7 @@ out9 <- out.psid[[5]]
 
 ```{r, message=FALSE, warning=FALSE}
 # build plot titles 
-base_titles <- c("(A) LCS-Experimental", "(B) LCS-PSID1" , "(C) Trimmed LCS-PSID1-PLUS", "(D) Trimmed LCS-PSID1")
+base_titles <- c("(A) LCS-Experimental", "(B) LCS-PSID1" , "(C) Trimmed LCS-PSID1", "(D) Trimmed LCS-PSID1-PLUS")
 top_start <- 5 # E is 5th letter
 num_psid <- length(top5_methods.psid)
 top_letters_psid <- LETTERS[top_start:(top_start + num_psid - 1)]
@@ -788,8 +792,8 @@ out2_pl <- estimate_all(lcs_psid, Y_pl, "treat", covar_pl)
 
 ```{r, warning=FALSE, message=FALSE}
 # estimate placebo ATT on trimmed datasets 
-out3_pl <- estimate_all(lcs_psid_plus.trim, Y_pl, "treat", covar_pl) # similar to Imbens & Xu (2024)
-out4_pl <- estimate_all(lcs_psid.trim, Y_pl, "treat", covar_pl)
+out3_pl <- estimate_all(lcs_psid.trim, Y_pl, "treat", covar_pl)
+out4_pl <- estimate_all(lcs_psid_plus.trim, Y_pl, "treat", covar_pl) # similar to Imbens & Xu (2024)
 ```
 
 ```{r, message=FALSE, warning=FALSE}

@@ -210,7 +210,7 @@ m.out.psid.profile <- matchit(model, data = nsw_psid, method = "cardinality", es
 ### Weighting
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
-# 
+# estimates propensity scores with a parametric generalized linear model and converts them into weights
 w.out.cps.ipw <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "glm")
 nsw_cps$ipw_weight <- w.out.cps.ipw$weights
 w.out.psid.ipw <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "glm")
@@ -219,15 +219,16 @@ nsw_psid$ipw_weight <- w.out.psid.ipw$weights
 
 #### Stable balancing weights 
 ```{r, message=FALSE, warning=FALSE}
-#
+# estimates weights by solving a quadratic programming problem 
 w.out.cps.opt <- optweight::optweight(model, data = nsw_cps, estimand = "ATT")
 nsw_cps$opt_weight <- w.out.cps.opt$weights
 w.out.psid.opt <- optweight::optweight(model, data = nsw_psid, estimand = "ATT")
 nsw_psid$opt_weight <- w.out.psid.opt$weights
 ```
 
-#### Propensity score weights
+#### Covariate balance propensity score weights
 ```{r, message=FALSE, warning=FALSE}
+# estimates propensity scores using generalized method of moments and then converts them into weights
 w.out.cps.cbps <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "cbps")
 nsw_cps$cbps_weight <- w.out.cps.cbps$weights
 w.out.psid.cbps <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "cbps")
@@ -236,7 +237,7 @@ nsw_psid$cbps_weight <- w.out.psid.cbps$weights
 
 #### Entropy balancing weights
 ```{r, message=FALSE, warning=FALSE}
-#
+# estimates weights by minimizing the negative entropy of the weights subject to exact moment balancing constraints
 w.out.cps.ebal <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "ebal")
 nsw_cps$ebal_weight <- w.out.cps.ebal$weights
 w.out.psid.ebal <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "ebal")
@@ -346,8 +347,8 @@ nsw_cps_plus.trim.match <- subset(nsw_cps_plus.trim, sample %in% c(0,3) & ps_ass
 nsw_psid_plus.trim.match <- subset(nsw_psid_plus.trim, sample %in% c(0,4) & ps_assoverlap)
 
 # re-assign treat variable for controls in sample 3 or 4 (non-treated group)
-nsw_cps_plus.trim.match$treat[nsw_cps_plus.trim.match$sample == 0.5] <- 0
-nsw_psid_plus.trim.match$treat[nsw_psid_plus.trim.match$sample == 0.5] <- 0
+#nsw_cps_plus.trim.match$treat[nsw_cps_plus.trim.match$sample == 0.5] <- 0
+#nsw_psid_plus.trim.match$treat[nsw_psid_plus.trim.match$sample == 0.5] <- 0
 
 # re-estimate propensity scores on trimmed data and perform 1:1 matching
 nsw_cps_plus.trim.match <- psmatch(data = nsw_cps_plus.trim.match, Y = "re78", treat = "treat", cov = covar)
@@ -674,18 +675,18 @@ ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC7.'}
 # visualize overlap
-#plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
+plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC8.'} 
 # visualize covariate balance
-#plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = nsw_cps, orig_psid = nsw_psid, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
+plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = nsw_cps, orig_psid = nsw_psid, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-#save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
-#save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
+save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
+save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
 ```
 
 ## Identifying best methods
@@ -867,10 +868,10 @@ save_top5_datasets(dataset_list_psid, top5_methods.psid, prefix = "nsw_psid1")
 out1 <- estimate_all(nsw, "re78", "treat", covar)
 out2 <- estimate_all(nsw_cps, "re78", "treat", covar)
 out3 <- estimate_all(nsw_psid, "re78", "treat", covar)
-out4 <- estimate_all(nsw_cps_plus.trim, "re78", "treat", covar)
-out5 <- estimate_all(nsw_psid_plus.trim, "re78", "treat", covar)
-out6 <- estimate_all(nsw_cps.trim, "re78", "treat", covar) 
-out7 <- estimate_all(nsw_psid.trim, "re78", "treat", covar)
+out4 <- estimate_all(nsw_cps.trim, "re78", "treat", covar) 
+out5 <- estimate_all(nsw_psid.trim, "re78", "treat", covar)
+out6 <- estimate_all(nsw_cps_plus.trim, "re78", "treat", covar) # similar to Imbens & Xu (2024)
+out7 <- estimate_all(nsw_psid_plus.trim, "re78", "treat", covar) # similar to Imbens & Xu (2024)
 
 out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
@@ -1003,8 +1004,8 @@ qte.nsw_cps_plus <- est_qte(Y, treat, covar, data = nsw_cps_plus)
 qte.nsw_psid_plus <- est_qte(Y, treat, covar, data = nsw_psid_plus)
 qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps.trim)
 qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid.trim) 
-qte.nsw_cps_plus.trim <- est_qte(Y, treat, covar, data = nsw_cps_plus.trim)
-qte.nsw_psid_plus.trim <- est_qte(Y, treat, covar, data = nsw_psid_plus.trim) 
+qte.nsw_cps_plus.trim <- est_qte(Y, treat, covar, data = nsw_cps_plus.trim) # similar to Imbens & Xu (2024)
+qte.nsw_psid_plus.trim <- est_qte(Y, treat, covar, data = nsw_psid_plus.trim) # similar to Imbens & Xu (2024)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1045,7 +1046,7 @@ plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw_psid, main = "(E) NSW-PS
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-## CPS1-PLUS trimmed
+# CPS1-PLUS trimmed
 plot_qte(qte.nsw_cps_plus.trim, qte.nsw_cps_plus.trim0, qte.nsw_cps_plus, main = "(F) NSW-CPS1-PLUS (Trimmed)", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 

@@ -252,7 +252,7 @@ The purpose of weighting is to reweight the units in order to create a synthetic
 
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
-# 
+# estimates propensity scores with a parametric generalized linear model and converts them into weights
 w.out.cps.ipw <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "glm")
 ldw_cps$ipw_weight <- w.out.cps.ipw$weights
 w.out.psid.ipw <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "glm")
@@ -261,16 +261,16 @@ ldw_psid$ipw_weight <- w.out.psid.ipw$weights
 
 #### Stable balancing weights 
 ```{r, message=FALSE, warning=FALSE}
-# 
+# estimates weights by solving a quadratic programming problem 
 w.out.cps.opt <- optweight::optweight(model, data = ldw_cps, estimand = "ATT")
 ldw_cps$opt_weight <- w.out.cps.opt$weights
 w.out.psid.opt <- optweight::optweight(model, data = ldw_psid, estimand = "ATT")
 ldw_psid$opt_weight <- w.out.psid.opt$weights
 ```
 
-#### Propensity score weights
+#### Covariate balance propensity score weights
 ```{r, message=FALSE, warning=FALSE}
-# 
+# estimates propensity scores using generalized method of moments and then converts them into weights
 w.out.cps.cbps <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "cbps")
 ldw_cps$cbps_weight <- w.out.cps.cbps$weights
 w.out.psid.cbps <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "cbps")
@@ -279,13 +279,12 @@ ldw_psid$cbps_weight <- w.out.psid.cbps$weights
 
 #### Entropy balancing weights
 ```{r, message=FALSE, warning=FALSE}
-#
+# estimates weights by minimizing the negative entropy of the weights subject to exact moment balancing constraints
 w.out.cps.ebal <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "ebal")
 ldw_cps$ebal_weight <- w.out.cps.ebal$weights
 w.out.psid.ebal <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "ebal")
 ldw_psid$ebal_weight <- w.out.psid.ebal$weights
 ```
-
 
 ## Improving primarily overlap
 
@@ -396,10 +395,6 @@ ldw_psid_plus.trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 # exclude experimental controls, subset trimmed data appropriately
 ldw_cps_plus.trim.match <- subset(ldw_cps_plus.trim, sample %in% c(1,3) & ps_assoverlap)
 ldw_psid_plus.trim.match <- subset(ldw_psid_plus.trim, sample %in% c(1,4) & ps_assoverlap)
-
-# re-assign treat variable for controls in sample 3 or 4 (non-treated group)
-ldw_cps_plus.trim.match$treat[ldw_cps_plus.trim.match$sample == 3] <- 0
-ldw_psid_plus.trim.match$treat[ldw_psid_plus.trim.match$sample == 4] <- 0
 
 # re-estimate propensity scores on trimmed data and perform 1:1 matching
 ldw_cps_plus.trim.match <- psmatch(data = ldw_cps_plus.trim.match, Y = "re78", treat = "treat", cov = covar)
@@ -697,6 +692,39 @@ plot_trim_overlap(all_trim.psid, treat, covar, prefix = "LDW-PSID1")
 ```
 
 ## Integrated methods
+### Trimming and matching
+```{r, message=FALSE, warning=FALSE}
+# list all combined results
+# comb.cps.plus <- list(
+# ps_threshold_match = ldw_cps_plus.trim.match)
+#
+
+# comb.cps.plus <- list(
+# ps_threshold_match = ldw_cps_plus.trim.match)
+```
+
+#### SMD
+```{r, message=FALSE, warning=FALSE}
+# compute SMD
+# smd_all_comb_meth.cps <- compute_abs_smd_comb(comb.cps.plus, "treat", covar) 
+#smd_all_comb_meth.psid <- compute_abs_smd_comb(comb.psid.plus, "treat", covar)
+```
+
+#### ESS
+```{r, message=FALSE, warning=FALSE}
+# compute ESS
+# ess_all_comb_meth.cps <- compute_ess_comb(comb.cps.plus, "treat", covar) 
+# ess_all_comb_meth.psid <- compute_ess_comb(comb.psid.plus, "treat", covar)
+# ess_all_comb_meth.psid
+```
+
+#### Visuals
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREA7.'}
+# visualize overlap
+# plot_comb_overlap(comb_meth_cps = comb.cps.plus, comb_meth_psid = comb.psid.plus, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1-PLUS", prefix_psid = "LDW-PSID1-PLUS")
+```
+
+### Trimming and weighting
 ```{r, message=FALSE, warning=FALSE}
 # list all combined results
 comb.cps <- list(
@@ -731,7 +759,12 @@ ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREA7.'}
 # visualize overlap
-#plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
+plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
+```
+
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREA7.'}
+# inspect weights
+ipw_comb.psid
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREA8.'} 
@@ -741,7 +774,7 @@ ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-#save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "model_a", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
+save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "model_a", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
 #save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "model_a", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
 ```
 
@@ -823,6 +856,7 @@ dataset_list_cps <- list(
   "adap_weight_opt_weight" = ldw_cps.adapt$opt_weight,
   "adap_weight_cbps_weight" = ldw_cps.adapt$cbps_weight,
   "adap_weight_ebal_weight" = ldw_cps.adapt$ebal_weight,
+# "ps_threshold_match" = ldw_cps_plus.trim.match,
   "ps_threshold" = ldw_cps.trim,
   "common_range" = ldw_cps.common,
   "stuermer" = ldw_cps.stuermer,
@@ -883,6 +917,7 @@ dataset_list_psid <- list(
   "adap_weight_opt_weight" = ldw_psid.adapt$opt_weight,
   "adap_weight_cbps_weight" = ldw_psid.adapt$cbps_weight,
   "adap_weight_ebal_weight" = ldw_psid.adapt$ebal_weight,
+# "ps_threshold_match" = ldw_psid_plus.trim.match,
   "ps_threshold" = ldw_psid.trim,
   "common_range" = ldw_psid.common,
   "stuermer" = ldw_psid.stuermer,
@@ -936,10 +971,10 @@ library(hbal)
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
-out4 <- estimate_all(ldw_cps_plus.trim, "re78", "treat", covar) 
-out5 <- estimate_all(ldw_psid_plus.trim, "re78", "treat", covar)
-out6 <- estimate_all(ldw_cps.trim, "re78", "treat", covar) 
-out7 <- estimate_all(ldw_psid.trim, "re78", "treat", covar)
+out4 <- estimate_all(ldw_cps.trim, "re78", "treat", covar) 
+out5 <- estimate_all(ldw_psid.trim, "re78", "treat", covar)
+out6 <- estimate_all(ldw_cps_plus.trim, "re78", "treat", covar) # similar to Imbens & Xu (2024)
+out7 <- estimate_all(ldw_psid_plus.trim, "re78", "treat", covar) # similar to Imbens & Xu (2024)
 
 out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
@@ -1004,7 +1039,7 @@ The ATT results are presented in the table below:
 ```{r, message=FALSE, warning=FALSE}
 # get result matrix
 result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) 
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE)
 ```
 
 <div class="callout-note">
@@ -1093,8 +1128,8 @@ qte.ldw_cps_plus <- est_qte(Y, treat, covar, data = ldw_cps_plus)
 qte.ldw_psid_plus <- est_qte(Y, treat, covar, data = ldw_psid_plus)
 qte.ldw_cps.trim <- est_qte(Y, treat, covar, data = ldw_cps.trim)
 qte.ldw_psid.trim <- est_qte(Y, treat, covar, data = ldw_psid.trim) 
-qte.ldw_cps_plus.trim <- est_qte(Y, treat, covar, data = ldw_cps_plus.trim)
-qte.ldw_psid_plus.trim <- est_qte(Y, treat, covar, data = ldw_psid_plus.trim) 
+qte.ldw_cps_plus.trim <- est_qte(Y, treat, covar, data = ldw_cps_plus.trim) # similar to Imbens & Xu (2024)
+qte.ldw_psid_plus.trim <- est_qte(Y, treat, covar, data = ldw_cps_plus.trim) # similar to Imbens & Xu (2024)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1109,7 +1144,7 @@ qte.ldw.psid0 <- est_qte(Y, treat, NULL, data = ldw_psid)
 qte.ldw_cps.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps.trim)
 qte.ldw_psid.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid.trim)
 qte.ldw_cps_plus.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps_plus.trim)
-qte.ldw_psid_plus.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid_plus.trim)
+qte.ldw_psid_plus.trim0 <- est_qte(Y, treat, NULL, data = ldw_cps_plus.trim)
 qte.top5_cps0  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, NULL, data = d))
 qte.top5_psid0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
@@ -1127,7 +1162,7 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty =
 plot_qte(qte.ldw_psid, qte.ldw.psid0, qte.ldw, main = "(C) LDW-PSID1", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-## CPS1 trimmed
+# CPS1 trimmed
 plot_qte(qte.ldw_cps.trim, qte.ldw_cps.trim0, qte.ldw_cps, main = "(D) LDW-CPS1 (Trimmed)", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
@@ -1136,7 +1171,7 @@ plot_qte(qte.ldw_psid.trim, qte.ldw_psid.trim0, qte.ldw_psid, main = "(E) LDW-PS
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-## CPS1-PLUS trimmed
+# CPS1-PLUS trimmed
 plot_qte(qte.ldw_cps_plus.trim, qte.ldw_cps_plus.trim0, qte.ldw_cps_plus, main = "(F) LDW-CPS1-PLUS (Trimmed)", ylim = c(-25000, 15000))
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
@@ -1221,10 +1256,10 @@ covar_pl <- c("age", "education", "black", "hispanic", "married", "nodegree", "r
 out1_pl <- estimate_all(ldw, Y_pl, "treat", covar_pl)
 out2_pl <- estimate_all(ldw_cps, Y_pl, "treat", covar_pl)
 out3_pl <- estimate_all(ldw_psid, Y_pl, "treat", covar_pl)
-out4_pl <- estimate_all(ldw_cps_plus.trim, Y_pl, "treat", covar_pl)
-out5_pl <- estimate_all(ldw_psid_plus.trim, Y_pl, "treat", covar_pl)
-out6_pl <- estimate_all(ldw_cps.trim, Y_pl, "treat", covar_pl) 
-out7_pl <- estimate_all(ldw_psid.trim, Y_pl, "treat", covar_pl)
+out4_pl <- estimate_all(ldw_cps.trim, Y_pl, "treat", covar_pl) 
+out5_pl <- estimate_all(ldw_psid.trim, Y_pl, "treat", covar_pl)
+out6_pl <- estimate_all(ldw_cps_plus.trim, Y_pl, "treat", covar_pl) # similar to Imbens & Xu (2024)
+out7_pl <- estimate_all(ldw_cps_plus.trim, Y_pl, "treat", covar_pl) # similar to Imbens & Xu (2024)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1267,7 +1302,7 @@ The placebo ATT results are presented in the table below:
 ```{r, message=FALSE, warning=FALSE}
 # print placebo results
 result_mat_pl <- create_matrix_results(all_outs.pl, plot_titles)
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>% kable_styling(full_width = TRUE) 
+knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>% kable_styling(full_width = TRUE)
 ```
 
 The placebo analysis reveals that the experimental benchmarks are positive, near zero and statistically insignificant, while all estimators applied to the observational datasets, LDW-CPS1 and LDW-PSID1, yield by majority large, negative ATT estimates.
