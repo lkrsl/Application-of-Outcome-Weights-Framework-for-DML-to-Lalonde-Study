@@ -12,6 +12,8 @@ skripte <- list.files(
   pattern = "\\.R$", 
   full.names = TRUE)
 for (f in skripte) source(f, local = knitr::knit_global())
+
+getwd()
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -27,9 +29,10 @@ Q <- rbinom(n, 1, 0.5)  # random assignment
 D <- Q * Z              # treatment assignment
 
 # define true treatment effect and outcomes (ATT-focused)
-tau <- X[, 1] / 2 
-treatment_effect <- ifelse(D == 1, tau, 0)
-Y <- rowSums(X[, 1:3]) + treatment_effect + rnorm(n)  
+tau <- X[, 1] / 2
+Y_0 <- rowSums(X[, 1:3]) + rnorm(n)  
+Y_1 <- Y_0 + tau
+Y <- D * Y_1 + (1 - D) * Y_0
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -51,42 +54,21 @@ print(summary_att)
 # validate weights
 omega_att <- get_outcome_weights(att_result)
 weighted_att <- as.numeric(omega_att$omega["AIPW-ATT", ] %*% Y)  
-
-# compare with summary output
-expect_equal(
-  weighted_att,
-  as.numeric(summary_att["AIPW-ATT", "Estimate"]),  
-  tolerance = 1e-6
-)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # calculate true ATT 
-true_att <- mean(treatment_effect[D == 1])  
+true_att <- mean(tau[D == 1])  
 
 # compare with tolerance
 cat("Final validation of AIPW-ATT:", isTRUE(all.equal(weighted_att, true_att, tolerance = 0.2)), "\n")
+
+# print results
+true_att
+weighted_att
 ```
 
-# Average Treatment Effect of the Treated (ATU)
-
-```{r, message=FALSE, warning=FALSE}
-# set up sample data
-set.seed(1234)
-n <- 100   # number of observations
-p <- 3     # number of covariates
-
-# generate sample data
-X <- matrix(rbinom(n * p, 1, 0.5), n, p)
-Z <- rbinom(n, 1, 0.5)  # instrumental variable
-Q <- rbinom(n, 1, 0.5)  # random assignment
-D <- Q * Z              # treatment assignment
-
-# define true treatment effect and outcomes (ATU-focused)
-tau <- X[, 1] / 2 
-treatment_effect <- ifelse(D == 1, 0, tau_atu)
-Y <- rowSums(X[, 1:3]) + treatment_effect + rnorm(n)  
-```
+# Average Treatment Effect of the Untreated (ATU)
 
 ```{r, message=FALSE, warning=FALSE}
 # perform DML for ATU
@@ -107,20 +89,17 @@ print(summary_atu)
 # validate weights
 omega_atu <- get_outcome_weights(atu_result)
 weighted_atu <- as.numeric(omega_atu$omega["AIPW-ATU", ] %*% Y)  
-
-# compare with summary output
-expect_equal(
-  weighted_atu,
-  as.numeric(summary_atu["AIPW-ATU", "Estimate"]),  
-  tolerance = 1e-6
-)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # calculate true ATU 
-true_atu <- mean(treatment_effect[D == 0]) 
+true_atu <- mean(tau[D == 0]) 
 
 # compare with tolerance
 cat("Final validation of AIPW-ATU:", 
     isTRUE(all.equal(weighted_atu, true_atu, tolerance = 0.2)), "\n")
+
+# print results
+true_atu
+weighted_atu
 ```

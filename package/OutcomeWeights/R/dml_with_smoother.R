@@ -146,11 +146,11 @@ dml_with_smoother = function(Y,D,X,Z=NULL,
     dml_Wald_AIPW = dml_inference(psi.a,psi.b)
   }
   if ("AIPW_ATT" %in% estimators) {
-    p.hat =  mean(D)
+    p.hat = mean(D)
     D.hat = NuPa.hat$predictions$D.hat 
     Y.hat.d0 = NuPa.hat$predictions$Y.hat.d0 
     psi.a = matrix(- D / p.hat, nrow = N, ncol = n_reps) 
-    psi.b = (D * (Y - Y.hat.d0) / p.hat) - ((1 - D) * D.hat * (Y - Y.hat.d0) / (p.hat * (1 - D.hat)))
+    psi.b = (D * (Y - Y.hat.d0) / p.hat) - ((1 - D) * D.hat * (Y - Y.hat.d0) / ((1 - D.hat) * p.hat))
     dml_AIPW_ATT = dml_inference(psi.a,psi.b)
   }
   if ("AIPW_ATU" %in% estimators) {
@@ -158,10 +158,9 @@ dml_with_smoother = function(Y,D,X,Z=NULL,
     D.hat = NuPa.hat$predictions$D.hat 
     Y.hat.d1 = NuPa.hat$predictions$Y.hat.d1 
     psi.a = matrix(- (1 - D) / (1 - p.hat), nrow = N, ncol = n_reps) 
-    psi.b = ((1 - D) * (Y - Y.hat.d1) / (1 - p.hat)) - (D * (1 - D.hat) * (Y - Y.hat.d1)) / ((1 - p.hat) * D.hat)
+    psi.b = (D * (1 - D.hat) * (Y - Y.hat.d1) / (D.hat * (1 - p.hat))) - ((1 - D) * (Y - Y.hat.d1) / (1 - p.hat)) 
     dml_AIPW_ATU = dml_inference(psi.a,psi.b)
   }
-  
   list_results = list(
     "PLR" = dml_plr,
     "PLR_IV" = dml_PLR_IV,
@@ -283,7 +282,7 @@ get_outcome_weights.dml_with_smoother = function(object,...,
       omega_aipw = rbind(omega_aipw, pive_weight_maker(Z.tilde[,r], D.tilde[,r], T_mat) )
     }
     if(isFALSE(all.equal(as.numeric(omega_aipw %*% object$data$Y),
-                         as.numeric(object$results$AIPW_ATE$TaPa[,1])))){
+                         as.numeric(object$results$AIPW_ATE$TaPa[, 1])))){
       warning("Estimated AIPW-ATE using weights differ from original estimates.") }
     estimator_names = c(estimator_names, "AIPW-ATE") 
     omega = rbind(omega,colMeans(omega_aipw))  }
@@ -296,8 +295,8 @@ get_outcome_weights.dml_with_smoother = function(object,...,
     omega_aipw_att = NULL
     for (r in 1:n_reps) {
       T_mat = 
-        lambda1 * (diag(N) - object$NuPa.hat$smoothers$S.d0[r,,]) - 
-        lambda0[,r] * (diag(N) - object$NuPa.hat$smoothers$S.d0[r,,])
+        (lambda1 * (diag(N) - object$NuPa.hat$smoothers$S.d0[r,,])) - 
+        (lambda0[,r] * (diag(N) - object$NuPa.hat$smoothers$S.d0[r,,]))
       omega_aipw_att = rbind(omega_aipw_att, pive_weight_maker(Z.tilde[,r], D.tilde[,r], T_mat))
     }
     if (isFALSE(all.equal(as.numeric(omega_aipw_att %*% object$data$Y),
@@ -309,14 +308,14 @@ get_outcome_weights.dml_with_smoother = function(object,...,
   
   if (!is.character(object$results$AIPW_ATU)) {
     Z.tilde = D.tilde = matrix(1,N,n_reps)
-    p.hat <- mean(object$data$D) 
-    lambda1 = (1 - object$data$D) / (1 - p.hat)
-    lambda0 = (object$data$D * (1 - object$NuPa.hat$predictions$D.hat)) / ((object$NuPa.hat$predictions$D.hat) * (1-p.hat))
+    p.hat <- mean(object$data$D)
+    lambda1 = object$data$D * (1 - object$NuPa.hat$predictions$D.hat) / (object$NuPa.hat$predictions$D.hat * (1-p.hat))
+    lambda0 = (1 - object$data$D) / (1-p.hat)
     omega_aipw_atu = NULL
     for (r in 1:n_reps) {
       T_mat = 
-        lambda1 * (diag(N) - object$NuPa.hat$smoothers$S.d1[r,,]) - 
-        lambda0[,r] * (diag(N) - object$NuPa.hat$smoothers$S.d1[r,,])
+        (lambda1[,r] * (diag(N) - object$NuPa.hat$smoothers$S.d1[r,,])) - 
+        (lambda0 * (diag(N) - object$NuPa.hat$smoothers$S.d1[r,,]))
       omega_aipw_atu = rbind(omega_aipw_atu, pive_weight_maker(Z.tilde[,r], D.tilde[,r], T_mat))
     }
     if (isFALSE(all.equal(as.numeric(omega_aipw_atu %*% object$data$Y),
