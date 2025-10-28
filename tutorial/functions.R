@@ -1,8 +1,8 @@
 # 1 Set up
 # 1.1 Installation
-packages <- c("data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
-              "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
-              "readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+packages <- c("cobalt", "data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
+              "kableExtra", "MatchIt", "OutcomeWeights", "optmatch", "optweight", "quickmatch", 
+              "readr", "rgenoud", "tidyr", "tidyverse", "ppcor", "WeightIt"
 )
 
 #### install_all()
@@ -32,16 +32,12 @@ library(optmatch)
 library(optweight)
 library(quickmatch)
 library(readr)
+library(rgenoud)
 library(tidyr)
 library(tidyverse)
+library(ppcor)
 library(WeightIt)
-
-#### source files for aipw_ow extension
-skripte <- list.files(
-  "package/OutcomeWeights/R",  
-  pattern = "\\.R$", 
-  full.names = TRUE)
-for (f in skripte) source(f, local = knitr::knit_global())
+library(OutcomeWeights)
 
 # 1.2 Data inspection
 #### inspect_datasets()
@@ -245,8 +241,8 @@ plot_matching_balance <- function(matchit_objects, threshold = 0.1, title = NULL
     bal <- cobalt::bal.tab(matchit_object, un = TRUE)
     smd_df <- data.frame(
       Variable = rownames(bal$Balance),
-      Pre = bal$Balance[,"Diff.Un"],
-      Post = bal$Balance[,"Diff.Adj"]
+      Pre = abs(bal$Balance[, "Diff.Un"]),
+      Post = abs(bal$Balance[, "Diff.Adj"])
     )
     # remove propensity score or non-covariate rows if present
     smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
@@ -271,7 +267,7 @@ plot_matching_balance <- function(matchit_objects, threshold = 0.1, title = NULL
       geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
       geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
       coord_flip() +
-      labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+      labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
       theme_minimal() +
       theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
             plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
@@ -339,6 +335,7 @@ compute_ess_weight <- function(data, treat, covar, weights_list) {
 plot_weighting_balance <- function(data, treat, covar, weight_list, title = NULL) {
   plot_list <- list()
   for (wname in names(weight_list)) {
+    invisible(capture.output({
     bal <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
@@ -348,8 +345,8 @@ plot_weighting_balance <- function(data, treat, covar, weight_list, title = NULL
     )
     smd_df <- data.frame(
       Variable = rownames(bal$Balance),
-      Pre  = bal$Balance[,"Diff.Un"],
-      Post = bal$Balance[,"Diff.Adj"]
+      Pre  = abs(bal$Balance[, "Diff.Un"]),
+      Post = abs(bal$Balance[, "Diff.Adj"])
     )
     smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
     smd_long <- pivot_longer(
@@ -370,13 +367,14 @@ plot_weighting_balance <- function(data, treat, covar, weight_list, title = NULL
       geom_hline(yintercept = 0.1, linetype = "dashed", color = "red") +
       geom_hline(yintercept = -0.1, linetype = "dashed", color = "red") +
       coord_flip() +
-      labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+      labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
       theme_minimal() +
       theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
             plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
       scale_color_manual(values = c("Pre-Weighting" = "#00CFC1", "Post-Weighting" = "#FC766A"))
     plot_list[[wname]] <- p
-  }
+   }))
+  }  
   if (length(plot_list) == 1) {
     return(plot_list[[1]])
   } else {
@@ -465,7 +463,8 @@ plot_trunc_balance <- function(trunc_list, treat, covar, weight_cols, dataset_na
   plot_list <- list()
   for (trunc_name in names(trunc_list)) {
     dataset <- trunc_list[[trunc_name]]
-    for (wcol in weight_cols) {
+    for (wcol in weight_cols) 
+      invisible(capture.output({
       if (wcol %in% names(dataset)) {
         bal_obj <- cobalt::bal.tab(
           as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
@@ -476,8 +475,8 @@ plot_trunc_balance <- function(trunc_list, treat, covar, weight_cols, dataset_na
         )
         smd_df <- data.frame(
           Variable = rownames(bal_obj$Balance),
-          Pre = bal_obj$Balance[,"Diff.Un"],
-          Post = bal_obj$Balance[,"Diff.Adj"]
+          Pre = abs(bal_obj$Balance[,"Diff.Un"]),
+          Post = abs(bal_obj$Balance[,"Diff.Adj"])
         )
         smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
         smd_long <- pivot_longer(
@@ -501,7 +500,7 @@ plot_trunc_balance <- function(trunc_list, treat, covar, weight_cols, dataset_na
           geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
           geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
           coord_flip() +
-          labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
+          labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
           theme_minimal() +
           theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
                 plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
@@ -510,7 +509,7 @@ plot_trunc_balance <- function(trunc_list, treat, covar, weight_cols, dataset_na
       } else {
         message(sprintf("Column %s not found in %s", wcol, trunc_name))
       }
-    }
+    }))
   }
   if (length(plot_list) == 1) {
     return(plot_list[[1]])
@@ -572,7 +571,9 @@ plot_trim_overlap <- function(data_list, treat, covar, prefix = NULL,
       cex.axis = axis.size, font.axis = 1)
   for (name in names(data_list)) {
     data_obj <- data_list[[name]]
-    assess_overlap(data_obj, treat = treat, cov = covar)
+    invisible(capture.output(
+      assess_overlap(data_obj, treat = treat, cov = covar)
+    ))
     title(main = paste0(prefix, " - ", name), cex.main = main.size, font.main = 1)
   }
 }
@@ -683,7 +684,9 @@ plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat
       for (j in start_idx:end_idx) {
         data <- plot_list[[j]]
         prefix <- if (ds_name == "CPS") prefix_cps else prefix_psid
-        invisible(assess_overlap(data, treat = treat, cov = covar))
+        invisible(capture.output(
+          assess_overlap(data, treat = treat, cov = covar) 
+        ))
         title(main = paste0(prefix, " - ", method_names[j]), cex.main = main.size, font.main = 1)
       }
       if ((end_idx - start_idx + 1) < plots_per_page) {
@@ -691,85 +694,6 @@ plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat
       }
     }
   }
-}
-
-#### plot_comb_balance()
-plot_comb_balance <- function(
-    comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-    orig_cps = NULL, orig_psid = NULL,
-    prefix_cps = NULL, prefix_psid = NULL, threshold = 0.1
-) {
-  all_datasets <- list()
-  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
-  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
-  orig_data_list <- list(CPS = orig_cps, PSID = orig_psid)
-  plot_list <- list()
-  plot_counter <- 0
-  for (ds_name in names(all_datasets)) {
-    method_list <- all_datasets[[ds_name]]
-    orig_data <- orig_data_list[[ds_name]]
-    for (weighting in names(method_list)) {
-      trimmed_list <- method_list[[weighting]]
-      for (trim in names(trimmed_list)) {
-        df <- trimmed_list[[trim]]
-        plot_counter <- plot_counter + 1
-        method_name <- paste(weighting, trim, sep = "_")
-        prefix <- ""
-        if (ds_name == "CPS" && plot_counter <= 25) prefix <- prefix_cps
-        if (ds_name == "PSID" && plot_counter <= 25) prefix <- prefix_psid
-        plot_title <- paste(prefix, method_name, sep = " - ")
-        weight_col <- grep("weight", names(df), value = TRUE)
-        if (length(weight_col) == 0) stop("No weight column found in trimmed dataset")
-        weights <- df[[weight_col]]
-        bal_pre <- cobalt::bal.tab(
-          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-          data = orig_data,
-          un = TRUE,
-          s.d.denom = "treated"
-        )
-        bal_post <- cobalt::bal.tab(
-          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-          data = df,
-          weights = weights,
-          un = FALSE,
-          s.d.denom = "treated"
-        )
-        smd_df <- data.frame(
-          Variable = rownames(bal_pre$Balance),
-          Pre = bal_pre$Balance[, "Diff.Un"],
-          Post = bal_post$Balance[, "Diff.Adj"]
-        )
-        smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
-        smd_long <- pivot_longer(
-          smd_df,
-          cols = c("Pre", "Post"),
-          names_to = "Weighting",
-          values_to = "Std_Diff"
-        )
-        smd_long$Weighting <- factor(
-          smd_long$Weighting,
-          levels = c("Pre", "Post"),
-          labels = c("Pre-Trimming-Weighting", "Post-Trimming-Weighting")
-        )
-        p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Weighting)) +
-          geom_point(size = 3) +
-          geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-          geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
-          geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
-          coord_flip() +
-          labs(title = plot_title, x = "Covariates", y = "Standardized Mean Differences") +
-          theme_minimal() +
-          theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
-                plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
-          scale_color_manual(values = c(
-            "Pre-Trimming-Weighting" = "#00CFC1",
-            "Post-Trimming-Weighting" = "#FC766A"
-          ))
-        plot_list[[paste(ds_name, method_name, sep = "_")]] <- p
-      }
-    }
-  }
-  return(plot_list)
 }
 
 #### save_comb_hist()
@@ -818,56 +742,6 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
   }
 }
 
-#### save_comb_loveplots()
-save_comb_loveplots <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                                prefix = NULL,
-                                prefix_cps = NULL, prefix_psid = NULL,
-                                path = "graphs/lalonde") {
-  dir.create(path, showWarnings = FALSE, recursive = TRUE)
-  print(getwd()) 
-  all_datasets <- list()
-  if (!is.null(comb_meth_cps)) all_datasets$CPS <- comb_meth_cps
-  if (!is.null(comb_meth_psid)) all_datasets$PSID <- comb_meth_psid
-  
-  file_index <- 1
-  for (ds_name in names(all_datasets)) {
-    method_list <- all_datasets[[ds_name]]
-    method_names <- unlist(lapply(names(method_list), function(weighting) {
-      trimmed_list <- method_list[[weighting]]
-      sapply(names(trimmed_list), function(trim) paste(weighting, trim, sep = "_"))
-    }))
-    for (weighting in names(method_list)) {
-      trimmed_list <- method_list[[weighting]]
-      for (trim in names(trimmed_list)) {
-        df <- trimmed_list[[trim]]
-        if (!"weight" %in% names(df)) df$weight <- 1
-        bal <- cobalt::bal.tab(
-          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-          data = df,
-          weights = df$weight,
-          un = TRUE,
-          s.d.denom = "treated"
-        )
-        method_name <- paste(weighting, trim, sep = "_")
-        prefix_str <- ifelse(ds_name == "CPS", prefix_cps, prefix_psid)
-        pdf_file <- file.path(path, sprintf("%s_balance_%d.pdf", prefix, file_index))
-        pdf(pdf_file, width = 8, height = 6)
-        lp <- cobalt::love.plot(
-          bal,
-          stats = "mean.diffs",
-          absolute = TRUE,
-          var.order = "unadjusted",
-          thresholds = c(m = .1),
-          title = paste(prefix_str, method_name, sep = " - ")
-        )
-        print(lp)
-        dev.off()
-        file_index <- file_index + 1
-      }
-    }
-  }
-}
-
 ## 3.6 Getting top methods and datasets
 #### combine_results()
 combine_results <- function(dataset_name) {
@@ -911,6 +785,57 @@ combine_results <- function(dataset_name) {
   final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
   # reset row names
+  rownames(final_df) <- NULL
+  return(final_df)
+}
+
+#### combine_results_plus()
+combine_results_plus <- function(dataset_name) {
+  dataset_lower <- tolower(dataset_name)
+  # retrieve standard results
+  smd_matching <- get(paste0("smd_matchit.", dataset_lower))
+  ess_matching <- get(paste0("ess_matchit.", dataset_lower))
+  smd_trimming <- get(paste0("smd_trim.", dataset_lower))
+  ess_trimming <- get(paste0("ess_trim.", dataset_lower))
+  smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
+  ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
+  smd_weighting <- get(paste0("smd_weight.", dataset_lower))
+  ess_weighting <- get(paste0("ess_weight.", dataset_lower))
+  smd_combined <- get(paste0("smd_all_comb_meth.", dataset_lower))
+  ess_combined <- get(paste0("ess_all_comb_meth.", dataset_lower))
+  # optionally retrieve plus dataset results if they exist
+  smd_combined_plus_name <- paste0("smd_all_comb_meth.", dataset_lower, "_plus")
+  ess_combined_plus_name <- paste0("ess_all_comb_meth.", dataset_lower, "_plus")
+  smd_combined_plus <- if (exists(smd_combined_plus_name)) get(smd_combined_plus_name) else NULL
+  ess_combined_plus <- if (exists(ess_combined_plus_name)) get(ess_combined_plus_name) else NULL
+  # combine all SMD results
+  smd_list <- list(
+    smd_matching,
+    smd_trimming,
+    smd_trunc,
+    smd_weighting,
+    smd_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
+  )
+  if (!is.null(smd_combined_plus)) {
+    smd_list <- append(smd_list, list(smd_combined_plus[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]))
+  }
+  smd_all <- do.call(rbind, smd_list)
+  # combine all ESS results
+  ess_list <- list(
+    ess_matching,
+    ess_trimming,
+    ess_trunc,
+    ess_weighting,
+    ess_combined[, c("Method", "Control", "Treated")]
+  )
+  if (!is.null(ess_combined_plus)) {
+    ess_list <- append(ess_list, list(ess_combined_plus[, c("Method", "Control", "Treated")]))
+  }
+  ess_all <- do.call(rbind, ess_list)
+  # merge SMD and ESS results
+  final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
+  # clean method names
+  final_df$Method <- gsub("\\.psid|\\.cps", "", final_df$Method, ignore.case = TRUE)
   rownames(final_df) <- NULL
   return(final_df)
 }
@@ -999,7 +924,7 @@ save_top5_datasets <- function(combined_methods_list, top5_method_names, prefix)
       next
     }
     dataset_to_save <- combined_methods_list[[method_name]]
-    file_name <- sprintf("data/top%d_%s_method_%s.RData", i, prefix, method_name)
+    file_name <- sprintf("tutorial/data/top%d_%s_method_%s.RData", i, prefix, method_name)
     save(dataset_to_save, file = file_name)
   }
 }
@@ -1033,7 +958,6 @@ matching <- function(data, Y, treat, covar) {
            m.out$est[1] + 1.96 * m.out$se[1])
   return(out)
 }
-
 
 # psm()
 psm <- function(data, Y, treat, covar) {
@@ -1178,7 +1102,7 @@ aipw_ow <- function(data, Y, treat, covar) {
   })
 }
 
-### This script checks for robustness by estimating original model
+### this script checks for robustness by estimating original model
 ### using double/debiased machine learning using DoubleML package
 dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_l = lrn("regr.lm"), ml_m = lrn("regr.lm")){
   tryCatch({
@@ -1357,44 +1281,25 @@ plot_coef <- function(out,
   box()
 }
 
-#### plot_att_panels()
-plot_att_panels <- function(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  num_pages <- ceiling(length(all_outs) / plots_per_page)
-  for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 1
-    end_idx   <- min(page * plots_per_page, length(all_outs))
-    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
-    for (i in start_idx:end_idx) {
-      out <- all_outs[[i]]
-      plot_coef(out, 
-                band = band, 
-                line = est,
-                ylim = ylim,
-                main = plot_titles[i],
-                ylab = ylab,
-                textsize = textsize)
-    }
-  }
-}
-
 #### save_att_panels()
-save_att_panels <- function(
-  all_outs, plot_titles, band, est, prefix,
-  plots_per_page = 4, ylab = "Estimate", textsize = 1) {
-  folder <- "graphs/lalonde"
-  ylim   <- c(-15500, 5500)
+save_att_panels <- function(out_list, plot_titles, band_list, est_list,
+                              prefix = "ldw_model_a_plus",
+                              plots_per_page = 4,
+                              ylim = c(-15500, 5500),
+                              folder = "graphs/lalonde") {
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
-  num_pages <- ceiling(length(all_outs) / plots_per_page)
-  for (page in seq_len(num_pages)) {
-    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
+  n <- length(out_list)
+  pages <- ceiling(n / plots_per_page)
+  
+  for (p in seq_len(pages)) {
+    start <- (p - 1) * plots_per_page + 1
+    end <- min(p * plots_per_page, n)
+    file_name <- file.path(folder, paste0(prefix, "_", p, ".pdf"))
     pdf(file_name, width = 8, height = 11)
-    par(mfrow = c(plots_per_page, 1), mar = c(3,4,3,2))
-    start_idx <- (page - 1) * plots_per_page + 1
-    end_idx <- min(page * plots_per_page, length(all_outs))
-    for (i in start_idx:end_idx) {
-      plot_coef(all_outs[[i]],
-                band = band, line = est, ylim = ylim,
-                main = plot_titles[i], ylab = ylab, textsize = textsize)
+    par(mfrow = c(plots_per_page, 1), mar = c(3, 4, 3, 2))
+    for (i in start:end) {
+      plot_coef(out_list[[i]], band = band_list[[i]], line = est_list[[i]],
+                ylim = ylim, main = plot_titles[i])
     }
     dev.off()
   }
@@ -1404,24 +1309,41 @@ save_att_panels <- function(
 create_matrix_results <- function(all_outs, sample_names) {
   n_samples <- length(sample_names)
   n_estimators <- nrow(all_outs[[1]])
+  # initialize empty matrix
   result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
-  # set up alternating column names
+  # alternating column names (estimate / SE)
   cnames <- character(n_samples * 2)
   for (j in seq_along(sample_names)) {
-    cnames[(j-1)*2 + 1] <- sample_names[j]
-    cnames[(j-1)*2 + 2] <- "" # SE/parenthesis column
+    cnames[(j - 1) * 2 + 1] <- sample_names[j]
+    cnames[(j - 1) * 2 + 2] <- ""
   }
   colnames(result_mat) <- cnames
   estimator_names <- rownames(all_outs[[1]])
   rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
-  # fill values
+  # extract benchmark estimates 
+  bench.exp  <- all_outs[[1]][1, 1:2]   # experimental LDW
+  bench.cps  <- all_outs[[2]][1, 1:2]   # LDW-CPS1 trimmed benchmark
+  bench.psid <- all_outs[[3]][1, 1:2]   # LDW-PSID1 trimmed benchmark
+  # fill results column by column
   for (j in seq_along(all_outs)) {
     out <- all_outs[[j]]
-    result_mat[1, (j-1)*2 + 1] <- sprintf("%.2f", out[1, 1])
-    result_mat[1, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[1, 2]), ")")
-    for (i in 2:(n_estimators+1)) {
-      result_mat[i, (j-1)*2 + 1] <- sprintf("%.2f", out[i-1, 1])
-      result_mat[i, (j-1)*2 + 2] <- paste0("(", sprintf("%.2f", out[i-1, 2]), ")")
+    # assign benchmark row depending on dataset type
+    if (j <= 3) {  
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.exp[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.exp[2]), ")")
+    } 
+    else if (grepl("CPS", sample_names[j], ignore.case = TRUE)) {
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.cps[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.cps[2]), ")")
+    } 
+    else if (grepl("PSID", sample_names[j], ignore.case = TRUE)) {
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.psid[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.psid[2]), ")")
+    }
+    # fill in estimates + SEs
+    for (i in 2:(n_estimators + 1)) {
+      result_mat[i, (j - 1) * 2 + 1] <- sprintf("%.2f", out[i - 1, 1])
+      result_mat[i, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", out[i - 1, 2]), ")")
     }
   }
   return(result_mat)
@@ -1430,30 +1352,29 @@ create_matrix_results <- function(all_outs, sample_names) {
 #### eval_att()
 eval_att <- function(result) {
   data.frame(
-    Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error across all estimator results
-    Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate of all estimator results
-    Max_Estimate = max(result[, "Estimate"], na.rm = TRUE), # minimum estimate of all estimator results
+    Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error
+    Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate 
+    Max_Estimate = max(result[, "Estimate"], na.rm = TRUE), # minimum estimate 
     Diff_Estimate = max(result[, "Estimate"], na.rm = TRUE) - min(result[, "Estimate"], na.rm = TRUE)
   )
 }
 
 ## 4.2 CATT
 #### plot_catt_panels()
-plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
-  num_pages <- ceiling((length(all_catt) - 1) / plots_per_page)
-  catt_ldw <- all_catt[[1]]$catt
-  att_ldw  <- all_catt[[1]]$att[1]
-  id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
+plot_catt_panels <- function(exp_catt, catt_list, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
+  n <- length(catt_list)
+  num_pages <- ceiling(n / plots_per_page)
+  catt_ldw <- exp_catt$catt
+  att_ldw  <- exp_catt$att[1]
+  id_ldw   <- if (!is.null(exp_catt$id)) exp_catt$id else seq_along(catt_ldw)
   for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 2 # skip experimental vs itself
-    end_idx   <- min(page * plots_per_page + 1, length(all_catt))
-    par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx   <- min(page * plots_per_page, n)
+    par(mfrow = c(2, 2), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
-      other <- all_catt[[i]]
-      main_label <- plot_titles[i]
-      catt2 <- other$catt
-      att2  <- other$att[1]
-      id2   <- if (!is.null(other$id)) other$id else seq_along(catt2)
+      catt2 <- catt_list[[i]]$catt
+      att2  <- catt_list[[i]]$att[1]
+      id2   <- if (!is.null(catt_list[[i]]$id)) catt_list[[i]]$id else seq_along(catt2)
       common_ids <- intersect(id_ldw, id2)
       idx_ldw    <- match(common_ids, id_ldw)
       idx_other  <- match(common_ids, id2)
@@ -1465,8 +1386,8 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
         att1  = att_ldw,
         att2  = att2,
         xlab  = "CATT (Experimental)",
-        ylab  = main_label,
-        main  = main_label,
+        ylab  = plot_titles[i],
+        main  = plot_titles[i],
         axes.range = range
       )
     }
@@ -1474,26 +1395,31 @@ plot_catt_panels <- function(all_catt, plot_titles, plots_per_page = 4, range = 
 }
 
 #### save_catt_panels()
-save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), prefix = "model_a", plots_per_page = 4) {
-  dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
-  catt_ldw <- all_catt[[1]]$catt
-  att_ldw  <- all_catt[[1]]$att[1]
-  id_ldw   <- if (!is.null(all_catt[[1]]$id)) all_catt[[1]]$id else seq_along(catt_ldw)
-  num_panels <- length(all_catt) - 1   # skip experimental on page
-  num_pages  <- ceiling(num_panels / plots_per_page)
+save_catt_panels <- function(
+    exp_catt, 
+    catt_list, 
+    plot_titles, 
+    prefix = "catt_top5", 
+    plots_per_page = 4, 
+    range = c(-8000, 8000), 
+    folder = "graphs/lalonde"
+) {
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  n <- length(catt_list)
+  num_pages <- ceiling(n / plots_per_page)
+  catt_ldw <- exp_catt$catt
+  att_ldw  <- exp_catt$att[1]
+  id_ldw   <- if (!is.null(exp_catt$id)) exp_catt$id else seq_along(catt_ldw)
   for (page in seq_len(num_pages)) {
-    start_idx <- (page - 1) * plots_per_page + 2  # always skip all_catt[[1]]
-    end_idx   <- min(page * plots_per_page + 1, length(all_catt))
-    plots_this_page <- end_idx - start_idx + 1
-    file_name <- sprintf("graphs/lalonde/%s_catt_estimates_%d.pdf", prefix, page)
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx   <- min(page * plots_per_page, n)
+    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
     pdf(file = file_name, width = 10, height = 12)
-    par(mfrow = c(2, 2), mar = c(4, 4, 2, 2))
+    par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
-      other <- all_catt[[i]]
-      main_label <- plot_titles[i]
-      catt2 <- other$catt
-      att2  <- other$att[1]
-      id2   <- if (!is.null(other$id)) other$id else seq_along(catt2)
+      catt2 <- catt_list[[i]]$catt
+      att2  <- catt_list[[i]]$att[1]
+      id2   <- if (!is.null(catt_list[[i]]$id)) catt_list[[i]]$id else seq_along(catt2)
       common_ids <- intersect(id_ldw, id2)
       idx_ldw    <- match(common_ids, id_ldw)
       idx_other  <- match(common_ids, id2)
@@ -1505,14 +1431,103 @@ save_catt_panels <- function(all_catt, plot_titles, range = c(-8000, 8000), pref
         att1  = att_ldw,
         att2  = att2,
         xlab  = "CATT (Experimental)",
-        ylab  = main_label,
-        main  = main_label,
+        ylab  = plot_titles[i],
+        main  = plot_titles[i],
         axes.range = range
       )
     }
-    # blanks if fewer than 4 plots on last page
-    if (plots_this_page < plots_per_page) {
-      for (k in seq_len(plots_per_page - plots_this_page)) plot.new()
+    # fill empty panels if last page is not full
+    if ((end_idx - start_idx + 1) < plots_per_page) {
+      for (k in seq_len(plots_per_page - (end_idx - start_idx + 1))) plot.new()
+    }
+    dev.off()
+  }
+}
+
+#### save_main_catt_panels()
+save_main_catt_panels <- function(
+    catt_refs,
+    catt_comps, 
+    ylabels,
+    prefix = "catt_main", 
+    plots_per_page = 4, 
+    main_titles = NULL, 
+    range = c(-8000, 8000), 
+    folder = "graphs/lalonde"
+) {
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  n_panels <- length(catt_comps)
+  num_pages <- ceiling(n_panels / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx <- min(page * plots_per_page, n_panels)
+    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
+    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
+    for (i in start_idx:end_idx) {
+      ref_idx <- min(i, length(catt_refs))
+      catt1 <- catt_refs[[ref_idx]]$catt
+      catt2 <- catt_comps[[i]]$catt
+      att1  <- catt_refs[[ref_idx]]$att[1]
+      att2  <- catt_comps[[i]]$att[1]
+      plot_catt(
+        catt1 = catt1,
+        catt2 = catt2,
+        att1  = att1,
+        att2  = att2,
+        xlab  = "CATT (Reference)",
+        ylab  = ylabels[i],
+        main  = if (is.null(main_titles)) paste("Comparison", i) else main_titles[i],
+        axes.range = range
+      )
+    }
+    # fill empty panels if last page not full
+    if ((end_idx - start_idx + 1) < plots_per_page) {
+      for (k in seq_len(plots_per_page - (end_idx - start_idx + 1))) plot.new()
+    }
+    dev.off()
+  }
+}
+
+#### save_plus_catt_panels()
+save_plus_catt_panels <- function(
+    catt1_list, 
+    catt2_list, 
+    ylabels, 
+    prefix = "catt_plus", 
+    plots_per_page = 4, 
+    main_titles = NULL, 
+    range = c(-8000, 8000), 
+    folder = "graphs/lalonde"
+) {
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  n_panels <- min(length(catt1_list), length(catt2_list))
+  num_pages <- ceiling(n_panels / plots_per_page)
+  for (page in seq_len(num_pages)) {
+    start_idx <- (page - 1) * plots_per_page + 1
+    end_idx <- min(page * plots_per_page, n_panels)
+    file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
+    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
+    for (i in start_idx:end_idx) {
+      catt1 <- catt1_list[[i]]$catt
+      catt2 <- catt2_list[[i]]$catt
+      att1  <- catt1_list[[i]]$att[1]
+      att2  <- catt2_list[[i]]$att[1]
+      plot_catt(
+        catt1 = catt1,
+        catt2 = catt2,
+        att1  = att1,
+        att2  = att2,
+        xlab  = "CATT (Reference/Trimmed)",
+        ylab  = ylabels[i],
+        main  = if (is.null(main_titles)) paste("Trimmed Panel", i) else main_titles[i],
+        axes.range = range
+      )
+    }
+    # fill empty panels if last page not full
+    if ((end_idx - start_idx + 1) < plots_per_page) {
+      for (k in seq_len(plots_per_page - (end_idx - start_idx + 1))) plot.new()
     }
     dev.off()
   }
@@ -1535,7 +1550,8 @@ eval_catt <- function(all_catt, plot_titles) {
 
 ## 4.3 QTET
 #### plot_qte_top()
-plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, ylim = NULL, col = NULL) {
+plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, 
+                         ylim = c(-25000, 15000), col = NULL) {
   n <- length(qtet_top)
   for (i in 1:n) {
     main_title <- plot_titles[main_start + i - 1]
@@ -1548,7 +1564,8 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, y
 }
 
 #### save_qtet()
-save_qtet <- function(plots, plot_titles = NULL, main_start = 1, ylim = NULL, col = NULL, prefix = "model_a") {
+save_qtet <- function(plots, plot_titles = NULL, main_start = 1, 
+                      ylim = c(-25000, 15000), col = NULL, prefix = "ldw") {
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   n <- length(plots)
   for (i in seq_len(n)) {
@@ -1566,7 +1583,7 @@ save_qtet <- function(plots, plot_titles = NULL, main_start = 1, ylim = NULL, co
 
 #### save_qte_top()
 save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
-                                ylim = NULL, col = NULL, prefix = "model_a_top") {
+                                ylim = c(-25000, 15000), col = NULL, prefix = "ldw_top") {
   n <- length(qtet_top)
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_len(n)) {
@@ -1586,7 +1603,7 @@ save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
 ## 4.4 Assessing outcome weights (OW)
 #### get_res_att()
 get_res_att <- function(dataset_list, Y, treat, covar,
-                            estimators = "AIPW_ATT",
+                            estimator = "AIPW_ATT",
                             smoother = "honest_forest",
                             n_cf_folds = 5,
                             n_reps = 1) {
@@ -1596,7 +1613,7 @@ get_res_att <- function(dataset_list, Y, treat, covar,
           Y = data[[Y]],
           D = data[[treat]],
           X = data[, covar, drop = FALSE],
-          estimators = estimators,
+          estimator = estimator,
           smoother = smoother,
           n_cf_folds = n_cf_folds,
           n_reps = n_reps

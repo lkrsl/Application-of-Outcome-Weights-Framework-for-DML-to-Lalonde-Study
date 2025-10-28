@@ -1,7 +1,7 @@
 # LaLonde (NSW) Data 
-This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde dataset (loaded as `nsw`, similar to Imbens & Xu). 
+This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde dataset (loaded as `nsw`, similar to @imbens2024). 
 
-For detailed explanations of the analysis steps and tips, please refer to section 2. Here, we only explain the nsw–specific results.
+For detailed explanations of the analysis steps and notes, please refer to section 2. Here, we only explain the NSW–specific results.
 
 ## Set up
 ### Source functions and load data
@@ -59,7 +59,6 @@ covar <- c("age", "education", "black", "hispanic", "married",
 ### Assessing overlap and covariate balance
 #### Overlap
 ```{r, fig.cap='FIGUREC1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
-# assess overlap
 nsw.ps <- assess_overlap(data = nsw, treat = treat, cov = covar)
 nsw_cps.ps <- assess_overlap(data = nsw_cps, treat = treat, cov = covar) 
 nsw_psid.ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar) 
@@ -67,8 +66,7 @@ nsw_psid.ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar)
 
 As anticipated, the NSW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets NSW-CPS1 and NSW-PSID1 display weak overlap. 
 ```{r, fig.cap='FIGUREC1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
-# assess overlap
-nsw_cps_plus.ps <- assess_overlap(data = nsw_cps_plus, treat = treat, cov = covar) 
+nsw_cps_plus.ps <- assess_overlap(data = nsw_cps_plus, treat = treat, cov = covar)  
 nsw_psid_plus.ps <- assess_overlap(data = nsw_psid_plus, treat = treat, cov = covar)
 ```
 
@@ -81,15 +79,15 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 #### Covariate balance
 ```{r, fig.cap='FIGUREC2. SubfigureA:NSW-CPS1. SubfigureB:NSW-CPS1-PLUS. SubfigureC:NSW-PSID1. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 love.plot(nsw, nsw_cps, treat, covar = covar, title = "NSW-CPS1")
-love.plot(nsw, nsw_cps_plus, treat, covar = covar, title = "NSW-CPS1-PLUS")
 love.plot(nsw, nsw_psid, treat, covar = covar, title = "NSW-PSID1")
+love.plot(nsw, nsw_cps_plus, treat, covar = covar, title = "NSW-CPS1-PLUS")
 love.plot(nsw, nsw_psid_plus, treat, covar = covar, title = "NSW-PSID1-PLUS")
 ```
 
 Neither NSW-CPS1-PLUS nor NSW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
 
 <div class="callout-note">
-In the subsequent analysis, that is focused on improving covariate balance and overlap, only the two datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS are considered. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+In the subsequent analysis, that is focused on improving covariate balance and overlap, only the original datasets NSW-CPS1 and NSW-PSID1 are considered. The NSW-CPS1-PLUS and NSW-PSID1-PLUS datasets are included exclusively for comparison and replication purposes. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
 </div>
 
 ## Improving primarily covariate balance
@@ -336,26 +334,6 @@ for (wcol in weight_columns) {
 
 ### Trimming 
 #### Propensity score threshold trimming 
-(Similar to Imbens & Xu (2024))
-```{r, message=FALSE, warning=FALSE}
-# apply trimming with thresholds 0.85 
-nsw_cps_plus.trim <- ps_trim(nsw_cps_plus.ps, threshold = 0.85)
-nsw_psid_plus.trim <- ps_trim(nsw_psid_plus.ps, threshold = 0.85)
-
-# exclude experimental controls, subset trimmed data appropriately
-nsw_cps_plus.trim.match <- subset(nsw_cps_plus.trim, sample %in% c(0,3) & ps_assoverlap)
-nsw_psid_plus.trim.match <- subset(nsw_psid_plus.trim, sample %in% c(0,4) & ps_assoverlap)
-
-# re-assign treat variable for controls in sample 3 or 4 (non-treated group)
-#nsw_cps_plus.trim.match$treat[nsw_cps_plus.trim.match$sample == 0.5] <- 0
-#nsw_psid_plus.trim.match$treat[nsw_psid_plus.trim.match$sample == 0.5] <- 0
-
-# re-estimate propensity scores on trimmed data and perform 1:1 matching
-nsw_cps_plus.trim.match <- psmatch(data = nsw_cps_plus.trim.match, Y = "re78", treat = "treat", cov = covar)
-nsw_psid_plus.trim.match <- psmatch(data = nsw_psid_plus.trim.match, Y = "re78", treat = "treat", cov = covar)
-```
-
-#### Propensity score threshold trimming 
 ```{r, message=FALSE, warning=FALSE}
 # apply trimming with threshold 0.9
 nsw_cps.trim <- ps_trim(nsw_cps.ps, threshold = 0.9)
@@ -411,6 +389,30 @@ nsw_psid.walker <- ps_estimate(data = nsw_psid.walker, Y = "re78", treat = "trea
 ```
 
 ### Integrated methods
+### Trimming and matching
+#### Propensity score threshold trimming 
+(Similar to tutorial by @imbens2024)
+```{r, message=FALSE, warning=FALSE}
+nsw_cps_trim <- ps_trim(nsw_cps_plus.ps, threshold = 0.85)   
+nsw_psid_trim <- ps_trim(nsw_psid_plus.ps, threshold = 0.85)
+
+# excluding the experimental controls
+nsw_cps_trim_match <- subset(nsw_cps_trim, sample %in% c(0,3) & ps_assoverlap)
+nsw_psid_trim_match <- subset(nsw_psid_trim, sample %in% c(0,4) & ps_assoverlap)
+
+# re-estimate propensity scores and employ 1:1 matching
+nsw_cps_trim_match <- psmatch(data = nsw_cps_trim_match, Y = "re78", treat = "treat", cov = covar)
+nsw_psid_trim_match <- psmatch(data = nsw_psid_trim_match, Y = "re78", treat = "treat", cov = covar)
+
+# further subset data and re-assign treat variable 
+nsw_trim_cps <- subset(nsw_cps_trim, sample %in% c(0,0.5))
+nsw_trim_cps$treat[which(nsw_trim_cps$sample == 0.5)] <- 0
+
+nsw_trim_psid <- subset(nsw_psid_trim, sample %in% c(0,0.5))
+nsw_trim_psid$treat[which(nsw_trim_psid$sample == 0.5)] <- 0
+```
+
+### Trimming and weighting
 ```{r, message=FALSE, warning=FALSE}
 # list trimming methods
 all_trim.cps  <- list(ps_threshold = nsw_cps.trim, 
@@ -496,7 +498,7 @@ all_match.psid <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute SMD
+# compute absolute SMD
 smd_matchit.cps <- compute_abs_smd_matchit(all_match.cps)
 smd_matchit.psid <- compute_abs_smd_matchit(all_match.psid)
 ```
@@ -515,7 +517,7 @@ ess_matchit.psid <- compute_ess_matchit(bal.psid)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGUREC3.'}
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGUREC3.'}
 # visualize covariate balance 
 plot_matching_balance(all_match.cps, title = "NSW-CPS1")
 plot_matching_balance(all_match.psid, title = "NSW-PSID1")
@@ -541,7 +543,7 @@ all_weight.psid <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute SMD
+# compute absolute SMD
 smd_weight.cps <- compute_abs_smd_weight(nsw_cps, treat, covar, all_weight.cps)
 smd_weight.psid <- compute_abs_smd_weight(nsw_psid, treat, covar, all_weight.psid)
 ```
@@ -554,7 +556,7 @@ ess_weight.psid <- compute_ess_weight(nsw_psid, treat, covar, all_weight.psid)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGUREC4.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC4.'}
 # visualize covariate balance
 plot_weighting_balance(nsw_cps, treat, covar, all_weight.cps, "NSW-CPS1") 
 plot_weighting_balance(nsw_psid, treat, covar, all_weight.psid, "NSW-PSID1")
@@ -578,7 +580,7 @@ all_trunc.psid <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute SMD
+# compute absolute SMD
 smd_trunc.cps <- compute_abs_smd_trunc(all_trunc.cps, "treat", covar, weight_columns)
 smd_trunc.psid <- compute_abs_smd_trunc(all_trunc.psid, "treat", covar, weight_columns)
 ```
@@ -591,7 +593,7 @@ ess_trunc.psid <- compute_ess_trunc(all_trunc.psid, "treat", covar, weight_colum
 ```
 
 #### Visuals
-```{r, fig.cap='FIGUREC5.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC5.'}
 # visualize covariate balance
 plot_trunc_balance(all_trunc.cps, "treat", covar, weight_columns, "NSW-CPS1")
 plot_trunc_balance(all_trunc.psid, "treat", covar, weight_columns, "NSW-PSID1")
@@ -621,7 +623,7 @@ all_trim.psid <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute SMDs
+# compute absolute SMD
 smd_trim.cps <- compute_abs_smd_trim(all_trim.cps, "treat", covar)
 smd_trim.psid <- compute_abs_smd_trim(all_trim.psid, "treat", covar)
 ```
@@ -634,13 +636,49 @@ ess_trim.psid <- compute_ess_trim(all_trim.psid, "treat", covar)
 ```
 
 #### Visuals
-```{r, fig.cap='FIGUREC6.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC6.'}
 # visualize overlap
 plot_trim_overlap(all_trim.cps, treat, covar, prefix = "NSW-CPS1")
 plot_trim_overlap(all_trim.psid, treat, covar, prefix = "NSW-PSID1")
 ```
 
 ## Integrated methods
+### Trimming and matching
+(Similar to tutorial by @imbens2024)
+```{r, message=FALSE, warning=FALSE}
+# list all trimmed and matched samples
+comb_cps <- list(
+  ps_threshold_match = nsw_cps_trim_match
+)
+
+comb_psid <- list(
+  ps_threshold_match = nsw_psid_trim_match
+)
+```
+
+#### SMD
+```{r, message=FALSE, warning=FALSE}
+# compute SMD
+smd_all_comb_meth.cps_plus <- compute_abs_smd_trim(comb_cps, "treat", covar)
+smd_all_comb_meth.psid_plus <- compute_abs_smd_trim(comb_psid, "treat", covar)
+```
+
+#### ESS
+```{r, message=FALSE, warning=FALSE}
+# compute ESS
+ess_all_comb_meth.cps_plus <- compute_ess_trim(comb_cps, "treat", covar)
+ess_all_comb_meth.psid_plus <- compute_ess_trim(comb_psid, "treat", covar)
+```
+
+#### Visuals
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC7.'}
+# visualize overlap
+par(mfrow = c(1, 3))
+plot_trim_overlap(comb_cps, treat, covar, prefix = "NSW-CPS1-PLUS")
+plot_trim_overlap(comb_psid, treat, covar, prefix = "NSW-PSID1-PLUS")
+```
+
+### Trimming and weighting
 ```{r, message=FALSE, warning=FALSE}
 # list all combined results
 comb.cps <- list(
@@ -660,7 +698,7 @@ comb.psid <- list(
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute SMD
+# compute absolute SMD
 smd_all_comb_meth.cps <- compute_abs_smd_comb(comb.cps, "treat", covar)
 smd_all_comb_meth.psid <- compute_abs_smd_comb(comb.psid, "treat", covar)
 ```
@@ -673,20 +711,14 @@ ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
 ```
 
 #### Visuals
-```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC7.'}
+```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC8.'}
 # visualize overlap
 plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
-```
-
-```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREC8.'} 
-# visualize covariate balance
-plot_comb_balance(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, orig_cps = nsw_cps, orig_psid = nsw_psid, prefix_cps = "NSW-CPS1", prefix_psid = "NSW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
 save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
-save_comb_loveplots(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "nsw", prefix_cps = "nsw_cps1", prefix_psid = "nsw_psid1")
 ```
 
 ## Identifying best methods
@@ -868,53 +900,114 @@ save_top5_datasets(dataset_list_psid, top5_methods.psid, prefix = "nsw_psid1")
 out1 <- estimate_all(nsw, "re78", "treat", covar)
 out2 <- estimate_all(nsw_cps, "re78", "treat", covar)
 out3 <- estimate_all(nsw_psid, "re78", "treat", covar)
-out4 <- estimate_all(nsw_cps.trim, "re78", "treat", covar) 
-out5 <- estimate_all(nsw_psid.trim, "re78", "treat", covar)
-out6 <- estimate_all(nsw_cps_plus.trim, "re78", "treat", covar) # similar to Imbens & Xu (2024)
-out7 <- estimate_all(nsw_psid_plus.trim, "re78", "treat", covar) # similar to Imbens & Xu (2024)
 
 out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
 
-out8 <- out.cps[[1]]
-out9 <- out.cps[[2]]
-out10 <- out.cps[[3]]
-out11 <- out.cps[[4]]
-out12 <- out.cps[[5]]
+out4 <- out.cps[[1]]
+out5 <- out.cps[[2]]
+out6 <- out.cps[[3]]
+out7 <- out.cps[[4]]
+out8 <- out.cps[[5]]
 
-out13 <- out.psid[[1]]
-out14 <- out.psid[[2]]
-out15 <- out.psid[[3]]
-out16 <- out.psid[[4]]
-out17 <- out.psid[[5]]
+out9 <- out.psid[[1]]
+out10 <- out.psid[[2]]
+out11 <- out.psid[[3]]
+out12 <- out.psid[[4]]
+out13 <- out.psid[[5]]
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# build plot titles 
-base_titles <- c("(A) NSW-Experimental", "(B) NSW-CPS1" , "(C) NSW-PSID1", "(D) Trimmed NSW-CPS1 ", "(E) Trimmed NSW-PSID1", "(F) Trimmed NSW-CPS1-PLUS ", "(G) Trimmed NSW-PSID1-PLUS")
-top_start <- 8 # H is 8th letter
-num_cps <- length(top5_methods.cps)
-num_psid <- length(top5_methods.psid)
-top_letters_cps <- LETTERS[top_start:(top_start + num_cps - 1)]
-top_letters_psid <- LETTERS[(top_start + num_cps):(top_start + num_cps + num_psid - 1)]
-top5_titles.cps <- paste0("(", top_letters_cps, ") Top CPS1: ", top5_methods.cps)
-top5_titles.psid <- paste0("(", top_letters_psid, ") Top PSID1: ", top5_methods.psid)
-plot_titles <- c(base_titles, top5_titles.cps, top5_titles.psid)
-
-# combine all results
-all_outs <- c(list(out1, out2, out3, out4, out5, out6, out7), out.cps, out.psid)
+# estimate ATT
+load("data/trimmed.RData")
+out14 <- estimate_all(nsw_trim_cps, "re78", "treat", covar)
+out15 <- estimate_all(nsw_trim_psid, "re78", "treat", covar)
+out16 <- estimate_all(nsw_cps_trim_match, "re78", "treat", covar)
+out17 <- estimate_all(nsw_psid_trim_match, "re78", "treat", covar)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC9. ATT Estimates Given Unconfoundedness using NSW Samples"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA10. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. ATT Estimates Given Unconfoundedness using NSW Samples"}
+par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
+
+# experimental benchmarks
+band.exp <- out1[1, 3:4]
+est.exp  <- out1[1, 1]
+
 # plot results
-band <- out1[1, 3:4]
-est  <- out1[1, 1]
-plot_att_panels(all_outs, plot_titles, band, est, ylim = c(-15500, 5500), textsize = 0.7)
+plot_coef(out1,  band = band.exp, line = est.exp, 
+          ylim = c(-15500, 5500), main = "(A) NSW-Experimental")
+
+plot_coef(out2,  band = band.exp, line = est.exp, 
+          ylim = c(-15500, 5500), main = "(B) NSW-CPS1")
+
+plot_coef(out3,  band = band.exp, line = est.exp,
+          ylim = c(-15500, 5500), main = "(C) NSW-PSID1")
+
+for (i in seq_along(out.cps)) {
+  this_title <- paste0("(", LETTERS[i+2], ") Top CPS1: ", top5_methods.cps[i])
+  plot_coef(out.cps[[i]], band = band.exp, line = est.exp,
+            ylim = c(-15500, 5500), main = this_title)
+}
+
+for (i in seq_along(out.psid)) {
+  this_title <- paste0("(", LETTERS[i+7], ") Top PSID1: ", top5_methods.psid[i])
+  plot_coef(out.psid[[i]], band = band.exp, line = est.exp,
+            ylim = c(-15500, 5500), main = this_title)
+}
+```
+
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA10. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. ATT Estimates Given Unconfoundedness using NSW Samples"}
+par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
+par(cex.main = 0.9)
+
+# nonexperimtenal benchmarks
+band.cps_plus <- out14[1, 3:4]
+est.cps_plus <- out14[1, 1]
+band.psid_plus <- out15[1, 3:4]
+est.psid_plus <- out15[1, 1]
+
+# plot results
+plot_coef(out16, band = band.cps_plus, line = est.cps_plus, 
+          ylim = c(-15500, 5500), main = "(N) Trimmed NSW-CPS1-PLUS")
+
+
+plot_coef(out17, band = band.psid_plus, line = est.psid_plus, 
+          ylim = c(-15500, 5500), main = "(O) Trimmed NSW-PSID1-PLUS")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_att_panels(all_outs, plot_titles, band, est, "nsw")
+save_att_panels(
+  out_list = list(out1, out2, out3),
+  plot_titles = c("(A) NSW-Experimental", "(B) NSW-CPS1", "(C) NSW-PSID1"),
+  band_list = list(band.exp, band.exp, band.exp),
+  est_list  = list(est.exp, est.exp, est.exp),
+  prefix = "nsw_est_exp"
+)
+
+save_att_panels(
+  out_list = out.cps,
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps),
+  band_list = replicate(length(out.cps), band.exp, simplify = FALSE),
+  est_list  = replicate(length(out.cps), est.exp, simplify = FALSE),
+  prefix = "nsw_est_top_cps"
+)
+
+save_att_panels(
+  out_list = out.psid,
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid),
+  band_list = replicate(length(out.psid), band.exp, simplify = FALSE),
+  est_list  = replicate(length(out.psid), est.exp, simplify = FALSE),
+  prefix = "nsw_est_top_psid"
+)
+
+save_att_panels(
+  out_list = list(out16, out17),
+  plot_titles = c("(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS"),
+  band_list = list(band.cps_plus, band.psid_plus),
+  est_list  = list(est.cps_plus, est.psid_plus),
+  prefix = "nsw_est_plus"
+)
 ```
 
 The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS1, NSW-PSID1, trimmed versions of the NSW-CPS1 and NSW-PSID1 samples (analogous to Imbens & Xu (2024)) and a series of top-ranked subsamples of both NSW-CPS1 and NSW-PSID1 based on various matching, weighting, truncation and trimming criteria.
@@ -925,17 +1018,36 @@ Across the NSW-CPS1 and its top-ranked subsamples, all estimators produce ATT es
 
 In comparison, PSID1-based subsamples frequently exhibit greater dispersion and substantially higher standard errors than NSW-CPS1 samples, consistent with previous observations from LDW data. All ATT estimates remain negatively aligned, reflecting heightened methodological uncertainty within these samples.
 ```{r, message=FALSE, warning=FALSE}
-# prepare all results in the order shown in the plots
+# get all outputs
+all_outs <- c(list(out1, out2, out3), 
+              out.cps, out.psid, 
+              list(out16, out17))
+
+# get plot titles
+all_plot_titles <- c("(A) NSW-Experimental", "(B) NSW-CPS1", "(C) NSW-PSID1",
+                      paste0("(", LETTERS[6:10], ") Top CPS1: ", top5_methods.cps),
+                      paste0("(", LETTERS[11:15], ") Top PSID1: ", top5_methods.psid),
+                      "(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS")
+
+# evaluate results
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
-rownames(att_summary) <- plot_titles
-knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE)
+rownames(att_summary) <- all_plot_titles
+
+# print results
+knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE) %>%
+  kable_styling(full_width = TRUE) %>%
+  scroll_box(height = "800px", width = "100%")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# get result matrix
-result_mat <- create_matrix_results(all_outs, plot_titles)
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>% kable_styling(full_width = TRUE)
+# create result matrix
+result_mat <- create_matrix_results(all_outs, all_plot_titles)
+
+# render formatted table output
+knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>%
+  kable_styling(full_width = TRUE) %>%
+  scroll_box(height = "800px", width = "100%")
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(O) summarize results for the trimmed and top-ranked samples for both NSW-CPS1 and NSW-PSID1.
@@ -951,32 +1063,90 @@ save_csv(result_mat, "nsw_att_estimates")
 ### Conditional average treatment effect on the treated (CATT)
 ```{r, message=FALSE, warning=FALSE}
 # estimate CATT
-catt.ldw <- catt(nsw, Y, treat, covar)
+catt.nsw <- catt(nsw, Y, treat, covar)
 catt.cps <- catt(nsw_cps, Y, treat, covar)
 catt.psid <- catt(nsw_psid, Y, treat, covar)
-catt.cps.trim <- catt(nsw_cps.trim, Y, treat, covar)
-catt.psid.trim <- catt(nsw_psid.trim, Y, treat, covar)
-catt.cps_plus.trim <- catt(nsw_cps_plus.trim, Y, treat, covar) # similar to Imbens & Xu (2024)
-catt.psid_plus.trim <- catt(nsw_psid_plus.trim, Y, treat, covar) # similar to Imbens & Xu (2024)
-```
-
-```{r, message=FALSE, warning=FALSE}
 catt.top5_cps <- lapply(top5_datasets.cps, function(d) catt(d, Y, treat, covar))
 catt.top5_psid <- lapply(top5_datasets.psid, function(d) catt(d, Y, treat, covar))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC10. CATT Estimates using NSW Data"}
-# combine all catt objects 
-all_catt <- c(list(catt.ldw, catt.cps, catt.psid, catt.cps.trim, catt.psid.trim, catt.cps_plus.trim, catt.psid_plus.trim), catt.top5_cps, catt.top5_psid)
-
-# plot results
-par(mfrow = c(2,2))
-par(cex.main = 0.9)
-plot_catt_panels(all_catt, plot_titles)
+```{r, message=FALSE, warning=FALSE}
+# similar to Imbens & Xu (2024) 
+load("data/trimmed.RData")
+catt.cps.trim <- catt(nsw_cps_trim_match, Y, treat, covar)
+catt.psid.trim <- catt(nsw_psid_trim_match, Y, treat, covar)
+catt.nsw.cps <- catt(nsw_trim_cps, Y, treat, covar)
+catt.nsw.psid <- catt(nsw_trim_psid, Y, treat, covar)
 ```
 
-```{r, message=FALSE, warning=FALSE}
-all_catt_eval <- eval_catt(all_catt, plot_titles)
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC11. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. CATT Estimates using NSW Data: Experimental vs. Nonexperimental"}
+# plot results
+par(mfrow = c(2,2)) 
+par(cex.main = 0.9)
+plot_catt(
+  catt1 = catt.nsw$catt,
+  catt2 = catt.cps$catt,
+  att1  = catt.nsw$att[1],
+  att2  = catt.cps$att[1],
+  xlab  = "CATT (Experimental)",
+  ylab  = "CATT (CPS1)",
+  main  = "(B) NSW-CPS1", 
+  axes.range = c(-8000, 8000)
+)
+
+plot_catt(
+  catt1 = catt.nsw$catt,
+  catt2 = catt.psid$catt,
+  att1  = catt.nsw$att[1],
+  att2  = catt.psid$att[1],
+  xlab  = "CATT (Experimental)",
+  ylab  = "CATT (PSID1)",
+  main  = "(C) NSW-PSID1",
+  axes.range = c(-8000, 8000)
+)
+
+plot_catt_panels(
+  exp_catt = catt.nsw,
+  catt_list  = catt.top5_cps,
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps)
+)
+
+plot_catt_panels(
+  exp_catt = catt.nsw,
+  catt_list  = catt.top5_psid,
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid)
+)
+
+#plot_catt(
+#  catt1 <- catt.nsw.cps$catt,
+#  catt2 <- catt.cps.trim$catt,
+#  att1 <- catt.nsw.cps$att[1],
+#  att2 <- catt.cps.trim$att[1],
+#  xlab  = "CATT (Experimental)",
+#  ylab  = "CATT (CPS1-PLUS-Trimmed)",
+#  main  = "(N) Trimmed NSW-CPS1-PLUS", 
+#  axes.range = c(-8000, 8000)
+#)
+
+#plot_catt(
+#  catt1 <- catt.nsw.psid$catt,
+#  catt2 <- catt.psid.trim$catt,
+#  att1 <- catt.nsw.psid$att[1],
+#  att2 <- catt.psid.trim$att[1],
+#  xlab  = "CATT (Experimental)",
+#  ylab  = "CATT (PSID1-PLUS-Trimmed)",
+#  main  = "(O) Trimmed NSW-PSID1-PLUS",
+#  axes.range = c(-8000, 8000)
+#)
+```
+
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC12. CATT Estimates using NSW Data"}
+# combine all catt objects 
+all_catt <- c(list(catt.nsw, catt.cps, catt.psid), 
+                   catt.top5_cps, catt.top5_psid, 
+              list(catt.cps.trim, catt.psid.trim))
+
+all_catt_eval <- eval_catt(all_catt, all_plot_titles)
 knitr::kable(all_catt_eval, caption = "CATT Summary Statistics", booktabs = TRUE)
 ```
 
@@ -989,101 +1159,126 @@ The NSW-PSID1 trimmed and top-ranked subsamples deliver substantially decreased 
 This variation in range and means across samples, as observed in previous sections, reflects substantial heterogeneity in treatment effect estimation but also indicates that while certain criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_catt_panels(all_catt, plot_titles, prefix = "nsw")
+save_main_catt_panels(
+  catt_refs = list(catt.nsw),
+  catt_comps = list(catt.cps, catt.psid),
+  ylabels = c("CATT (CPS1)", "CATT (PSID1)"),
+  prefix = "nsw_catt_main_panels",
+  main_titles = c("(B) NSW-CPS1", "(C) NSW-PSID1")
+)
+
+save_catt_panels(
+  exp_catt = catt.nsw,
+  catt_list  = catt.top5_cps,
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps),
+  prefix = "nsw_catt_top5_cps"
+)
+
+save_catt_panels(
+  exp_catt = catt.nsw,
+  catt_list  = catt.top5_psid,
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid),
+  prefix = "nsw_catt_top5_psid"
+)
+
+#save_plus_catt_panels(
+#  catt1_list = list(catt.nsw.cps, catt.nsw.psid),
+#  catt2_list = list(catt.cps.trim, catt.psid.trim),
+#  ylabels = c("CATT (CPS1-PLUS-Trimmed)", "CATT (PSID1-PLUS-Trimmed)"),
+#  prefix = "nsw_catt_plus_panels",
+#  main_titles = c("(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS"),
+#  folder = "graphs/lalonde"
+#)
 ```
 
 ### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}
 qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
-```
-
-```{r, message=FALSE, warning=FALSE}
 qte.nsw_cps <- est_qte(Y, treat, covar, data = nsw_cps)
 qte.nsw_psid <- est_qte(Y, treat, covar, data = nsw_psid)
-qte.nsw_cps_plus <- est_qte(Y, treat, covar, data = nsw_cps_plus)
-qte.nsw_psid_plus <- est_qte(Y, treat, covar, data = nsw_psid_plus)
-qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps.trim)
-qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid.trim) 
-qte.nsw_cps_plus.trim <- est_qte(Y, treat, covar, data = nsw_cps_plus.trim) # similar to Imbens & Xu (2024)
-qte.nsw_psid_plus.trim <- est_qte(Y, treat, covar, data = nsw_psid_plus.trim) # similar to Imbens & Xu (2024)
-```
-
-```{r, message=FALSE, warning=FALSE}
 qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
+qte.nsw.cps <- est_qte(Y, treat, NULL, data = nsw_trim_cps)
+qte.nsw.psid <- est_qte(Y, treat, NULL, data = nsw_trim_psid)
+qte.nsw_cps.trim <- est_qte(Y, treat, covar, data = nsw_cps_trim_match) 
+qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid_trim_match) 
+```
+
+```{r, message=FALSE, warning=FALSE}
 qte.nsw0 <- est_qte(Y, treat, NULL, data = nsw)
-qte.nsw.cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
-qte.nsw.psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
-qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps.trim)
-qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid.trim)
-qte.nsw_cps_plus.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps_plus.trim)
-qte.nsw_psid_plus.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid_plus.trim)
+qte.nsw_cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
+qte.nsw_psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
 qte.top5_cps0  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, NULL, data = d))
 qte.top5_psid0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC11. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental"}
-par(mfrow = c(2,2))
-par(cex.main = 0.8)
+```{r, message=FALSE, warning=FALSE}
+qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps_trim_match) 
+qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid_trim_match) 
+```
 
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC13. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
+par(mfrow = c(2,2))
+par(cex.main = 0.9)
+ylim = c(-25000, 15000)
 # CPS1
-plot_qte(qte.nsw_cps, qte.nsw.cps0, qte.nsw, main = "(B) NSW-CPS1", ylim = c(-25000, 15000))
-legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+plot_qte(qte.nsw_cps, qte.nsw_cps0, qte.nsw, main = "(B) NSW-CPS1", ylim)
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+       lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
 # PSID1
-plot_qte(qte.nsw_psid, qte.nsw.psid0, qte.nsw, main = "(C) NSW-PSID1", ylim = c(-25000, 15000))
-legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
-
-## CPS1 trimmed
-plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw_cps, main = "(D) NSW-CPS1 (Trimmed)", ylim = c(-25000, 15000))
-legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
-
-# PSID1 trimmed
-plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw_psid, main = "(E) NSW-PSID1 (Trimmed)", ylim = c(-25000, 15000))
+plot_qte(qte.nsw_psid, qte.nsw_psid0, qte.nsw, main = "(C) NSW-PSID1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
-    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
-
-# CPS1-PLUS trimmed
-plot_qte(qte.nsw_cps_plus.trim, qte.nsw_cps_plus.trim0, qte.nsw_cps_plus, main = "(F) NSW-CPS1-PLUS (Trimmed)", ylim = c(-25000, 15000))
-legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
-
-# PSID1-PLUS trimmed
-plot_qte(qte.nsw_psid_plus.trim, qte.nsw_psid_plus.trim0, qte.nsw_psid_plus, main = "(G) NSW-PSID1-PLUS (Trimmed)", ylim = c(-25000, 15000))
-legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
-    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+       lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
 # CPS1 top methods
-plot_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw_cps, plot_titles, main_start = 8, ylim = c(-25000, 15000))
+plot_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw, all_plot_titles, main_start = 4)
 
 # PSID1 top methods
-plot_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw_psid, plot_titles, main_start = 13, ylim = c(-25000, 15000))
+plot_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw, all_plot_titles, main_start = 9)
+
+# CPS1-PLUS trimmed
+plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) NSW-CPS1-PLUS (Trimmed)", ylim)
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+       lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
+
+# PSID1-PLUS trimmed
+plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) NSW-PSID1-PLUS (Trimmed)", ylim)
+legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
+    lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
 
 These figures display QTET estimates derived from both the NSW experimental and various observational samples. The QTETs estimated from trimmed NSW-CPS1 sample (D) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the original NSW-CPS1, the original NSW-PSID1 and its trimmed subsample (B, C and E) show clear biases when compared to the experimental benchmark, which clusters near zero. Among the top-ranked subsamples, CPS1-based QTETs (F–J) consistently track the true QTET closely. In contrast, PSID1-based QTETs (K–O) generally perform well, aligning closely with the true QTET, except for subsamples `mahvars` and `card`, which exhibit increased bias and noticeably wider confidence intervals, reflecting greater estimation uncertainty.
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_nsw <- list(
-  list(mod = qte.nsw_cps, mod0 = qte.nsw.cps0, bm = qte.nsw, main = "(B) NSW CPS1"),
-  list(mod = qte.nsw_psid, mod0 = qte.nsw.psid0, bm = qte.nsw, main = "(C) NSW PSID1"),
-  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw_cps, main = "(D) NSW CPS1 (Trimmed)"),
-  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw_psid, main = "(E) NSW PSID1 (Trimmed)"),
-  list(mod = qte.nsw_cps_plus.trim, mod0 = qte.nsw_cps_plus.trim0, bm = qte.nsw_cps_plus, main = "(F) NSW CPS1-PLUS (Trimmed)"),
-  list(mod = qte.nsw_psid_plus.trim, mod0 = qte.nsw_psid_plus.trim0, bm = qte.nsw_psid_plus, main = "(G) NSW PSID1-PLUS (Trimmed)")
+  list(mod = qte.nsw_cps, mod0 = qte.nsw_cps0, bm = qte.nsw, 
+       main = "(B) NSW CPS1"),
+  list(mod = qte.nsw_psid, mod0 = qte.nsw_psid0, bm = qte.nsw, 
+       main = "(C) NSW PSID1"),
+  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw.cps, 
+       main = "(N) NSW CPS1-PLUS (Trimmed)"),
+  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw.psid, 
+       main = "(O) NSW PSID1-PLUS (Trimmed)")
 )
 
 # save results
-save_qtet(plots_nsw, prefix = "nsw", ylim = c(-25000, 15000))
-save_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw_cps, plot_titles, main_start = 8, ylim = c(-25000, 15000), prefix = "nsw_top")
-save_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw_psid, plot_titles, main_start = 13, ylim = c(-25000, 15000), prefix = "nsw_top")
+save_qtet(plots_nsw, prefix = "nsw")
+save_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw, all_plot_titles, 
+             main_start = 8, prefix = "nsw_top")
+save_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw, all_plot_titles, 
+             main_start = 13, prefix = "nsw_top")
 ```
 
 ### Assessing outcome weights (OW)
 ```{r, message=FALSE, warning=FALSE}
 # list all datasets
-all_datasets <- c(list(nsw, nsw_cps, nsw_psid, nsw_cps.trim, nsw_psid.trim, nsw_cps_plus.trim.match, nsw_psid_plus.trim.match), top5_datasets.cps, top5_datasets.psid)
+all_datasets <- c(list(nsw, nsw_cps, nsw_psid), 
+                  top5_datasets.cps, top5_datasets.psid, 
+                  list(nsw_cps_trim_match, nsw_psid_trim_match))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1093,22 +1288,24 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC12. Outcome Weights using NSW Data"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC14. Outcome Weights using NSW Data"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # plot outcome weights distribution
-plot_ow(ow_att, plot_titles) 
+plot_ow(ow_att, all_plot_titles) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-#evaluate results
-res_ow <- eval_ow(ow_att, all_datasets, plot_titles, treat, "AIPW-ATT")
-knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) 
+# evaluate results
+res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
+knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) %>%
+  kable_styling(full_width = TRUE) %>%
+  scroll_box(height = "800px", width = "100%")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 #save results
-save_ow(ow_att, plot_titles, prefix = "nsw")
+save_ow(ow_att, all_plot_titles, prefix = "nsw")
 ```
 
 Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
@@ -1131,20 +1328,20 @@ bm <- c("re75")
 filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC13. Sensitivity Analyses NSW"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC15. Sensitivity Analyses NSW"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
     idx <- which(sapply(all_datasets, identical, filtered_datasets_sens[[i]]))
     sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
-    title(main = plot_titles[idx])
+    title(main = all_plot_titles[idx])
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, "nsw")
+save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "nsw")
 ```
 
 The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re78`. 
