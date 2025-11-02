@@ -273,61 +273,32 @@ for (wcol in weight_columns) {
 ldw_cps.percent <- ldw_cps
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_cps.percent)) {
-    ldw_cps.percent <- truncate_weights_percentile(ldw_cps.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+    ldw_cps.percent <- truncate_weights_percentile(ldw_cps.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 
 ldw_psid.percent <- ldw_psid
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_psid.percent)) {
-    ldw_psid.percent <- truncate_weights_percentile(ldw_psid.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+    ldw_psid.percent <- truncate_weights_percentile(ldw_psid.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 ```
 
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
-# inspect variance of weights 
-cps_results <- list()
-psid_results <- list()
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps)) {
-    cps_results[[paste0("cps_", wcol)]] <- check_weights(ldw_cps, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in LDW-CPS1"))
-  }
-}
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid)) {
-    psid_results[[paste0("psid_", wcol)]] <- check_weights(ldw_psid, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in LDW-PSID1"))
-  }
-}
-
-var_cps_table <- bind_rows(cps_results)
-var_psid_table <- bind_rows(psid_results)
-
-knitr::kable(var_cps_table, caption = "Variance of Weights (LDW-CPS1)")
-knitr::kable(var_psid_table, caption = "Variance of Weights (LDW-PSID1)")
-```
-
-Regarding these results we can apply adaptive weight truncation to all considered weights, where it may help mitigate the influence of extreme weights. 
-```{r, message=FALSE, warning=FALSE}
-# truncate adaptively at mean + 3 standard deviations 
+# truncate weights using data-driven quantile selection
 ldw_cps.adapt <- ldw_cps
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_cps.adapt)) {
-    ldw_cps.adapt <- truncate_weights_adaptive(ldw_cps.adapt, weight_col = wcol, c = 3)
+    ldw_cps.adapt <- truncate_weights_adaptive(ldw_cps.adapt, weight_col = wcol, treat_col = "treat")
   }
 }
 
 ldw_psid.adapt <- ldw_psid
 for (wcol in weight_columns) {
   if (wcol %in% names(ldw_psid.adapt)) {
-    ldw_psid.adapt <- truncate_weights_adaptive(ldw_psid.adapt, weight_col = wcol, c = 3)
+    ldw_psid.adapt <- truncate_weights_adaptive(ldw_psid.adapt, weight_col = wcol, treat_col = "treat")
   }
 }
 ```
@@ -1061,8 +1032,7 @@ rownames(att_summary) <- all_plot_titles
 
 # print results
 knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE) %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+  kable_styling(full_width = TRUE) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1070,9 +1040,8 @@ knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE) %
 result_mat <- create_matrix_results(all_outs, all_plot_titles)
 
 # render formatted table output
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat, caption = "ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 As in model A, the tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS1 sample, and column (C) for the LDW-PSID1 sample. Columns (D)-(O) summarize the trimmed and top-ranked sample results for both LDW-CPS1 and LDW-PSID1. 
@@ -1340,8 +1309,7 @@ plot_ow(ow_att, all_plot_titles)
 # evaluate results
 res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
 knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+  kable_styling(full_width = TRUE) 
 ```
 
 In model B, the evaluation once again confirms that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
@@ -1483,9 +1451,8 @@ all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl),
 
 result_mat_pl <- create_matrix_results(all_outs.pl, all_plot_titles)
 
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 The placebo analysis shows that the experimental benchmarks remain close to zero and statistically insignificant, closely mirroring the results in model A. The results for LDW-CPS1 and LDW-PSID1 are identical to those observed in model A.
@@ -1538,7 +1505,8 @@ The sensitivity analysis demonstrates identical results for LDW-Experimental, LD
 ```{r, message=FALSE, warning=FALSE}
 # correlation re74 and re75 
 cor_results <- sapply(all_datasets, function(d) cor(d$re74, d$re75, use = "complete.obs"))
-knitr::kable(cor_results, caption = "Correlation between re74 and re75 across datasets", booktabs = TRUE) %>%
+cor_table <- data.frame(Method = all_plot_titles, Correlation = cor_results)
+knitr::kable(cor_table, caption = "Correlation between re74 and re75 across datasets", booktabs = TRUE) %>%
   kable_styling(full_width = TRUE)
 ```
 

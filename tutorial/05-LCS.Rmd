@@ -192,38 +192,22 @@ for (wcol in weight_columns) {
 lcs_psid.percent <- lcs_psid
 for (wcol in weight_columns) {
   if (wcol %in% names(lcs_psid.percent)) {
-    lcs_psid.percent <- truncate_weights_percentile(lcs_psid.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+    lcs_psid.percent <- truncate_weights_percentile(lcs_psid.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 ```
 
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
-psid_results <- list()
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(lcs_psid)) {
-    psid_results[[wcol]] <- check_weights(lcs_psid, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in LCS-PSID1"))
-  }
-}
-
-var_psid_table <- bind_rows(psid_results)
-knitr::kable(var_psid_table, caption = "Variance of Weights")
-```
-
-Regarding these results we can apply adaptive weight truncation to all considered weights.
-```{r, message=FALSE, warning=FALSE}
-# truncate adaptively at mean + 3 standard deviations 
+# truncate weights using data-driven quantile selection
 lcs_psid.adapt <- lcs_psid
 for (wcol in weight_columns) {
   if (wcol %in% names(lcs_psid.adapt)) {
-    lcs_psid.adapt <- truncate_weights_adaptive(lcs_psid.adapt, weight_col = wcol, c = 3)
+    lcs_psid.adapt <- truncate_weights_adaptive(lcs_psid.adapt, weight_col = wcol, treat_col = "treat")
   }
 }
 ```
- 
+
 ### Trimming 
 #### Propensity score threshold trimming 
 ```{r, message=FALSE, warning=FALSE}
@@ -718,9 +702,8 @@ The ATT results are presented in the table below:
 result_mat <- create_matrix_results(all_outs, all_plot_titles)
 
 # render formatted table output
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat, caption = "ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LCS-Experimental sample, column (B) for the LCS-PSID1 sample, columns (D)-(H) for the top-ranked subsample of LCS-PSID1, and column (C) for its trimmed version of LCS-PSID-PLUS.
@@ -1005,9 +988,8 @@ all_outs.pl <- c(list(out1_pl, out2_pl),
 
 result_mat_pl <- create_matrix_results(all_outs.pl, all_plot_titles)
 
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 The placebo analysis shows that the experimental benchmark is close to zero and statistically insignificant, while all estimators applied to the observational datasets produce comparable results.

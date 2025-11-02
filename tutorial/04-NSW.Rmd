@@ -273,61 +273,32 @@ for (wcol in weight_columns) {
 nsw_cps.percent <- nsw_cps
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_cps.percent)) {
-    nsw_cps.percent <- truncate_weights_percentile(nsw_cps.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+    nsw_cps.percent <- truncate_weights_percentile(nsw_cps.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 
 nsw_psid.percent <- nsw_psid
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_psid.percent)) {
-    nsw_psid.percent <- truncate_weights_percentile(nsw_psid.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
+    nsw_psid.percent <- truncate_weights_percentile(nsw_psid.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 ```
 
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
-# inspect variance of weights 
-cps_results <- list()
-psid_results <- list()
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_cps)) {
-    cps_results[[paste0("cps_", wcol)]] <- check_weights(nsw_cps, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in NSW-CPS1"))
-  }
-}
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(nsw_psid)) {
-    psid_results[[paste0("psid_", wcol)]] <- check_weights(nsw_psid, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in NSW-PSID1"))
-  }
-}
-
-var_cps_table <- bind_rows(cps_results)
-var_psid_table <- bind_rows(psid_results)
-
-knitr::kable(var_cps_table, caption = "Variance of Weights (NSW-CPS1)")
-knitr::kable(var_psid_table, caption = "Variance of Weights (NSW-PSID1)")
-```
-
-Regarding these results we apply adaptive weight truncation to all considered weights.
-```{r, message=FALSE, warning=FALSE}
-# truncate adaptively at mean + 3 standard deviations 
+# truncate weights using data-driven quantile selection
 nsw_cps.adapt <- nsw_cps
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_cps.adapt)) {
-    nsw_cps.adapt <- truncate_weights_adaptive(nsw_cps.adapt, weight_col = wcol, c = 3)
+    nsw_cps.adapt <- truncate_weights_adaptive(nsw_cps.adapt, weight_col = wcol, treat_col = "treat")
   }
 }
 
 nsw_psid.adapt <- nsw_psid
 for (wcol in weight_columns) {
   if (wcol %in% names(nsw_psid.adapt)) {
-    nsw_psid.adapt <- truncate_weights_adaptive(nsw_psid.adapt, weight_col = wcol, c = 3)
+    nsw_psid.adapt <- truncate_weights_adaptive(nsw_psid.adapt, weight_col = wcol, treat_col = "treat")
   }
 }
 ```
@@ -1036,8 +1007,7 @@ rownames(att_summary) <- all_plot_titles
 
 # print results
 knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE) %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+  kable_styling(full_width = TRUE) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1045,9 +1015,8 @@ knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE) %
 result_mat <- create_matrix_results(all_outs, all_plot_titles)
 
 # render formatted table output
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat, caption = "ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(O) summarize results for the trimmed and top-ranked samples for both NSW-CPS1 and NSW-PSID1.
@@ -1299,8 +1268,7 @@ plot_ow(ow_att, all_plot_titles)
 # evaluate results
 res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
 knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+  kable_styling(full_width = TRUE) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}

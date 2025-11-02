@@ -1,0 +1,369 @@
+--- 
+title: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
+author: "Laura Kreisel"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [tutorial/book.bib, tutorial/packages.bib]
+description: |
+  This book replicates the LaLonde study by Imbens & Xu (2024) and extends it by comparing a
+  full with a reduced covariate model to mitigate potential confounding. 
+  It evaluates various methods to improve overlap and covariate balance for robust 
+  treatment effect estimation and applies the outcome weights framework by Knaus & Pfleiderer (2024) 
+  to assess another estimator and analyse the distributional properties of outcome weights.
+  The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
+link-citations: yes
+github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study
+---
+
+# Preface {-}
+
+This book replicates the LaLonde study by @imbens2024 and extends it by comparing a
+full with a reduced covariate model to mitigate potential confounding. 
+It evaluates various methods to improve overlap and covariate balance for robust treatment effect estimation and 
+applies the outcome weights framework by @OW_Package to assess another estimator and analyse the distributional properties of outcome weights. 
+The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
+
+```{r, echo=FALSE, out.width="80%", fig.align="center"}
+knitr::include_graphics("tutorial/Outcome-Weights_files/figure-html/image3.jpg")
+```
+
+Section 1 introduces required packages and wrapper functions used throughout the analysis. 
+Section 2 replicates and extends the full covariate model from @imbens2024 using the LaLonde-Dehejia-Wahba (LDW) dataset. 
+Section 3 applies a reduced covariate set to the same LDW dataset. 
+Section 4 analyzes the original LaLonde dataset following similar methods and 
+section 5 explores the LaLonde-Calónico-Smith (LCS) dataset, focusing on female samples.
+
+<!--chapter:end:index.Rmd-->
+
+# LaLonde-Dehejia-Wahba (LDW) Data
+LaLonde (1986) evaluated the effect of the National Supported Work Demonstration (NSW) program on both female and male participants. While the female participants were drawn from the Aid to Families with Dependent Children (AFDC) program, the male participants were drawn from three other groups: former drug addicts, ex-criminal offenders, and high-school dropouts. LaLonde relied on two main data sources:
+(1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
+(2) PSID-1, based on Panel Study of Income Dynamics for household heads under 55 from specific years who were not retired in 1975, adjusted for factors like employment status and poverty level, resulting in four additional comparison groups.
+
+Dehejia and Wahba (1999) constructed a subset of LaLonde's original data, retaining 62% of observations and restricting the focus to male participants based on their 1974 earnings. As the dataset was formed entirely on pretreatment information like employment records or month of assignment, treatment allocation was effectively independent of all pre-treatment variables. Thus, they concluded that this subset, known as the LaLonde-Dehejia-Wahba (LDW) data, constitutes a valid experimental sample.
+
+The analysis in section 2 and 3 builds on the LDW data and considers in total three samples: 
+(1) LDW-Experimental, consisting of 185 treated individuals and 280 controls from the experimental data;
+(2) LDW-CPS1, which pairs the same treated sample with 15,992 controls from CPS-SSA-1;
+(3) LDW-PSID1, featuring the same treated sample with 2,490 controls from PSID-1; 
+In section 4, the analysis applies the same set of statistical tools to analyze a fourth sample as an additional demonstration:
+(4) LaLonde male samples (1986).
+In the last section, the analysis applies a reduced set of statistical tools to analyze a fifth sample again as an additional demonstration:
+(5) LaLonde female samples (2017).
+
+This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (`black`, `hispanic`), marital status, high school dropouts, 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To improve covariate balance and overlap between treated and control groups, various methods are applied and are structured into five parts (matching, weighting, truncation, trimming and integrated methods). From these methods, the five best methods are determined based on a score defined by absolute standardized mean differences (SMD) and the effective sample size (ESS). The corresponding datasets are used to estimate the average treatment effect on the treated (ATT). Notably, the estimation incorporates the recently introduced augmented inverse probability weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package. Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT.  Placebo tests are then conducted using 1975 earnings (`re75`) as an outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
+
+## Set up
+### Source functions and load data
+```{r, message=FALSE, warning=FALSE}
+# source functions
+source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
+source("tutorial/functions.R")
+```
+
+```{r, message=FALSE, warning=FALSE}
+# load data
+load("data/lalonde.RData")
+```
+
+```{r, message=FALSE, warning=FALSE}
+# set seed
+set.seed(42)
+```
+
+### Inspect data
+
+We begin the analysis with an overview of each dataset, where the dataset name, number of observations (rows), number of treated and control units, number of variables (columns), and variable names are reviewed.
+```{r, message=FALSE, warning=FALSE}
+# collect datasets in a list
+data <- list(lalonde = lalonde, ldw_tr = ldw_tr, ldw_co = ldw_co, ldw_cps = ldw_cps, ldw_psid = ldw_psid)
+
+# inspect key metrics of each dataset
+summary_stats <- inspect_data(data)
+knitr::kable(summary_stats, caption = "Summary Statistics")
+```
+
+### Load and preprocess data
+
+Next, we augment the control groups in LDW-CPS1 and LDW-PSID1 by merging them with the experimental controls from LDW-Experimental. This approach follows the methodology laid out by @imbens2024. These expanded datasets are used solely for comparative purposes, while all primary analyses rely on the original LDW‑CPS1 and LDW‑PSID1 data.
+```{r, message=FALSE, warning=FALSE}
+# assigns 1 to the experimental controls
+ldw_co$treat <- 1
+
+# merge experimental data with CPS1 data
+ldw_cps_plus <- rbind.data.frame(
+  ldw_co,    # experimental controls 
+  ldw_cps    # CPS1 data 
+)
+
+# merge experimental data with PSID1 data
+ldw_psid_plus <- rbind.data.frame(
+  ldw_co,    # experimental controls 
+  ldw_psid   # PSID1 data 
+)
+
+datasets <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
+
+# inspect each dataset
+summary_stats_plus <- inspect_data(datasets)
+knitr::kable(summary_stats_plus, caption = "Summary Statistics")
+```
+
+## Model A
+
+Finally, we define Model A as the baseline specification underlying the analysis.
+```{r, message=FALSE, warning=FALSE}
+# define variables
+Y <- "re78" 
+treat <- "treat" 
+covar <- c("age", "education", "black", "hispanic", "married", 
+           "nodegree", "re74", "re75", "u74", "u75") #re74 included
+```
+
+### Assessing overlap and covariate balance
+#### Overlap
+To identify the average causal effect under unconfoundedness (that asserts that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlaps between the treated and untreated units (meaning that for every combination of covariates, there are both treated and untreated units in the dataset) are required. To assess overlap in the propensity scores and visualize the results using histograms of their log-odds, we use the `assess_overlap()` function of @imbens2024.
+
+<div class="callout-note">
+In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable coverage.
+</div>
+```{r, fig.cap='FIGUREA1. SubfigureA:LDW. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1.',out.width='100%', fig.asp=0.5}
+ldw.ps <- assess_overlap(data = ldw, treat = treat, cov = covar)
+ldw_cps.ps <- assess_overlap(data = ldw_cps, treat = treat, cov = covar) 
+ldw_psid.ps <- assess_overlap(data = ldw_psid, treat = treat, cov = covar) 
+```
+
+As anticipated, LDW-Experimental exhibits an almost perfect overlap. In contrast, the observational datasets LDW-CPS1 and LDW-PSID1 show weak overlap. Notably, many treated units have propensity scores outside the range of the controls, while a large share of control units have propensity scores concentrated at very low log-odds.
+
+Next, the overlap of the expanded observational datasets is examined.
+```{r, fig.cap='FIGUREA1. SubfigureD:LDW-CPS1-PLUS. SubfigureE:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
+ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar)
+```
+
+As expected, the datasets LDW-CPS1-PLUS and LDW-PSID1-PLUS show an improved overlap compared to their non-plus states.
+
+For the following analysis, we set up a model formula.
+```{r, message=FALSE, warning=FALSE}
+# set model formula
+model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
+```
+
+#### Covariate balance
+
+To make treatment and control groups more comparable, thus mimicking a randomized experiment, initial covariate balance is assessed to determine the degree to which treatment and control groups differ on observed characteristics. Therefore, we employ visual summaries using `love.plot()` by @imbens2024, which depicts standardized mean differences across covariates before and after adjustment.
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGUREA2. SubfigureA:LDW-CPS1. SubfigureB:LDW-CPS1-PLUS. SubfigureC:LDW-PSID1. SubfigureD:LDW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+# plot balance
+love.plot(ldw, ldw_cps, treat, covar = covar, title = "LDW-CPS1")
+love.plot(ldw, ldw_psid, treat, covar = covar, title = "LDW-PSID1")
+love.plot(ldw, ldw_cps_plus, treat, covar = covar, title = "LDW-CPS1-PLUS")
+love.plot(ldw, ldw_psid_plus, treat, covar = covar, title = "LDW-PSID1-PLUS")
+```
+
+Neither LDW-CPS1-PLUS nor LDW-PSID1-PLUS shows consistently improved covariate balance compared to their non-plus counterparts based on raw standardized mean differences. Although some specific covariates improve slightly, most show increased imbalance.
+
+<div class="callout-note">
+For the subsequent analysis aimed at enhancing covariate balance and overlap, only the two datasets LDW-CPS1 and LDW-PSID1 are used. The LDW-Experimental dataset is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+</div>
+
+## Improving primarily covariate balance
+### Matching 
+
+The purpose of matching is to create comparable treated and control groups by pairing units with similar covariate profiles, thereby reducing covariate imbalance and confounding bias. We apply several matching methods as outlined by @Greifer_3_2025 in the following. 
+
+#### Distance Matching
+##### 1:1 Nearest neighbor matching
+```{r, message=FALSE, warning=FALSE}
+# perform nearest neighbor matching with k=1, logistic propensity score and replacement
+m.out.cps.nearest <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", replace = TRUE)
+m.out.psid.nearest <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", replace = TRUE)
+```
+
+##### k:1 matching (k=2)
+```{r, message=FALSE, warning=FALSE}
+k<-2
+# perform nearest neighbor matching with k=2, logistic propensity score and replacement
+m.out.cps.k2 <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.psid.k2 <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+```
+
+##### k:1 matching (k=3)
+```{r, message=FALSE, warning=FALSE}
+k<-3
+# perform nearest neighbor matching with k=3, logistic propensity score and replacement
+m.out.cps.k3 <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.psid.k3 <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+```
+
+##### Caliper matching
+```{r, message=FALSE, warning=FALSE}
+# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
+m.out.cps.caliper <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
+m.out.psid.caliper <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
+```
+
+##### Common support restriction matching
+```{r, message=FALSE, warning=FALSE}
+# perform nearest neighbor matching with exclusion of units outside common support
+m.out.cps.cs <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
+m.out.psid.cs <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
+```
+
+##### Mahalanobis distance matching (mahvars) 
+```{r, message=FALSE, warning=FALSE}
+# perform nearest neighbor matching using mahalanobis distance on selected covariates
+m.out.cps.mahvars <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
+m.out.psid.mahvars <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
+```
+
+##### Optimal pair matching
+```{r, message=FALSE, warning=FALSE}
+# perform optimal pair matching that minimizes total within-pair distance on propensity scores
+m.out.cps.optimal_pair <- matchit(model, data = ldw_cps, method = "optimal", distance = "logit")
+m.out.psid.optimal_pair <- matchit(model, data = ldw_psid, method = "optimal", distance = "logit")
+```
+
+##### Optimal full matching
+```{r, message=FALSE, warning=FALSE}
+# perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
+m.out.cps.optimal_full <- matchit(model, data = ldw_cps, method = "full", distance = "logit")
+m.out.psid.optimal_full <- matchit(model, data = ldw_psid, method = "full", distance = "logit")
+```
+
+##### Generalized full matching
+```{r, message=FALSE, warning=FALSE}
+# perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
+m.out.cps.general_full <- matchit(model, data = ldw_cps, method = "quick", distance = "logit")
+m.out.psid.general_full <- matchit(model, data = ldw_psid, method = "quick", distance = "logit")
+```
+
+##### Genetic matching
+```{r, message=FALSE, warning=FALSE}
+# perform genetic matching 
+m.out.cps.genetic <- matchit(model, data = ldw_cps, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
+m.out.psid.genetic <- matchit(model, data = ldw_psid, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
+```
+
+#### Stratum matching
+##### Exact matching (exact)
+Strata = unique covariate profiles (raw covariates)
+```{r, message=FALSE, warning=FALSE}
+# match units exactly by raw covariate profiles 
+m.out.cps.exact <- matchit(model, data = ldw_cps, method = "exact")
+m.out.psid.exact <- matchit(model, data = ldw_psid, method = "exact")
+```
+
+##### Coarsened matching (cem)
+Strata = coarsened versions of covariates
+```{r, message=FALSE, warning=FALSE}
+# match units exactly within coarse strata 
+m.out.cps.cem <- matchit(model, data = ldw_cps, method = "cem")
+m.out.psid.cem <- matchit(model, data = ldw_psid, method = "cem")
+```
+
+##### Subclassification 
+Strata = bins of the propensity score
+```{r, message=FALSE, warning=FALSE}
+# partition sample into fixed number of bins based on propensity score 
+m.out.cps.subcl <- matchit(model, data = ldw_cps, method = "subclass", subclass = 5)
+m.out.psid.subcl <- matchit(model, data = ldw_psid, method = "subclass", subclass = 5)
+```
+
+#### Pure subset selection
+##### Cardinality profile matching
+```{r, message=FALSE, warning=FALSE}
+# select largest balanced subsample meeting covariate balance tolerances and a fixed ratio of controls to treated units
+m.out.cps.card <- matchit(model, data = ldw_cps, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
+m.out.psid.card <- matchit(model, data = ldw_psid, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
+```
+
+##### Profile matching
+```{r, message=FALSE, warning=FALSE}
+# select the largest control group subset balanced to the treated group (for ATT), leaving the treated group intact
+m.out.cps.profile <- matchit(model, data = ldw_cps, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs", time = 1200)
+m.out.psid.profile <- matchit(model, data = ldw_psid, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs", time = 1200)
+```
+
+### Weighting
+
+The purpose of weighting is to reweight the units in order to create a synthetic population in which the distributions of observed characteristics is balanced between treatment and control groups. In the following, several weighting methods, as outlined by @Greifer_4_2025, are applied.
+
+#### Inverse probability weights (IPW)
+```{r, message=FALSE, warning=FALSE}
+# estimates propensity scores with a parametric generalized linear model and converts them into weights
+w.out.cps.ipw <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "glm")
+ldw_cps$ipw_weight <- w.out.cps.ipw$weights
+w.out.psid.ipw <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "glm")
+ldw_psid$ipw_weight <- w.out.psid.ipw$weights
+```
+
+#### Stable balancing weights 
+```{r, message=FALSE, warning=FALSE}
+# estimates weights by solving a quadratic programming problem 
+w.out.cps.opt <- optweight::optweight(model, data = ldw_cps, estimand = "ATT")
+ldw_cps$opt_weight <- w.out.cps.opt$weights
+w.out.psid.opt <- optweight::optweight(model, data = ldw_psid, estimand = "ATT")
+ldw_psid$opt_weight <- w.out.psid.opt$weights
+```
+
+#### Covariate balance propensity score weights
+```{r, message=FALSE, warning=FALSE}
+# estimates propensity scores using generalized method of moments and then converts them into weights
+w.out.cps.cbps <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "cbps")
+ldw_cps$cbps_weight <- w.out.cps.cbps$weights
+w.out.psid.cbps <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "cbps")
+ldw_psid$cbps_weight <- w.out.psid.cbps$weights
+```
+
+#### Entropy balancing weights
+```{r, message=FALSE, warning=FALSE}
+# estimates weights by minimizing the negative entropy of the weights subject to exact moment balancing constraints
+w.out.cps.ebal <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "ebal")
+ldw_cps$ebal_weight <- w.out.cps.ebal$weights
+w.out.psid.ebal <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "ebal")
+ldw_psid$ebal_weight <- w.out.psid.ebal$weights
+```
+
+## Improving primarily overlap
+
+Truncation aims at limiting the influence of extreme weights by capping them at a specified threshold. This helps to reduce variance and improve the stability of causal effect estimates. In the following, several truncation methods are applied, following similar approaches outlined by @Matsouaka_2023 and @Schwab_2013.
+
+### Truncation
+#### Fixed maximum value truncation
+```{r, message=FALSE, warning=FALSE}
+# truncate weights by imposing a minimum and maximum threshold
+ldw_cps.ps_fixed <- truncate_ps_fixed(ldw_cps, treat = "treat", ps = "ps_assoverlap", 
+                                      lower = 0.025, upper = 0.975)
+ldw_psid.ps_fixed <- truncate_ps_fixed(ldw_psid, treat = "treat", ps = "ps_assoverlap", 
+                                       lower = 0.025, upper = 0.975)
+```
+
+#### At percentile truncation
+```{r, message=FALSE, warning=FALSE}
+# truncate weights such that values below the 5th percentile and above the 95th percentile are capped
+ldw_cps.ps_percentile <- truncate_ps_percentile(ldw_cps, ps = "ps_assoverlap", 
+                                                lower_percentile = 5, upper_percentile = 95)
+ldw_psid.ps_percentile <- truncate_ps_percentile(ldw_psid, ps = "ps_assoverlap", 
+                                                 lower_percentile = 5, upper_percentile = 95)
+```
+
+#### Adaptive weight truncation
+```{r, message=FALSE, warning=FALSE}
+# truncate weights using data-driven quantile selection
+ldw_cps.ps_adaptive <- truncate_ps_adaptive(ldw_cps, treat = "treat", ps = "ps_assoverlap", folds = 5,
+                                               lower_grid = seq(0.01, 0.10, by = 0.01), 
+                                               upper_grid = seq(0.90, 0.99, by = 0.01))
+ldw_psid.ps_adaptive <- truncate_ps_adaptive(ldw_psid, treat = "treat", ps = "ps_assoverlap", folds = 5,
+                                                lower_grid = seq(0.01, 0.10, by = 0.01),
+                                                upper_grid = seq(0.90, 0.99, by = 0.01))
+```
+
+<!--chapter:end:tutorial/02-LDW-Model-A.Rmd-->
+
+`r if (knitr::is_html_output()) '
+# References {-}
+'`
+
+<!--chapter:end:tutorial/06-references.Rmd-->
+

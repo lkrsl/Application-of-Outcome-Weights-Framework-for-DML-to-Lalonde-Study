@@ -1,6 +1,6 @@
 # 1 Set up
 # 1.1 Installation
-packages <- c("cobalt", "data.table", "dplyr", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
+packages <- c("cobalt", "data.table", "dplyr", "DT", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
               "kableExtra", "MatchIt", "OutcomeWeights", "optmatch", "optweight", "quickmatch", 
               "readr", "rgenoud", "tidyr", "tidyverse", "ppcor", "WeightIt"
 )
@@ -21,6 +21,7 @@ install_all(packages)
 library(cobalt)
 library(data.table)
 library(dplyr)
+library(DT)
 library(ebal)
 library(ggplot2)
 library(gridExtra)
@@ -65,56 +66,60 @@ inspect_data <- function(data, treat = "treat") {
 
 ## 2.3 Truncation
 ### 2.3.1 Fixed maximum value truncation
-#### truncate_weights_fixed()
-truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
-  data[[weight_col]] <- pmax(data[[weight_col]], lower)
-  data[[weight_col]] <- pmin(data[[weight_col]], upper)
+#### truncate_ps_fixed()
+truncate_ps_fixed <- function(data, treat = "treat", ps = "ps_assoverlap", lower = 0.025, upper = 0.975) {
+  data[[ps]] <- pmin(pmax(data[[ps]], lower), upper)
   return(data)
 }
 
 ### 2.3.2 At percentile truncation
-#### truncate_weights_percentile()
-truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
-  quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
-  data[[weight_col]] <- pmax(data[[weight_col]], quantiles[1])
-  data[[weight_col]] <- pmin(data[[weight_col]], quantiles[2])
+#### truncate_ps_percentile()
+truncate_ps_percentile <- function(data, ps = "ps_assoverlap", lower_percentile = 5, upper_percentile = 95) {
+  lower_cut <- quantile(data[[ps]], probs = lower_percentile/100, na.rm = TRUE)
+  upper_cut <- quantile(data[[ps]], probs = upper_percentile/100, na.rm = TRUE)
+  data[[ps]] <- pmin(pmax(data[[ps]], lower_cut), upper_cut)
   return(data)
-} 
-
-### 2.3.3 Adaptive weight truncation
-#### check_weights()
-check_weights <- function(data, weight_col = "weight") {
-  w <- data[[weight_col]]
-  variance <- var(w, na.rm = TRUE)
-  data.frame(
-    Weight_Column = weight_col,
-    Variance = variance
-  )
 }
 
-#### truncate_weights_adaptive()
-truncate_weights_adaptive <- function(data, weight_col, c = 3) {
-  w <- data[[weight_col]]
-  # only apply if variance is above zero
-  if (var(w, na.rm = TRUE) > 0) {
-    cutoff <- mean(w, na.rm = TRUE) + c * sd(w, na.rm = TRUE)
-    data[[weight_col]] <- pmin(w, cutoff)
+### 2.3.3 Adaptive weight truncation
+#### truncate_ps_adaptive()
+truncate_ps_adaptive <- function(
+    data, treat = "treat", ps = "ps_assoverlap",
+    folds = 5,
+    lower_grid = seq(0.01, 0.10, by = 0.01),
+    upper_grid = seq(0.90, 0.99, by = 0.01)
+) {
+  n <- nrow(data)
+  fold_ids <- sample(rep(1:folds, length.out = n))
+  loss_mat <- matrix(NA, nrow = length(lower_grid), ncol = length(upper_grid))
+  for (i in seq_along(lower_grid)) {
+    for (j in seq_along(upper_grid)) {
+      if (lower_grid[i] >= upper_grid[j]) next
+      cv_losses <- c()
+      for (fold in 1:folds) {
+        valid_idx <- which(fold_ids == fold)
+        ps_valid <- data[[ps]][valid_idx]
+        treat_valid <- data[[treat]][valid_idx]
+        lower_q <- quantile(data[[ps]], probs = lower_grid[i], na.rm = TRUE)
+        upper_q <- quantile(data[[ps]], probs = upper_grid[j], na.rm = TRUE)
+        ps_trunc <- pmin(pmax(ps_valid, lower_q), upper_q)
+        # Negative log-likelihood loss for binary treatment
+        # l2_i = -A_i * log(G_i) - (1-A_i) * log(1-G_i)
+        l2_fold <- -mean(treat_valid * log(ps_trunc) + (1 - treat_valid) * log(1 - ps_trunc), na.rm = TRUE)
+        cv_losses <- c(cv_losses, l2_fold)
+      }
+      loss_mat[i,j] <- mean(cv_losses)
+    }
   }
+  idx <- which(loss_mat == min(loss_mat, na.rm = TRUE), arr.ind = TRUE)
+  best_lower <- lower_grid[idx[1]]
+  best_upper <- upper_grid[idx[2]]
+  quantiles <- quantile(data[[ps]], probs = c(best_lower, best_upper), na.rm = TRUE)
+  data[[ps]] <- pmin(pmax(data[[ps]], quantiles[1]), quantiles[2])
   return(data)
 }
 
 ## 2.4 Trimming
-### ps_estimate() ***
-ps_estimate <- function(data, Y, treat, covar, num.trees = 4000, seed = 42) {
-  set.seed(seed)
-  data$ps_estimate <- probability_forest(
-    X = data[, covar],
-    Y = as.factor(data[, treat]),
-    seed = seed, num.trees = num.trees
-  )$predictions[, 2]
-  return(data)
-}
-
 ### 2.4.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
 # ps_trim() *** 
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
@@ -125,14 +130,8 @@ ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) {
 ### 2.4.2 Common range trimming
 #### common_range_trim ()
 common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
-  lower_cut <- max(
-    min(data[[ps]][data[[treat]] == 1], na.rm = TRUE),
-    min(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
-  )
-  upper_cut <- min(
-    max(data[[ps]][data[[treat]] == 1], na.rm = TRUE),
-    max(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
-  )
+  lower_cut <- min(data[[ps]][data[[treat]] == 1], na.rm = TRUE)
+  upper_cut <- max(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
   sub <- data[data[[ps]] >= lower_cut & data[[ps]] <= upper_cut, ]
   return(sub)
 }
@@ -169,8 +168,56 @@ walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 }
 
 ## 2.5 Combination of methods
-#### trim_attach_weights()
-trim_attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
+#### truncate_weights_fixed()
+truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
+  data[[weight_col]] <- pmax(data[[weight_col]], lower)
+  data[[weight_col]] <- pmin(data[[weight_col]], upper)
+  return(data)
+}
+
+#### truncate_weights_percentile()
+truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
+  quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
+  data[[weight_col]] <- pmax(data[[weight_col]], quantiles[1])
+  data[[weight_col]] <- pmin(data[[weight_col]], quantiles[2])
+  return(data)
+} 
+
+#### truncate_weights_adaptive()
+truncate_weights_adaptive <- function(
+    data, weight_col, folds = 5,
+    lower_grid = seq(0.01, 0.10, by = 0.01),
+    upper_grid = seq(0.90, 0.99, by = 0.01),
+    loss_fn = function(w) var(w, na.rm=TRUE) # variance of weights
+) {
+  n <- nrow(data)
+  fold_ids <- sample(rep(1:folds, length.out = n))
+  loss_mat <- matrix(NA, nrow = length(lower_grid), ncol = length(upper_grid))
+  for (i in seq_along(lower_grid)) {
+    for (j in seq_along(upper_grid)) {
+      if (lower_grid[i] >= upper_grid[j]) next
+      cv_losses <- c()
+      for (fold in 1:folds) {
+        valid_idx <- which(fold_ids == fold)
+        valid_weights <- data[[weight_col]][valid_idx]
+        lower_q <- quantile(valid_weights, probs = lower_grid[i], na.rm = TRUE)
+        upper_q <- quantile(valid_weights, probs = upper_grid[j], na.rm = TRUE)
+        w_trunc <- pmax(pmin(valid_weights, upper_q), lower_q)
+        cv_losses <- c(cv_losses, loss_fn(w_trunc))
+      }
+      loss_mat[i,j] <- mean(cv_losses)
+    }
+  }
+  idx <- which(loss_mat == min(loss_mat, na.rm = TRUE), arr.ind = TRUE)
+  best_lower <- lower_grid[idx[1]]
+  best_upper <- upper_grid[idx[2]]
+  quantiles <- quantile(data[[weight_col]], probs = c(best_lower, best_upper), na.rm = TRUE)
+  data[[weight_col]] <- pmax(pmin(data[[weight_col]], quantiles[2]), quantiles[1])
+  return(data)
+}
+
+#### attach_weights()
+attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
   weight_type <- match.arg(weight_type)
   weight_fun <- function(data) {
     if (weight_type == "ipw_weight") {
@@ -701,8 +748,6 @@ save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, c
                            prefix = NULL,
                            prefix_cps = NULL, prefix_psid = NULL,
                            path = "graphs/lalonde") {
-  dir.create(path, showWarnings = FALSE, recursive = TRUE)
-  print(getwd())
   all_combined_list <- list()
   if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
   if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid

@@ -292,94 +292,33 @@ ldw_psid$ebal_weight <- w.out.psid.ebal$weights
 Truncation aims at limiting the influence of extreme weights by capping them at a specified threshold. This helps to reduce variance and improve the stability of causal effect estimates. In the following, several truncation methods are applied, following similar approaches outlined by @Matsouaka_2023 and @Schwab_2013.
 
 ### Truncation
-```{r, message=FALSE, warning=FALSE}
-# list weight columns to apply truncation 
-weight_columns <- c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight")
-```
-
 #### Fixed maximum value truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights by imposing a minimum and maximum threshold
-ldw_cps.fixed <- ldw_cps
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps.fixed)) {
-    ldw_cps.fixed <- truncate_weights_fixed(ldw_cps.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
-  }
-}
-
-ldw_psid.fixed <- ldw_psid
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid.fixed)) {
-    ldw_psid.fixed <- truncate_weights_fixed(ldw_psid.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
-  }
-}
+ldw_cps.ps_fixed <- truncate_ps_fixed(ldw_cps, treat = "treat", ps = "ps_assoverlap", 
+                                      lower = 0.025, upper = 0.975)
+ldw_psid.ps_fixed <- truncate_ps_fixed(ldw_psid, treat = "treat", ps = "ps_assoverlap", 
+                                       lower = 0.025, upper = 0.975)
 ```
 
 #### At percentile truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights such that values below the 5th percentile and above the 95th percentile are capped
-ldw_cps.percent <- ldw_cps
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps.percent)) {
-    ldw_cps.percent <- truncate_weights_percentile(ldw_cps.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
-  }
-}
-
-ldw_psid.percent <- ldw_psid
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid.percent)) {
-    ldw_psid.percent <- truncate_weights_percentile(ldw_psid.percent, weight_col = wcol, lower = 0.01, upper = 0.99)
-  }
-}
+ldw_cps.ps_percentile <- truncate_ps_percentile(ldw_cps, ps = "ps_assoverlap", 
+                                                lower_percentile = 5, upper_percentile = 95)
+ldw_psid.ps_percentile <- truncate_ps_percentile(ldw_psid, ps = "ps_assoverlap", 
+                                                 lower_percentile = 5, upper_percentile = 95)
 ```
 
 #### Adaptive weight truncation
-
-For this method, we first inspect the variance of the weights. If variance is zero, adaptive weight truncation is not meaningful.
 ```{r, message=FALSE, warning=FALSE}
-# inspect variance of weights 
-cps_results <- list()
-psid_results <- list()
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps)) {
-    cps_results[[paste0("cps_", wcol)]] <- check_weights(ldw_cps, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in LDW-CPS1"))
-  }
-}
-
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid)) {
-    psid_results[[paste0("psid_", wcol)]] <- check_weights(ldw_psid, wcol)
-  } else {
-    warning(paste("Column", wcol, "not found in LDW-PSID1"))
-  }
-}
-
-var_cps_table <- bind_rows(cps_results)
-var_psid_table <- bind_rows(psid_results)
-
-knitr::kable(var_cps_table, caption = "Variance of Weights (LDW-CPS1)")
-knitr::kable(var_psid_table, caption = "Variance of Weights (LDW-PSID1)")
-```
-
-Regarding above results, we apply adaptive weight truncation to all weights, where it may help mitigate the influence of extreme weights. 
-```{r, message=FALSE, warning=FALSE}
-# truncate adaptively at mean + 3 standard deviations 
-ldw_cps.adapt <- ldw_cps
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps.adapt)) {
-    ldw_cps.adapt <- truncate_weights_adaptive(ldw_cps.adapt, weight_col = wcol, c = 3)
-  }
-}
-
-ldw_psid.adapt <- ldw_psid
-for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid.adapt)) {
-    ldw_psid.adapt <- truncate_weights_adaptive(ldw_psid.adapt, weight_col = wcol, c = 3)
-  }
-}
+# truncate weights using data-driven quantile selection
+ldw_cps.ps_adaptive <- truncate_ps_adaptive(ldw_cps, treat = "treat", ps = "ps_assoverlap", folds = 5,
+                                               lower_grid = seq(0.01, 0.10, by = 0.01), 
+                                               upper_grid = seq(0.90, 0.99, by = 0.01))
+ldw_psid.ps_adaptive <- truncate_ps_adaptive(ldw_psid, treat = "treat", ps = "ps_assoverlap", folds = 5,
+                                                lower_grid = seq(0.01, 0.10, by = 0.01),
+                                                upper_grid = seq(0.90, 0.99, by = 0.01))
 ```
 
 ### Trimming 
@@ -393,8 +332,8 @@ ldw_cps.trim <- ps_trim(ldw_cps.ps, threshold = 0.9)
 ldw_psid.trim <- ps_trim(ldw_psid.ps, threshold = 0.9)
 
 # re-estimate propensity scores on trimmed data 
-ldw_cps.trim <- ps_estimate(data = ldw_cps.trim, Y = "re78", treat = "treat", cov = covar)
-ldw_psid.trim <- ps_estimate(data = ldw_psid.trim, Y = "re78", treat = "treat", cov = covar)
+ldw_cps.trim <- assess_overlap(data = ldw_cps.trim, treat = treat, cov = covar)
+ldw_psid.trim <- assess_overlap(data = ldw_psid.trim, treat = treat, cov = covar)
 ```
 
 #### Common range trimming
@@ -404,8 +343,8 @@ ldw_cps.common   <- common_range_trim(ldw_cps.ps)
 ldw_psid.common  <- common_range_trim(ldw_psid.ps)
 
 # re-estimate propensity scores on trimmed data 
-ldw_cps.common <- ps_estimate(data = ldw_cps.common, Y = "re78", treat = "treat", cov = covar)
-ldw_psid.common <- ps_estimate(data = ldw_psid.common, Y = "re78", treat = "treat", cov = covar)
+ldw_cps.common <- assess_overlap(data = ldw_cps.common, treat = treat, cov = covar)
+ldw_psid.common <- assess_overlap(data = ldw_psid.common, treat = treat, cov = covar)
 ```
 
 #### Crump trimming 
@@ -415,8 +354,8 @@ ldw_cps.crump  <- crump_trim(ldw_cps.ps, lower = 0.1, upper = 0.9)
 ldw_psid.crump <- crump_trim(ldw_psid.ps, lower = 0.1, upper = 0.9)
 
 # re-estimate propensity scores on trimmed data 
-ldw_cps.crump <- ps_estimate(data = ldw_cps.crump, Y = "re78", treat = "treat", cov = covar)
-ldw_psid.crump <- ps_estimate(data = ldw_psid.crump, Y = "re78", treat = "treat", cov = covar)
+ldw_cps.crump <- assess_overlap(data = ldw_cps.crump, treat = treat, cov = covar)
+ldw_psid.crump <- assess_overlap(data = ldw_psid.crump, treat = treat, cov = covar)
 ```
 
 #### Stuermer trimming
@@ -426,19 +365,19 @@ ldw_cps.stuermer  <- stuermer_trim(ldw_cps.ps)
 ldw_psid.stuermer <- stuermer_trim(ldw_psid.ps)
 
 # re-estimate propensity scores on trimmed data 
-ldw_cps.stuermer <- ps_estimate(data = ldw_cps.stuermer, Y = "re78", treat = "treat", cov = covar)
-ldw_psid.stuermer <- ps_estimate(data = ldw_psid.stuermer, Y = "re78", treat = "treat", cov = covar)
+ldw_cps.stuermer <- assess_overlap(data = ldw_cps.stuermer, treat = treat, cov = covar)
+ldw_psid.stuermer <- assess_overlap(data = ldw_psid.stuermer, treat = treat, cov = covar)
 ```
 
 #### Walker trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations based on preference scores that adjust for treatment prevalence using logit transformations
-ldw_cps.walker   <- walker_trim(ldw_cps.ps)
-ldw_psid.walker  <- walker_trim(ldw_psid.ps)
+ldw_cps.walker  <- walker_trim(ldw_cps.ps)
+ldw_psid.walker <- walker_trim(ldw_psid.ps)
 
 # re-estimate propensity scores on trimmed data 
-ldw_cps.walker <- ps_estimate(data = ldw_cps.walker, Y = "re78", treat = "treat", cov = covar)
-ldw_psid.walker <- ps_estimate(data = ldw_psid.walker, Y = "re78", treat = "treat", cov = covar)
+ldw_cps.walker <- assess_overlap(data = ldw_cps.walker, treat = treat, cov = covar)
+ldw_psid.walker <- assess_overlap(data = ldw_psid.walker, treat = treat, cov = covar)
 ```
 
 ## Integrated methods
@@ -470,7 +409,7 @@ ldw_trim_psid <- subset(ldw_psid_trim, sample %in% c(1,2) & ps_assoverlap <= 0.8
 ldw_trim_psid$treat[which(ldw_trim_psid$sample == 2)] <- 0
 ```
 
-### Trimming and weighting
+### Weighting and trimming 
 
 The purpose of combining trimming and weighting methods is to leverage the strengths of both approaches for causal effect estimation. Trimming enhances overlap and reduces the influence of outliers by excluding units with extreme or non-comparable propensity scores, while weighting further adjusts for remaining covariate imbalance among the retained units. A similar approach to that presented by @Stuermer_2021 is employed, but weighting methods of @Greifer_4_2025 are used.
 ```{r, message=FALSE, warning=FALSE}
@@ -490,29 +429,84 @@ all_trim.psid  <- list(ps_threshold = ldw_psid.trim,
 #### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
 # apply inverse probability weighting (IPW) with trimming and attach IPW weights
-ipw_comb.cps <- trim_attach_weights(all_trim.cps, model, "ipw_weight")
-ipw_comb.psid <- trim_attach_weights(all_trim.psid, model, "ipw_weight")
+ipw_comb.cps <- attach_weights(all_trim.cps, model, "ipw_weight")
+ipw_comb.psid <- attach_weights(all_trim.psid, model, "ipw_weight")
 ```
 
 #### Stable balancing weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
 # apply stable balancing with trimming and attach stable balance weights
-opt_comb.cps <- trim_attach_weights(all_trim.cps, model, "opt_weight")
-opt_comb.psid <- trim_attach_weights(all_trim.psid, model, "opt_weight")
+opt_comb.cps <- attach_weights(all_trim.cps, model, "opt_weight")
+opt_comb.psid <- attach_weights(all_trim.psid, model, "opt_weight")
 ```
 
 #### Propensity score weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
 # apply propensity score weighting with trimming and attach propensity score weights
-cbps_comb.cps <- trim_attach_weights(all_trim.cps, model, "cbps_weight")
-cbps_comb.psid <- trim_attach_weights(all_trim.psid, model, "cbps_weight")
+cbps_comb.cps <- attach_weights(all_trim.cps, model, "cbps_weight")
+cbps_comb.psid <- attach_weights(all_trim.psid, model, "cbps_weight")
 ```
 
 #### Entropy balancing weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
 ```{r, message=FALSE, warning=FALSE}
 # apply entropy balancing weights with trimming and attach entropy weights
-ebal_comb.cps <- trim_attach_weights(all_trim.cps, model, "ebal_weight")
-ebal_comb.psid <- trim_attach_weights(all_trim.psid, model, "ebal_weight")
+ebal_comb.cps <- attach_weights(all_trim.cps, model, "ebal_weight")
+ebal_comb.psid <- attach_weights(all_trim.psid, model, "ebal_weight")
+```
+
+### Weighting and truncation
+#### IPW, stable balancing, propensity score and entropy weights with 1) fixed maximum value truncation
+```{r, message=FALSE, warning=FALSE}
+# truncate weights by imposing a minimum and maximum threshold
+ldw_cps.fixed <- ldw_cps
+for (wcol in weight_columns) {
+  if (wcol %in% names(ldw_cps.fixed)) {
+    ldw_cps.fixed <- truncate_weights_fixed(ldw_cps.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
+  }
+}
+
+ldw_psid.fixed <- ldw_psid
+for (wcol in weight_columns) {
+  if (wcol %in% names(ldw_psid.fixed)) {
+    ldw_psid.fixed <- truncate_weights_fixed(ldw_psid.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
+  }
+}
+```
+
+#### IPW, stable balancing, propensity score and entropy weights with 2) at percentile truncation
+```{r, message=FALSE, warning=FALSE}
+# truncate weights such that values below the 5th percentile and above the 95th percentile are capped
+ldw_cps.percent <- ldw_cps
+for (wcol in weight_columns) {
+  if (wcol %in% names(ldw_cps.percent)) {
+    ldw_cps.percent <- truncate_weights_percentile(ldw_cps.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
+  }
+}
+
+ldw_psid.percent <- ldw_psid
+for (wcol in weight_columns) {
+  if (wcol %in% names(ldw_psid.percent)) {
+    ldw_psid.percent <- truncate_weights_percentile(ldw_psid.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
+  }
+}
+```
+
+#### IPW, stable balancing, propensity score and entropy weights with 3) adaptive weight truncation
+```{r, message=FALSE, warning=FALSE}
+# truncate weights using data-driven quantile selection
+ldw_cps.adapt <- ldw_cps
+for (wcol in weight_columns) {
+  if (wcol %in% names(ldw_cps.adapt)) {
+    ldw_cps.adapt <- truncate_weights_adaptive(ldw_cps.adapt, weight_col = wcol)
+  }
+}
+
+ldw_psid.adapt <- ldw_psid
+for (wcol in weight_columns) {
+  if (wcol %in% names(ldw_psid.adapt)) {
+    ldw_psid.adapt <- truncate_weights_adaptive(ldw_psid.adapt, weight_col = wcol)
+  }
+}
 ```
 
 ## Reassessing methods
@@ -1139,8 +1133,7 @@ rownames(att_summary) <- all_plot_titles
 
 # print results
 knitr::kable(att_summary, caption = "ATT Summary Statistics", booktabs = TRUE) %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+  kable_styling(full_width = TRUE) 
 ```
 
 The ATT results are presented in the table below:
@@ -1149,9 +1142,8 @@ The ATT results are presented in the table below:
 result_mat <- create_matrix_results(all_outs, all_plot_titles)
 
 # render formatted table output
-knitr::kable(result_mat, booktabs = TRUE, caption = "ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat, caption = "ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 <div class="callout-note">
@@ -1430,8 +1422,7 @@ plot_ow(ow_att, all_plot_titles)
 # evaluate results
 res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
 knitr::kable(res_ow, caption = "Outcome Weights for Treated and Untreated", booktabs = TRUE) %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+  kable_styling(full_width = TRUE) 
 ```
 
 <div class="callout-caution">
@@ -1580,9 +1571,8 @@ all_outs.pl <- c(list(out1_pl, out2_pl, out3_pl),
 
 result_mat_pl <- create_matrix_results(all_outs.pl, all_plot_titles)
 
-knitr::kable(result_mat_pl, booktabs = TRUE, caption = "Placebo ATT Estimates and SEs") %>%
-  kable_styling(full_width = TRUE) %>%
-  scroll_box(height = "800px", width = "100%")
+datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 The placebo analysis reveals that the experimental benchmarks are positive, near zero and statistically insignificant, while all estimators applied to the observational datasets, LDW-CPS1 and LDW-PSID1, yield by majority large, negative ATT estimates.
@@ -1641,7 +1631,8 @@ The analyses suggest that some samples maintain stable treatment effect estimate
 ```{r, message=FALSE, warning=FALSE}
 # correlation re74 and re75 
 cor_results <- sapply(all_datasets, function(d) cor(d$re74, d$re75, use = "complete.obs"))
-knitr::kable(cor_results, caption = "Correlation between re74 and re75 across datasets", booktabs = TRUE) %>%
+cor_table <- data.frame(Method = all_plot_titles, Correlation = cor_results)
+knitr::kable(cor_table, caption = "Correlation between re74 and re75 across datasets", booktabs = TRUE) %>%
   kable_styling(full_width = TRUE)
 ```
 

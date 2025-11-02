@@ -118,7 +118,7 @@ NA
 
 #### Truncation
 
-`truncate_weights_fixed()` caps weights at a fixed maximum range (with absolute value restricted in [0.025, 0.975])).
+`truncate_weights_fixed()` caps weights at a fixed maximum range (@Larson_2023, @Xiao_2013, Matsouaka_2023).
 ```{r}
 truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
   data[[weight_col]] <- pmax(data[[weight_col]], lower)
@@ -134,7 +134,7 @@ truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.97
 - `lower`: Numeric value specifying the minimum allowed weight. Weights below this value are set to this lower bound.
 - `upper`: Numeric value specifying the maximum allowed weight. Weights above this value are set to this upper bound.
 
-`truncate_weights_percentile()` caps weights at a specified percentile threshold.
+`truncate_weights_percentile()` caps weights at specified percentile cutpoints (@Larson_2023, @Cole_Hernan_2008, @Matsouaka_2023).
 ```{r}
 truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
   quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
@@ -148,35 +148,40 @@ truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 
 
 - `data`: The data frame containing structured data.
 - `weight_col`: The column name of the weights in the dataset as string.
-- `lower`: Numeric value between 0 and 1 specifying the lower quantile cutoff. Weights below this percentile are set to the value at this quantile.
-- `upper`: Numeric value between 0 and 1 specifying the upper quantile cutoff. Weights above this percentile are set to the value at this quantile.
+- `lower`: Numeric value between 0 and 1 specifying the lower quantile cutpoint. Weights below this percentile are set to the value at this quantile.
+- `upper`: Numeric value between 0 and 1 specifying the upper quantile cutpoint. Weights above this percentile are set to the value at this quantile.
 
-`check_weights()` prints the variance of the specified weight vector to assess variability and relevance for adaptive truncation.
+`truncate_weights_adaptive()` adaptively selects optimal lower and upper quantile cutpoints for truncating a precomputed weights by performing cross-validation over quantile grids (@Schwab_2017).
 ```{r}
-check_weights <- function(data, weight_col = "weight") {
-  w <- data[[weight_col]]
-  variance <- var(w, na.rm = TRUE)
-  data.frame(
-    Weight_Column = weight_col,
-    Variance = variance
-  )
-}
-```
-
-**Arguments**
-
-- `data`: The data frame containing structured data.
-- `weight_col`: The column name of the weights in the dataset as string (default is `weight`)
-
-`truncate_weights_adaptive()` caps weights adaptively at a threshold defined by the mean plus a multiple of the standard deviation.
-```{r}
-truncate_weights_adaptive <- function(data, weight_col, c = 3) {
-  w <- data[[weight_col]]
-  # only apply if variance is above zero
-  if (var(w, na.rm = TRUE) > 0) {
-    cutoff <- mean(w, na.rm = TRUE) + c * sd(w, na.rm = TRUE)
-    data[[weight_col]] <- pmin(w, cutoff)
+truncate_weights_adaptive_weights <- function(
+    data, weight_col, folds = 5,
+    lower_grid = seq(0.01, 0.10, by = 0.01),
+    upper_grid = seq(0.90, 0.99, by = 0.01),
+    loss_fn = function(w) var(w, na.rm=TRUE)
+) {
+  n <- nrow(data)
+  fold_ids <- sample(rep(1:folds, length.out = n))
+  loss_mat <- matrix(NA, nrow = length(lower_grid), ncol = length(upper_grid))
+  for (i in seq_along(lower_grid)) {
+    for (j in seq_along(upper_grid)) {
+      if (lower_grid[i] >= upper_grid[j]) next
+      cv_losses <- c()
+      for (fold in 1:folds) {
+        valid_idx <- which(fold_ids == fold)
+        valid_weights <- data[[weight_col]][valid_idx]
+        lower_q <- quantile(valid_weights, probs = lower_grid[i], na.rm = TRUE)
+        upper_q <- quantile(valid_weights, probs = upper_grid[j], na.rm = TRUE)
+        w_trunc <- pmax(pmin(valid_weights, upper_q), lower_q)
+        cv_losses <- c(cv_losses, loss_fn(w_trunc))
+      }
+      loss_mat[i,j] <- mean(cv_losses)
+    }
   }
+  idx <- which(loss_mat == min(loss_mat, na.rm = TRUE), arr.ind = TRUE)
+  best_lower <- lower_grid[idx[1]]
+  best_upper <- upper_grid[idx[2]]
+  quantiles <- quantile(data[[weight_col]], probs = c(best_lower, best_upper), na.rm = TRUE)
+  data[[weight_col]] <- pmax(pmin(data[[weight_col]], quantiles[2]), quantiles[1])
   return(data)
 }
 ```
@@ -185,7 +190,9 @@ truncate_weights_adaptive <- function(data, weight_col, c = 3) {
 
 - `data`: The data frame containing structured data.
 - `weight_col`: The column name of the weights in the dataset as string.
-- `c`: The multiplier for the standard deviation added to the mean to define the cutoff value as integer.
+- `folds`: Integer specifying the number of cross-validation folds to use when searching for the optimal quantiles.
+- `lower_grid`: Numeric vector of candidate lower quantile cutpoints to search over (between 0 and 1).
+- `upper_grid`: Numeric vector of candidate upper quantile cutpoints to search over (between 0 and 1).
 
 #### Trimming 
 `ps_estimate()` reestimates the propensity scores by fitting a probability forest with the treatment indicator as the target and the specified covariates as predictors.
@@ -224,17 +231,11 @@ ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) {
 - `ps`: The name of the propensity score variable as string.
 - `threshold`: The upper limit for propensity score inclusion as numeric value.
 
-`common_range_trim()` trims the dataset to observations with propensity scores within the common support range for treated and control groups. It takes as lower cutpoint the highest of the lowest propensity scores in each group and as upper cutpoint the lowest of the highest propensity scores in each group.
+`common_range_trim()` trims the dataset to observations with propensity scores within the common support range for treated and control groups. It takes as lower cutpoint the lowest observed propensity score in the treated group, and as upper cutpoint the highest observed propensity score in the control group.
 ```{r}
 common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
-  lower_cut <- max(
-    min(data[[ps]][data[[treat]] == 1], na.rm = TRUE),
-    min(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
-  )
-  upper_cut <- min(
-    max(data[[ps]][data[[treat]] == 1], na.rm = TRUE),
-    max(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
-  )
+  lower_cut <- min(data[[ps]][data[[treat]] == 1], na.rm = TRUE)
+  upper_cut <- max(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
   sub <- data[data[[ps]] >= lower_cut & data[[ps]] <= upper_cut, ]
   return(sub)
 }
@@ -304,9 +305,9 @@ walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 - `upper_cutoff`: Numeric value between 0 and 1 specifying the upper cutoff for the preference score (default is 0.7).
 
 #### Combined methods
-`trim_attach_weights()` merges trimmed data with original weights, preserving corresponding weight values after trimming.
+`attach_weights()` merges trimmed data with original weights, preserving corresponding weight values after trimming.
 ```{r}
-trim_attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
+attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
   weight_type <- match.arg(weight_type)
   weight_fun <- function(data) {
     if (weight_type == "ipw_weight") {
