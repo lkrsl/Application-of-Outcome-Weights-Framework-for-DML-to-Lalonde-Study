@@ -38,7 +38,7 @@ The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehe
 <meta name="author" content="Laura Kreisel" />
 
 
-<meta name="date" content="2025-11-01" />
+<meta name="date" content="2025-11-06" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -67,6 +67,17 @@ The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehe
 <link href="libs/anchor-sections-1.1.0/anchor-sections.css" rel="stylesheet" />
 <link href="libs/anchor-sections-1.1.0/anchor-sections-hash.css" rel="stylesheet" />
 <script src="libs/anchor-sections-1.1.0/anchor-sections.js"></script>
+<script src="libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="libs/lightable-0.0.1/lightable.css" rel="stylesheet" />
+<link href="libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet" />
+<script src="libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<link href="libs/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet" />
+<script src="libs/datatables-binding-0.34.0/datatables.js"></script>
+<link href="libs/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="libs/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="libs/dt-core-1.13.6/js/jquery.dataTables.min.js"></script>
+<link href="libs/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet" />
+<script src="libs/crosstalk-1.2.2/js/crosstalk.min.js"></script>
 
 
 <style type="text/css">
@@ -202,6 +213,40 @@ div.csl-indent {
 <li class="chapter" data-level="1.4.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#truncation"><i class="fa fa-check"></i><b>1.4.1</b> Truncation</a></li>
 <li class="chapter" data-level="1.4.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming"><i class="fa fa-check"></i><b>1.4.2</b> Trimming</a></li>
 </ul></li>
+<li class="chapter" data-level="1.5" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#integrated-methods"><i class="fa fa-check"></i><b>1.5</b> Integrated methods</a>
+<ul>
+<li class="chapter" data-level="1.5.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming-and-matching"><i class="fa fa-check"></i><b>1.5.1</b> Trimming and matching</a></li>
+<li class="chapter" data-level="1.5.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming-and-weighting"><i class="fa fa-check"></i><b>1.5.2</b> Trimming and weighting</a></li>
+<li class="chapter" data-level="1.5.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#truncation-and-weighting"><i class="fa fa-check"></i><b>1.5.3</b> Truncation and weighting</a></li>
+</ul></li>
+<li class="chapter" data-level="1.6" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#reassessing-methods"><i class="fa fa-check"></i><b>1.6</b> Reassessing methods</a>
+<ul>
+<li class="chapter" data-level="1.6.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#matching-1"><i class="fa fa-check"></i><b>1.6.1</b> Matching</a></li>
+<li class="chapter" data-level="1.6.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#weighting-1"><i class="fa fa-check"></i><b>1.6.2</b> Weighting</a></li>
+<li class="chapter" data-level="1.6.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#truncation-1"><i class="fa fa-check"></i><b>1.6.3</b> Truncation</a></li>
+<li class="chapter" data-level="1.6.4" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming-1"><i class="fa fa-check"></i><b>1.6.4</b> Trimming</a></li>
+</ul></li>
+<li class="chapter" data-level="1.7" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#integrated-methods-1"><i class="fa fa-check"></i><b>1.7</b> Integrated methods</a>
+<ul>
+<li class="chapter" data-level="1.7.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming-and-matching-1"><i class="fa fa-check"></i><b>1.7.1</b> Trimming and matching</a></li>
+<li class="chapter" data-level="1.7.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#trimming-and-weighting-1"><i class="fa fa-check"></i><b>1.7.2</b> Trimming and weighting</a></li>
+<li class="chapter" data-level="1.7.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#truncation-and-weighting-1"><i class="fa fa-check"></i><b>1.7.3</b> Truncation and weighting</a></li>
+</ul></li>
+<li class="chapter" data-level="1.8" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#identifying-best-methods"><i class="fa fa-check"></i><b>1.8</b> Identifying best methods</a></li>
+<li class="chapter" data-level="1.9" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#estimating"><i class="fa fa-check"></i><b>1.9</b> Estimating</a>
+<ul>
+<li class="chapter" data-level="1.9.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#average-treatment-effect-on-the-treated-att"><i class="fa fa-check"></i><b>1.9.1</b> Average treatment effect on the treated (ATT)</a></li>
+<li class="chapter" data-level="1.9.2" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#conditional-average-treatment-effect-on-the-treated-catt"><i class="fa fa-check"></i><b>1.9.2</b> Conditional average treatment effect on the treated (CATT)</a></li>
+<li class="chapter" data-level="1.9.3" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#quantile-treatment-effect-on-the-treated-qtet"><i class="fa fa-check"></i><b>1.9.3</b> Quantile treatment effect on the treated (QTET)</a></li>
+<li class="chapter" data-level="1.9.4" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#assessing-outcome-weights-ow"><i class="fa fa-check"></i><b>1.9.4</b> Assessing outcome weights (OW)</a></li>
+</ul></li>
+<li class="chapter" data-level="1.10" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#validation-through-placebo-analyses"><i class="fa fa-check"></i><b>1.10</b> Validation through placebo analyses</a></li>
+<li class="chapter" data-level="1.11" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#validation-through-sensitivity-analyses"><i class="fa fa-check"></i><b>1.11</b> Validation through sensitivity analyses</a></li>
+<li class="chapter" data-level="1.12" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#inspection-of-re74-and-re75"><i class="fa fa-check"></i><b>1.12</b> Inspection of re74 and re75</a>
+<ul>
+<li class="chapter" data-level="1.12.1" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#correlation"><i class="fa fa-check"></i><b>1.12.1</b> Correlation</a></li>
+</ul></li>
+<li class="chapter" data-level="1.13" data-path="lalonde-dehejia-wahba-ldw-data.html"><a href="lalonde-dehejia-wahba-ldw-data.html#summary"><i class="fa fa-check"></i><b>1.13</b> Summary</a></li>
 </ul></li>
 <li class="chapter" data-level="" data-path="references.html"><a href="references.html"><i class="fa fa-check"></i>References</a></li>
 <li class="divider"></li>
@@ -227,7 +272,7 @@ div.csl-indent {
 <div id="header">
 <h1 class="title">Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study</h1>
 <p class="author"><em>Laura Kreisel</em></p>
-<p class="date"><em>2025-11-01</em></p>
+<p class="date"><em>2025-11-06</em></p>
 </div>
 <div id="preface" class="section level1 unnumbered hasAnchor">
 <h1>Preface<a href="index.html#preface" class="anchor-section" aria-label="Anchor link to header"></a></h1>

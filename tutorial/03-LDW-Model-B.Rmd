@@ -472,6 +472,8 @@ all_match.psid <- list(
 # compute SMD
 smd_matchit.cps <- compute_abs_smd_matchit(all_match.cps)
 smd_matchit.psid <- compute_abs_smd_matchit(all_match.psid)
+
+smd_matchit.cps
 ```
 
 #### ESS
@@ -1516,3 +1518,4 @@ After reexamining model B, which uses the LaLonde-Dehejia-Wahba (LDW) data with 
 Conditional and quantile treatment effect analyses confirm that, while some methods bring estimates closer to the experimental benchmark, considerable heterogeneity and estimator-dependent variability remain. Placebo tests using pre-treatment earnings as the outcome reveal that, despite some improvements, bias and deviation from the true effect persist. Sensitivity analyses indicate that most treatment effect estimates are fairly robust to increasing confounder strength, but some upward shifts are observed compared to model A.
 
 Overall, these results reinforce the importance of overlap, covariate balance, and careful method selection, while underscoring the ongoing difficulty of recovering unbiased causal effects from observational data.
+

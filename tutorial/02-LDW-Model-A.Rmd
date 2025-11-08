@@ -138,73 +138,73 @@ The purpose of matching is to create comparable treated and control groups by pa
 ##### 1:1 Nearest neighbor matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with k=1, logistic propensity score and replacement
-m.out.cps.nearest <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", replace = TRUE)
-m.out.psid.nearest <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", replace = TRUE)
+m.out.cps.nearest <- matchit(model, data = ldw_cps, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
+m.out.psid.nearest <- matchit(model, data = ldw_psid, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
 ```
 
 ##### k:1 matching (k=2)
 ```{r, message=FALSE, warning=FALSE}
 k<-2
 # perform nearest neighbor matching with k=2, logistic propensity score and replacement
-m.out.cps.k2 <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
-m.out.psid.k2 <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.cps.k2 <- matchit(model, data = ldw_cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
+m.out.psid.k2 <- matchit(model, data = ldw_psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
 ```
 
 ##### k:1 matching (k=3)
 ```{r, message=FALSE, warning=FALSE}
 k<-3
 # perform nearest neighbor matching with k=3, logistic propensity score and replacement
-m.out.cps.k3 <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
-m.out.psid.k3 <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", ratio = k, replace = TRUE)
+m.out.cps.k3 <- matchit(model, data = ldw_cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
+m.out.psid.k3 <- matchit(model, data = ldw_psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
 ```
 
 ##### Caliper matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
-m.out.cps.caliper <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
-m.out.psid.caliper <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", caliper = 0.1, replace = TRUE)
+m.out.cps.caliper <- matchit(model, data = ldw_cps, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
+m.out.psid.caliper <- matchit(model, data = ldw_psid, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
 ```
 
 ##### Common support restriction matching
 ```{r, message=FALSE, warning=FALSE}
 # perform nearest neighbor matching with exclusion of units outside common support
-m.out.cps.cs <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
-m.out.psid.cs <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
+m.out.cps.cs <- matchit(model, data = ldw_cps, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
+m.out.psid.cs <- matchit(model, data = ldw_psid, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 ```
 
 ##### Mahalanobis distance matching (mahvars) 
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching using mahalanobis distance on selected covariates
-m.out.cps.mahvars <- matchit(model, data = ldw_cps, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
-m.out.psid.mahvars <- matchit(model, data = ldw_psid, method = "nearest", distance = "logit", caliper = 0.2, mahvars = ~ age + education + re75, replace = FALSE)
+# perform nearest neighbor matching using mahalanobis distance
+m.out.cps.mahvars <- matchit(model, data = ldw_cps, method = "nearest", distance = "mahalanobis", replace = FALSE)
+m.out.psid.mahvars <- matchit(model, data = ldw_psid, method = "nearest", distance = "mahalanobis", replace = FALSE)
 ```
 
 ##### Optimal pair matching
 ```{r, message=FALSE, warning=FALSE}
 # perform optimal pair matching that minimizes total within-pair distance on propensity scores
-m.out.cps.optimal_pair <- matchit(model, data = ldw_cps, method = "optimal", distance = "logit")
-m.out.psid.optimal_pair <- matchit(model, data = ldw_psid, method = "optimal", distance = "logit")
+m.out.cps.optimal_pair <- matchit(model, data = ldw_cps, method = "optimal", distance = "glm", link = "logit")
+m.out.psid.optimal_pair <- matchit(model, data = ldw_psid, method = "optimal", distance = "glm", link = "logit")
 ```
 
 ##### Optimal full matching
 ```{r, message=FALSE, warning=FALSE}
 # perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
-m.out.cps.optimal_full <- matchit(model, data = ldw_cps, method = "full", distance = "logit")
-m.out.psid.optimal_full <- matchit(model, data = ldw_psid, method = "full", distance = "logit")
+m.out.cps.optimal_full <- matchit(model, data = ldw_cps, method = "full", distance = "glm", link = "logit")
+m.out.psid.optimal_full <- matchit(model, data = ldw_psid, method = "full", distance = "glm", link = "logit")
 ```
 
 ##### Generalized full matching
 ```{r, message=FALSE, warning=FALSE}
 # perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
-m.out.cps.general_full <- matchit(model, data = ldw_cps, method = "quick", distance = "logit")
-m.out.psid.general_full <- matchit(model, data = ldw_psid, method = "quick", distance = "logit")
+m.out.cps.general_full <- matchit(model, data = ldw_cps, method = "quick", distance = "glm", link = "logit")
+m.out.psid.general_full <- matchit(model, data = ldw_psid, method = "quick", distance = "glm", link = "logit")
 ```
 
 ##### Genetic matching
 ```{r, message=FALSE, warning=FALSE}
 # perform genetic matching 
-m.out.cps.genetic <- matchit(model, data = ldw_cps, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
-m.out.psid.genetic <- matchit(model, data = ldw_psid, method = "genetic", distance = "logit", replace = TRUE, pop.size = 100)
+m.out.cps.genetic <- matchit(model, data = ldw_cps, method = "genetic", distance = "glm", link = "logit", replace = TRUE, pop.size = 100)
+m.out.psid.genetic <- matchit(model, data = ldw_psid, method = "genetic", distance = "glm", link = "logit", replace = TRUE, pop.size = 100)
 ```
 
 #### Stratum matching
@@ -243,39 +243,39 @@ m.out.psid.card <- matchit(model, data = ldw_psid, method = "cardinality", tols 
 ##### Profile matching
 ```{r, message=FALSE, warning=FALSE}
 # select the largest control group subset balanced to the treated group (for ATT), leaving the treated group intact
-m.out.cps.profile <- matchit(model, data = ldw_cps, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs", time = 1200)
-m.out.psid.profile <- matchit(model, data = ldw_psid, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, solver = "highs", time = 1200)
+m.out.cps.profile <- matchit(model, data = ldw_cps, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, time = 1200)
+m.out.psid.profile <- matchit(model, data = ldw_psid, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, time = 1200)
 ```
 
 ### Weighting
 
-The purpose of weighting is to reweight the units in order to create a synthetic population in which the distributions of observed characteristics is balanced between treatment and control groups. In the following, several weighting methods, as outlined by @Greifer_4_2025, are applied.
+The purpose of weighting is to reweight the units in order to create a synthetic population in which the distributions of observed characteristics is balanced between treatment and control groups. In the following, several weighting methods, as outlined by @Greifer_4_2025 and @Stuermer_2021 are applied.
 
 #### Inverse probability weights (IPW)
 ```{r, message=FALSE, warning=FALSE}
-# estimates propensity scores with a parametric generalized linear model and converts them into weights
+# estimates propensity scores (PS) with a parametric generalized linear model and converts them into weights
 w.out.cps.ipw <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "glm")
 ldw_cps$ipw_weight <- w.out.cps.ipw$weights
 w.out.psid.ipw <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "glm")
 ldw_psid$ipw_weight <- w.out.psid.ipw$weights
 ```
 
-#### Stable balancing weights 
-```{r, message=FALSE, warning=FALSE}
-# estimates weights by solving a quadratic programming problem 
-w.out.cps.opt <- optweight::optweight(model, data = ldw_cps, estimand = "ATT")
-ldw_cps$opt_weight <- w.out.cps.opt$weights
-w.out.psid.opt <- optweight::optweight(model, data = ldw_psid, estimand = "ATT")
-ldw_psid$opt_weight <- w.out.psid.opt$weights
-```
-
 #### Covariate balance propensity score weights
 ```{r, message=FALSE, warning=FALSE}
-# estimates propensity scores using generalized method of moments and then converts them into weights
+# estimates PS using generalized method of moments and then converts them into weights
 w.out.cps.cbps <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "cbps")
 ldw_cps$cbps_weight <- w.out.cps.cbps$weights
 w.out.psid.cbps <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "cbps")
 ldw_psid$cbps_weight <- w.out.psid.cbps$weights
+```
+
+#### Stable balancing weights 
+```{r, message=FALSE, warning=FALSE}
+# estimates weights by minimizing the variance of the weights
+w.out.cps.opt <- WeightIt::weightit(model, data = ldw_cps, estimand = "ATT", method = "optweight")
+w.out.psid.opt <- WeightIt::weightit(model, data = ldw_psid, estimand = "ATT", method = "optweight")
+ldw_cps$opt_weight <- w.out.cps.opt$weights
+ldw_psid$opt_weight <- w.out.psid.opt$weights
 ```
 
 #### Entropy balancing weights
@@ -292,33 +292,33 @@ ldw_psid$ebal_weight <- w.out.psid.ebal$weights
 Truncation aims at limiting the influence of extreme weights by capping them at a specified threshold. This helps to reduce variance and improve the stability of causal effect estimates. In the following, several truncation methods are applied, following similar approaches outlined by @Matsouaka_2023 and @Schwab_2013.
 
 ### Truncation
-#### Fixed maximum value truncation
+#### Fixed value truncation
 ```{r, message=FALSE, warning=FALSE}
-# truncate weights by imposing a minimum and maximum threshold
-ldw_cps.ps_fixed <- truncate_ps_fixed(ldw_cps, treat = "treat", ps = "ps_assoverlap", 
-                                      lower = 0.025, upper = 0.975)
-ldw_psid.ps_fixed <- truncate_ps_fixed(ldw_psid, treat = "treat", ps = "ps_assoverlap", 
-                                       lower = 0.025, upper = 0.975)
+# truncate weights by imposing a minimum and maximum 
+ldw_cps.ps_fixed <- truncate_ps_fixed(ldw_cps.ps, treat = "treat", ps = "ps_assoverlap", 
+                                      lower = 0.05, upper = 0.95)
+ldw_psid.ps_fixed <- truncate_ps_fixed(ldw_psid.ps, treat = "treat", ps = "ps_assoverlap", 
+                                       lower = 0.05, upper = 0.95)
 ```
 
 #### At percentile truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights such that values below the 5th percentile and above the 95th percentile are capped
-ldw_cps.ps_percentile <- truncate_ps_percentile(ldw_cps, ps = "ps_assoverlap", 
-                                                lower_percentile = 5, upper_percentile = 95)
-ldw_psid.ps_percentile <- truncate_ps_percentile(ldw_psid, ps = "ps_assoverlap", 
-                                                 lower_percentile = 5, upper_percentile = 95)
+ldw_cps.ps_percent <- truncate_ps_percentile(ldw_cps.ps, ps = "ps_assoverlap", 
+                                             lower_percentile = 5, upper_percentile = 95)
+ldw_psid.ps_percent <- truncate_ps_percentile(ldw_psid.ps, ps = "ps_assoverlap", 
+                                             lower_percentile = 5, upper_percentile = 95)
 ```
 
 #### Adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights using data-driven quantile selection
-ldw_cps.ps_adaptive <- truncate_ps_adaptive(ldw_cps, treat = "treat", ps = "ps_assoverlap", folds = 5,
-                                               lower_grid = seq(0.01, 0.10, by = 0.01), 
-                                               upper_grid = seq(0.90, 0.99, by = 0.01))
-ldw_psid.ps_adaptive <- truncate_ps_adaptive(ldw_psid, treat = "treat", ps = "ps_assoverlap", folds = 5,
-                                                lower_grid = seq(0.01, 0.10, by = 0.01),
-                                                upper_grid = seq(0.90, 0.99, by = 0.01))
+ldw_cps.ps_adapt <- truncate_ps_adaptive(ldw_cps.ps, treat = "treat", ps = "ps_assoverlap", folds = 5,
+                                         lower_grid = seq(0.01, 0.10, by = 0.01), 
+                                         upper_grid = seq(0.90, 0.99, by = 0.01))
+ldw_psid.ps_adapt <- truncate_ps_adaptive(ldw_psid.ps, treat = "treat", ps = "ps_assoverlap", folds = 5,
+                                         lower_grid = seq(0.01, 0.10, by = 0.01),
+                                         upper_grid = seq(0.90, 0.99, by = 0.01))
 ```
 
 ### Trimming 
@@ -387,7 +387,6 @@ ldw_psid.walker <- assess_overlap(data = ldw_psid.walker, treat = treat, cov = c
 In line with the tutorial by @imbens2024, combinations of trimming and matching methods are applied only to the plus datasets used for comparison. However, it is strongly recommended to extend this analysis to the non-plus datasets as well, in order to evaluate whether integrating trimming and matching improves final scores and effect estimates.
 </div>
 
-#### Propensity score threshold trimming 
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 ldw_cps_trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
@@ -409,11 +408,10 @@ ldw_trim_psid <- subset(ldw_psid_trim, sample %in% c(1,2) & ps_assoverlap <= 0.8
 ldw_trim_psid$treat[which(ldw_trim_psid$sample == 2)] <- 0
 ```
 
-### Weighting and trimming 
+### Trimming and weighting
 
 The purpose of combining trimming and weighting methods is to leverage the strengths of both approaches for causal effect estimation. Trimming enhances overlap and reduces the influence of outliers by excluding units with extreme or non-comparable propensity scores, while weighting further adjusts for remaining covariate imbalance among the retained units. A similar approach to that presented by @Stuermer_2021 is employed, but weighting methods of @Greifer_4_2025 are used.
 ```{r, message=FALSE, warning=FALSE}
-# list trimming methods
 all_trim.cps  <- list(ps_threshold = ldw_cps.trim, 
                      common_range = ldw_cps.common, 
                      stuermer = ldw_cps.stuermer, 
@@ -454,21 +452,26 @@ ebal_comb.cps <- attach_weights(all_trim.cps, model, "ebal_weight")
 ebal_comb.psid <- attach_weights(all_trim.psid, model, "ebal_weight")
 ```
 
-### Weighting and truncation
+### Truncation and weighting
+```{r, message=FALSE, warning=FALSE}
+# list weight columns to apply truncation 
+weight_columns <- c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight")
+```
+
 #### IPW, stable balancing, propensity score and entropy weights with 1) fixed maximum value truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights by imposing a minimum and maximum threshold
-ldw_cps.fixed <- ldw_cps
+fixed_comb.cps <- ldw_cps
 for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps.fixed)) {
-    ldw_cps.fixed <- truncate_weights_fixed(ldw_cps.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
+  if (wcol %in% names(fixed_comb.cps)) {
+    fixed_comb.cps <- truncate_weights_fixed(fixed_comb.cps, weight_col = wcol, lower = 0.025, upper = 0.975)
   }
 }
 
-ldw_psid.fixed <- ldw_psid
+fixed_comb.psid <- ldw_psid
 for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid.fixed)) {
-    ldw_psid.fixed <- truncate_weights_fixed(ldw_psid.fixed, weight_col = wcol, lower = 0.025, upper = 0.975)
+  if (wcol %in% names(fixed_comb.psid)) {
+    fixed_comb.psid <- truncate_weights_fixed(fixed_comb.psid, weight_col = wcol, lower = 0.025, upper = 0.975)
   }
 }
 ```
@@ -476,17 +479,17 @@ for (wcol in weight_columns) {
 #### IPW, stable balancing, propensity score and entropy weights with 2) at percentile truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights such that values below the 5th percentile and above the 95th percentile are capped
-ldw_cps.percent <- ldw_cps
+percent_comb.cps <- ldw_cps
 for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps.percent)) {
-    ldw_cps.percent <- truncate_weights_percentile(ldw_cps.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
+  if (wcol %in% names(percent_comb.cps)) {
+    percent_comb.cps <- truncate_weights_percentile(percent_comb.cps, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 
-ldw_psid.percent <- ldw_psid
+percent_comb.psid <- ldw_psid
 for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid.percent)) {
-    ldw_psid.percent <- truncate_weights_percentile(ldw_psid.percent, weight_col = wcol, lower = 0.05, upper = 0.95)
+  if (wcol %in% names(percent_comb.psid)) {
+    percent_comb.psid <- truncate_weights_percentile(percent_comb.psid, weight_col = wcol, lower = 0.05, upper = 0.95)
   }
 }
 ```
@@ -494,17 +497,17 @@ for (wcol in weight_columns) {
 #### IPW, stable balancing, propensity score and entropy weights with 3) adaptive weight truncation
 ```{r, message=FALSE, warning=FALSE}
 # truncate weights using data-driven quantile selection
-ldw_cps.adapt <- ldw_cps
+adapt_comb.cps <- ldw_cps
 for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_cps.adapt)) {
-    ldw_cps.adapt <- truncate_weights_adaptive(ldw_cps.adapt, weight_col = wcol)
+  if (wcol %in% names(adapt_comb.cps)) {
+    adapt_comb.cps <- truncate_weights_adaptive(adapt_comb.cps, weight_col = wcol)
   }
 }
 
-ldw_psid.adapt <- ldw_psid
+adapt_comb.psid <- ldw_psid
 for (wcol in weight_columns) {
-  if (wcol %in% names(ldw_psid.adapt)) {
-    ldw_psid.adapt <- truncate_weights_adaptive(ldw_psid.adapt, weight_col = wcol)
+  if (wcol %in% names(adapt_comb.psid)) {
+    adapt_comb.psid <- truncate_weights_adaptive(adapt_comb.psid, weight_col = wcol)
   }
 }
 ```
@@ -558,6 +561,8 @@ all_match.psid <- list(
 # compute absolute SMD
 smd_matchit.cps <- compute_abs_smd_matchit(all_match.cps)
 smd_matchit.psid <- compute_abs_smd_matchit(all_match.psid)
+
+smd_matchit.cps
 ```
 
 #### ESS
@@ -623,37 +628,37 @@ plot_weighting_balance(ldw_psid, treat, covar, all_weight.psid, "LDW-PSID1")
 ```{r, message=FALSE, warning=FALSE}
 # list truncation methods
 all_trunc.cps <- list(
-  fix_max_value = ldw_cps.fixed,
-  at_perc = ldw_cps.percent,
-  adap_weight = ldw_cps.adapt
+  fix_value = ldw_cps.ps_fixed,
+  at_perc = ldw_cps.ps_percent,
+  adapt = ldw_cps.ps_adapt
 )
 
 all_trunc.psid <- list(
-  fix_max_value = ldw_psid.fixed,
-  at_perc = ldw_psid.percent,
-  adap_weight = ldw_psid.adapt
+  fix_value = ldw_psid.ps_fixed,
+  at_perc = ldw_psid.ps_percent,
+  adapt = ldw_psid.ps_adapt
 )
 ```
 
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute absolute SMD
-smd_trunc.cps <- compute_abs_smd_trunc(all_trunc.cps, "treat", covar, weight_columns)
-smd_trunc.psid <- compute_abs_smd_trunc(all_trunc.psid, "treat", covar, weight_columns)
+smd_trunc.cps <- compute_abs_smd_trunc(all_trunc.cps, treat = "treat", covar, "ps_assoverlap")
+smd_trunc.psid <- compute_abs_smd_trunc(all_trunc.psid, treat = "treat", covar, "ps_assoverlap")
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_trunc.cps <- compute_ess_trunc(all_trunc.cps, "treat", covar, weight_columns)
-ess_trunc.psid <- compute_ess_trunc(all_trunc.psid, "treat", covar, weight_columns)
+ess_trunc.cps <- compute_ess_trunc(all_trunc.cps, treat = "treat", covar, "ps_assoverlap")
+ess_trunc.psid <- compute_ess_trunc(all_trunc.psid, treat = "treat", covar, "ps_assoverlap")
 ```
 
 #### Visuals
 ```{r, warning=FALSE, message=FALSE, fig.cap='FIGUREA5.'}
 # visualize covariate balance
-plot_trunc_balance(all_trunc.cps, "treat", covar, weight_columns, "LDW-CPS1")
-plot_trunc_balance(all_trunc.psid, "treat", covar, weight_columns, "LDW-PSID1")
+plot_trunc_balance(all_trunc.cps, treat = "treat", covar, "ps_assoverlap", "LDW-CPS1")
+plot_trunc_balance(all_trunc.psid, treat = "treat", covar, "ps_assoverlap", "LDW-PSID1")
 ```
 
 ### Trimming
@@ -704,11 +709,11 @@ plot_trim_overlap(all_trim.psid, treat, covar, prefix = "LDW-PSID1")
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
-comb_cps <- list(
+trim_match_comb.cps <- list(
   ps_threshold_match = ldw_cps.trim_match
 )
 
-comb_psid <- list(
+trim_match_comb.psid <- list(
   ps_threshold_match = ldw_psid.trim_match
 )
 ```
@@ -716,36 +721,36 @@ comb_psid <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute absolute SMD
-smd_all_comb_meth.cps_plus <- compute_abs_smd_trim(comb_cps, "treat", covar)
-smd_all_comb_meth.psid_plus <- compute_abs_smd_trim(comb_psid, "treat", covar)
+smd_trim_match_comb.cps <- compute_abs_smd_trim(trim_match_comb.cps, "treat", covar)
+smd_trim_match_comb.psid <- compute_abs_smd_trim(trim_match_comb.psid, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_all_comb_meth.cps_plus <- compute_ess_trim(comb_cps, "treat", covar)
-ess_all_comb_meth.psid_plus <- compute_ess_trim(comb_psid, "treat", covar)
+ess_trim_match_comb.cps <- compute_ess_trim(trim_match_comb.cps, "treat", covar)
+ess_trim_match_comb.psid <- compute_ess_trim(trim_match_comb.psid, "treat", covar)
 ```
 
 #### Visuals
 ```{r, warning=FALSE, message=FALSE, fig.cap='FIGUREA7.'}
 # visualize overlap
 par(mfrow = c(1, 3))
-plot_trim_overlap(comb_cps, treat, covar, prefix = "LDW-CPS1-PLUS")
-plot_trim_overlap(comb_psid, treat, covar, prefix = "LDW-PSID1-PLUS")
+plot_trim_overlap(trim_match_comb.cps, treat, covar, prefix = "LDW-CPS1-PLUS")
+plot_trim_overlap(trim_match_comb.psid, treat, covar, prefix = "LDW-PSID1-PLUS")
 ```
 
 ### Trimming and weighting
 ```{r, message=FALSE, warning=FALSE}
 # list all combined results
-comb.cps <- list(
+trim_weight_comb.cps <- list(
   ipw = ipw_comb.cps,
   opt = opt_comb.cps,
   cbps = cbps_comb.cps,
   ebal = ebal_comb.cps
 )
 
-comb.psid <- list(
+trim_weight_comb.psid <- list(
   ipw = ipw_comb.psid,
   opt = opt_comb.psid,
   cbps = cbps_comb.psid,
@@ -756,26 +761,65 @@ comb.psid <- list(
 #### SMD
 ```{r, message=FALSE, warning=FALSE}
 # compute absolute SMD
-smd_all_comb_meth.cps <- compute_abs_smd_comb(comb.cps, "treat", covar)
-smd_all_comb_meth.psid <- compute_abs_smd_comb(comb.psid, "treat", covar)
+smd_trim_weight_comb.cps <- compute_abs_smd_trim_weight(trim_weight_comb.cps, "treat", covar)
+smd_trim_weight_comb.psid <- compute_abs_smd_trim_weight(trim_weight_comb.psid, "treat", covar)
 ```
 
 #### ESS
 ```{r, message=FALSE, warning=FALSE}
 # compute ESS
-ess_all_comb_meth.cps <- compute_ess_comb(comb.cps, "treat", covar)
-ess_all_comb_meth.psid <- compute_ess_comb(comb.psid, "treat", covar)
+ess_trim_weight_comb.cps <- compute_ess_trim_weight(trim_weight_comb.cps, "treat", covar)
+ess_trim_weight_comb.psid <- compute_ess_trim_weight(trim_weight_comb.psid, "treat", covar)
 ```
 
 #### Visuals
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGUREA8.'}
 # visualize overlap
-plot_comb_overlap(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
+plot_comb_overlap(comb_meth_cps = trim_weight_comb.cps, comb_meth_psid = trim_weight_comb.psid, treat = "treat", covar = covar, 
+                  prefix_cps = "LDW-CPS1", prefix_psid = "LDW-PSID1")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_comb_hist(comb_meth_cps = comb.cps, comb_meth_psid = comb.psid, treat = "treat", covar = covar, prefix = "model_a", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
+save_comb_hist(comb_meth_cps = trim_weight_comb.cps, comb_meth_psid = trim_weight_comb.psid, treat = "treat", covar = covar, 
+               prefix = "model_a", prefix_cps = "ldw_cps1", prefix_psid = "ldw_psid1")
+```
+
+### Truncation and weighting
+```{r, message=FALSE, warning=FALSE}
+# list all combined results
+trunc_weight_comb.cps <- list(
+  fix_value = fixed_comb.cps,
+  at_perc = percent_comb.cps,
+  adapt = adapt_comb.cps
+)
+
+trunc_weight_comb.psid <- list(
+  fix_value = fixed_comb.psid,
+  at_perc = percent_comb.psid,
+  adapt = adapt_comb.psid
+)
+```
+
+#### SMD
+```{r, message=FALSE, warning=FALSE}
+# compute absolute SMD
+smd_trunc_weight_comb.cps <- compute_abs_smd_trunc_weight(trunc_weight_comb.cps, "treat", covar, weight_columns)
+smd_trunc_weight_comb.psid <- compute_abs_smd_trunc_weight(trunc_weight_comb.psid, "treat", covar, weight_columns)
+```
+
+#### ESS
+```{r, message=FALSE, warning=FALSE}
+# compute ESS
+ess_trunc_weight_comb.cps <- compute_ess_trunc_weight(trunc_weight_comb.cps, "treat", covar, weight_columns)
+ess_trunc_weight_comb.psid <- compute_ess_trunc_weight(trunc_weight_comb.psid, "treat", covar, weight_columns)
+```
+
+#### Visuals
+```{r, warning=FALSE, message=FALSE, fig.cap='FIGUREA5.'}
+# visualize covariate balance
+plot_trunc_weight_balance(trunc_weight_comb.cps, "treat", covar, weight_columns, "LDW-CPS1")
+plot_trunc_weight_balance(trunc_weight_comb.psid, "treat", covar, weight_columns, "LDW-PSID1")
 ```
 
 ## Identifying best methods
@@ -837,6 +881,12 @@ all_psid_plus <- combine_results_plus("psid")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
+# save results 
+save_csv(all_cps, "ldw_model_a_cps1_plus_all_results")
+save_csv(all_psid, "ldw_model_a_psid1_plus_all_results")
+```
+
+```{r, message=FALSE, warning=FALSE}
 # assess composite scores
 ranked_cps_plus  <- assess_methods(all_cps_plus)
 ranked_psid_plus <- assess_methods(all_psid_plus)
@@ -854,6 +904,12 @@ knitr::kable(top5_methods_df.cps_plus, caption = "Top 5 Methods for CPS1 incl. C
 knitr::kable(top5_methods_df.psid_plus, caption = "Top 5 Methods for PSID1 incl. PSID1-PLUS", booktabs = TRUE)
 ```
 
+```{r, message=FALSE, warning=FALSE}
+# save results 
+save_csv(top5_methods.cps, "ldw_model_a_cps1_plus_top5_methods")
+save_csv(top5_methods.psid, "ldw_model_a_psid1_plus_top5_methods")
+```
+
 These results indicate that the top‑ranked methods for both CPS1 and PSID1 change once the trimmed and matched plus‑datasets are included, suggesting that either the integration of additional experimental control units or the combined trimming and matching approach enhances performance. Consequently, it is advisable to repeat the full analysis using only the plus‑datasets while systematically applying integrated trimming and matching methods.
 
 For dataset construction of the top‑ranked methods required in the subsequent estimation, we match all method names back to their corresponding datasets, objects or vectors and construct corresponding datasets. 
@@ -861,6 +917,7 @@ For dataset construction of the top‑ranked methods required in the subsequent 
 dataset_list_cps <- list(
   "All" = ldw_cps,
   "original" = ldw_cps,
+  # matching
   "nn" = m.out.cps.nearest, 
   "caliper" = m.out.cps.caliper,
   "card" = m.out.cps.card,
@@ -876,27 +933,35 @@ dataset_list_cps <- list(
   "exact" = m.out.cps.exact,
   "subcl" = m.out.cps.subcl,
   "profile"  = m.out.cps.profile,
+  # weighting
   "ipw_weight" = ldw_cps$ipw_weight, 
   "opt_weight" = ldw_cps$opt_weight,
   "cbps_weight" = ldw_cps$cbps_weight,
   "ebal_weight" = ldw_cps$ebal_weight,
-  "fix_max_value_ipw_weight" = ldw_cps.fixed$ipw_weight,
-  "fix_max_value_opt_weight" = ldw_cps.fixed$opt_weight,
-  "fix_max_value_cbps_weight" = ldw_cps.fixed$cbps_weight,
-  "fix_max_value_ebal_weight" = ldw_cps.fixed$ebal_weight,
-  "at_perc_ipw_weight" = ldw_cps.percent$ipw_weight,
-  "at_perc_opt_weight" = ldw_cps.percent$opt_weight,
-  "at_perc_cbps_weight" = ldw_cps.percent$cbps_weight,
-  "at_perc_ebal_weight" = ldw_cps.percent$ebal_weight,
-  "adap_weight_ipw_weight" = ldw_cps.adapt$ipw_weight,
-  "adap_weight_opt_weight" = ldw_cps.adapt$opt_weight,
-  "adap_weight_cbps_weight" = ldw_cps.adapt$cbps_weight,
-  "adap_weight_ebal_weight" = ldw_cps.adapt$ebal_weight,
+  # trimming
   "ps_threshold" = ldw_cps.trim,
   "common_range" = ldw_cps.common,
   "stuermer" = ldw_cps.stuermer,
   "walker" = ldw_cps.walker,
   "crump" = ldw_cps.crump,
+  # truncation
+  "adapt" = ldw_cps.ps_fixed,
+  "at_perc" = ldw_cps.ps_percent,
+  "fix_value" = ldw_cps.ps_adapt, 
+  # truncation and weighting
+  "fix_value_ipw_weight" = fixed_comb.cps$ipw_weight,
+  "fix_value_opt_weight" = fixed_comb.cps$opt_weight,
+  "fix_value_cbps_weight" = fixed_comb.cps$cbps_weight,
+  "fix_value_ebal_weight" = fixed_comb.cps$ebal_weight,
+  "at_perc_ipw_weight" = percent_comb.cps$ipw_weight,
+  "at_perc_opt_weight" = percent_comb.cps$opt_weight,
+  "at_perc_cbps_weight" = percent_comb.cps$cbps_weight,
+  "at_perc_ebal_weight" = percent_comb.cps$ebal_weight,
+  "adapt_ipw_weight" = adapt_comb.cps$ipw_weight,
+  "adapt_opt_weight" = adapt_comb.cps$opt_weight,
+  "adapt_cbps_weight" = adapt_comb.cps$cbps_weight,
+  "adapt_ebal_weight" = adapt_comb.cps$ebal_weight,
+  # trimming and weighting
   "ipw_common_range" = ipw_comb.cps[[1]],
   "ipw_crump"= ipw_comb.cps[[2]],
   "ipw_ps_threshold"= ipw_comb.cps[[3]],
@@ -920,6 +985,7 @@ dataset_list_cps <- list(
 
 dataset_list_psid <- list(
   "All" = ldw_psid,
+  # matching
   "original" = ldw_psid,
   "nn" = m.out.psid.nearest, 
   "caliper" = m.out.psid.caliper,
@@ -936,27 +1002,35 @@ dataset_list_psid <- list(
   "exact" = m.out.psid.exact,
   "subcl" = m.out.psid.subcl,
   "profile"  = m.out.psid.profile,
+  # weighting
   "ipw_weight" = ldw_psid$ipw_weight, 
   "opt_weight" = ldw_psid$opt_weight,
   "cbps_weight" = ldw_psid$cbps_weight,
   "ebal_weight" = ldw_psid$ebal_weight,
-  "fix_max_value_ipw_weight" = ldw_psid.fixed$ipw_weight,
-  "fix_max_value_opt_weight" = ldw_psid.fixed$opt_weight,
-  "fix_max_value_cbps_weight" = ldw_psid.fixed$cbps_weight,
-  "fix_max_value_ebal_weight" = ldw_psid.fixed$ebal_weight,
-  "at_perc_ipw_weight" = ldw_psid.percent$ipw_weight,
-  "at_perc_opt_weight" = ldw_psid.percent$opt_weight,
-  "at_perc_cbps_weight" = ldw_psid.percent$cbps_weight,
-  "at_perc_ebal_weight" = ldw_psid.percent$ebal_weight,
-  "adap_weight_ipw_weight" = ldw_psid.adapt$ipw_weight,
-  "adap_weight_opt_weight" = ldw_psid.adapt$opt_weight,
-  "adap_weight_cbps_weight" = ldw_psid.adapt$cbps_weight,
-  "adap_weight_ebal_weight" = ldw_psid.adapt$ebal_weight,
+  # trimming
   "ps_threshold" = ldw_psid.trim,
   "common_range" = ldw_psid.common,
   "stuermer" = ldw_psid.stuermer,
   "walker" = ldw_psid.walker,
   "crump" = ldw_psid.crump,
+  # truncation
+  "adapt" = ldw_psid.ps_fixed,
+  "at_perc" = ldw_psid.ps_percent,
+  "fix_value" = ldw_psid.ps_adapt, 
+  # truncation and weighting
+  "fix_value_ipw_weight" = fixed_comb.psid$ipw_weight,
+  "fix_value_opt_weight" = fixed_comb.psid$opt_weight,
+  "fix_value_cbps_weight" = fixed_comb.psid$cbps_weight,
+  "fix_value_ebal_weight" = fixed_comb.psid$ebal_weight,
+  "at_perc_ipw_weight" = percent_comb.psid$ipw_weight,
+  "at_perc_opt_weight" = percent_comb.psid$opt_weight,
+  "at_perc_cbps_weight" = percent_comb.psid$cbps_weight,
+  "at_perc_ebal_weight" = percent_comb.psid$ebal_weight,
+  "adapt_ipw_weight" = adapt_comb.psid$ipw_weight,
+  "adapt_opt_weight" = adapt_comb.psid$opt_weight,
+  "adapt_cbps_weight" = adapt_comb.psid$cbps_weight,
+  "adapt_ebal_weight" = adapt_comb.psid$ebal_weight,
+  # trimming and weighting
   "ipw_common_range" = ipw_comb.psid[[1]],
   "ipw_crump"= ipw_comb.psid[[2]],
   "ipw_ps_threshold"= ipw_comb.psid[[3]],
