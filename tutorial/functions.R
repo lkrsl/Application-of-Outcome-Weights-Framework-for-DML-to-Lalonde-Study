@@ -1,7 +1,7 @@
 # 1 Set up
 # 1.1 Installation
-packages <- c("cobalt", "data.table", "dplyr", "DT", "ebal", "ggplot2", "gridExtra", "highr", "highs", 
-              "kableExtra", "MatchIt", "OutcomeWeights", "optmatch", "optweight", "quickmatch", 
+packages <- c("CBPS", "cobalt", "data.table", "dplyr", "DT", "DoubleML", "ebal", "estimatr", "ggplot2", "gridExtra", "grf", "hbal", "highr", "highs", 
+              "kableExtra", "MatchIt", "Matching", "mlr3", "mlr3learners", "OutcomeWeights", "optmatch", "optweight", "quickmatch", 
               "readr", "rgenoud", "tidyr", "tidyverse", "ppcor", "WeightIt"
 )
 
@@ -18,17 +18,24 @@ install_all <- function(packages) {
 install_all(packages)
 
 # load packages
+library(CBPS)
 library(cobalt)
 library(data.table)
 library(dplyr)
 library(DT)
+library(DoubleML)
 library(ebal)
 library(ggplot2)
 library(gridExtra)
+library(grf)
+library(hbal)
 library(highr)
 library(highs)
 library(kableExtra)
 library(MatchIt)
+library(Matching)
+library(mlr3)
+library(mlr3learners)
 library(optmatch)
 library(optweight)
 library(quickmatch)
@@ -58,76 +65,15 @@ inspect_data <- function(data, treat = "treat") {
 }
 
 # 2. Improving covariate balance and overlap
-## 2.1 Matching
-#### NA
-
-## 2.2 Weighting
-#### NA
-
-## 2.3 Truncation
-### 2.3.1 Fixed maximum value truncation
-#### truncate_ps_fixed()
-truncate_ps_fixed <- function(data, treat = "treat", ps = "ps_assoverlap", lower = 0.05, upper = 0.95) {
-  data[[ps]] <- pmin(pmax(data[[ps]], lower), upper)
-  return(data)
-}
-
-### 2.3.2 At percentile truncation
-#### truncate_ps_percentile()
-truncate_ps_percentile <- function(data, ps = "ps_assoverlap", lower_percentile = 5, upper_percentile = 95) {
-  lower_cut <- quantile(data[[ps]], probs = lower_percentile/100, na.rm = TRUE)
-  upper_cut <- quantile(data[[ps]], probs = upper_percentile/100, na.rm = TRUE)
-  data[[ps]] <- pmin(pmax(data[[ps]], lower_cut), upper_cut)
-  return(data)
-}
-
-### 2.3.3 Adaptive weight truncation
-#### truncate_ps_adaptive()
-truncate_ps_adaptive <- function(
-    data, treat = "treat", ps = "ps_assoverlap",
-    folds = 5,
-    lower_grid = seq(0.01, 0.10, by = 0.01),
-    upper_grid = seq(0.90, 0.99, by = 0.01)
-) {
-  n <- nrow(data)
-  fold_ids <- sample(rep(1:folds, length.out = n))
-  loss_mat <- matrix(NA, nrow = length(lower_grid), ncol = length(upper_grid))
-  for (i in seq_along(lower_grid)) {
-    for (j in seq_along(upper_grid)) {
-      if (lower_grid[i] >= upper_grid[j]) next
-      cv_losses <- c()
-      for (fold in 1:folds) {
-        valid_idx <- which(fold_ids == fold)
-        ps_valid <- data[[ps]][valid_idx]
-        treat_valid <- data[[treat]][valid_idx]
-        lower_q <- quantile(data[[ps]], probs = lower_grid[i], na.rm = TRUE)
-        upper_q <- quantile(data[[ps]], probs = upper_grid[j], na.rm = TRUE)
-        ps_trunc <- pmin(pmax(ps_valid, lower_q), upper_q)
-        # negative log-likelihood loss for binary treatment
-        # l2_i = -A_i * log(G_i) - (1-A_i) * log(1-G_i)
-        l2_fold <- -mean(treat_valid * log(ps_trunc) + (1 - treat_valid) * log(1 - ps_trunc), na.rm = TRUE)
-        cv_losses <- c(cv_losses, l2_fold)
-      }
-      loss_mat[i,j] <- mean(cv_losses)
-    }
-  }
-  idx <- which(loss_mat == min(loss_mat, na.rm = TRUE), arr.ind = TRUE)
-  best_lower <- lower_grid[idx[1]]
-  best_upper <- upper_grid[idx[2]]
-  quantiles <- quantile(data[[ps]], probs = c(best_lower, best_upper), na.rm = TRUE)
-  data[[ps]] <- pmin(pmax(data[[ps]], quantiles[1]), quantiles[2])
-  return(data)
-}
-
-## 2.4 Trimming
-### 2.4.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
+## 2.3 Trimming
+### 2.3.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
 # ps_trim() *** 
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
   sub <- data[which(data[, ps] < threshold), ]
   return(sub)
 }
 
-### 2.4.2 Common range trimming
+### 2.3.2 Common range trimming
 #### common_range_trim ()
 common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   lower_cut <- min(data[[ps]][data[[treat]] == 1], na.rm = TRUE)
@@ -136,14 +82,14 @@ common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   return(sub)
 }
 
-### 2.4.3 Crump trimming
+### 2.3.3 Crump trimming
 #### crump_trim ()
 crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
   sub <- data[data[[ps]] >= lower & data[[ps]] <= upper, ]
   return(sub)
 }
 
-### 2.4.4 Stuermer trimming
+### 2.3.4 Stuermer trimming
 #### stuermer_trim ()
 stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                           lower_percentile = 0.05, upper_percentile = 0.95) {
@@ -155,7 +101,7 @@ stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
   return(sub)
 }
 
-### 2.4.5 Walker trimming
+### 2.3.5 Walker trimming
 #### walker_trim ()
 walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                         lower_cutoff = 0.3, upper_cutoff = 0.7) {
@@ -167,386 +113,53 @@ walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
   return(sub)
 }
 
-## 2.5 Combination of methods
-#### truncate_weights_fixed()
-truncate_weights_fixed <- function(data, weight_col, lower = 0.025, upper = 0.975) {
-  data[[weight_col]] <- pmax(data[[weight_col]], lower)
-  data[[weight_col]] <- pmin(data[[weight_col]], upper)
+### 2.3.6 Reestimate propensity scores
+#### ps_estimate()***
+ps_estimate <- function(data, treat, cov, odds = TRUE, num.trees = NULL, seed = 1234, breaks = 50, xlim = NULL, ylim = NULL) {
+  if(is.null(num.trees))
+  {p.forest1 <- probability_forest(X = data[, cov],
+                                    Y = as.factor(data[,treat]), seed = seed)}
+  else
+  {p.forest1 <- probability_forest(X = data[, cov],
+                                    Y = as.factor(data[,treat]), seed = seed, num.trees = num.trees)}
+  data$ps_assoverlap <- p.forest1$predictions[,2]
+  data$ps_assoverlap[which(abs(data$ps_assoverlap) <= 1e-7)] <- 1e-7
   return(data)
 }
 
-#### truncate_weights_percentile()
-truncate_weights_percentile <- function(data, weight_col, lower = 0.05, upper = 0.95) {
-  quantiles <- quantile(data[[weight_col]], probs = c(lower, upper), na.rm = TRUE)
-  data[[weight_col]] <- pmax(data[[weight_col]], quantiles[1])
-  data[[weight_col]] <- pmin(data[[weight_col]], quantiles[2])
-  return(data)
-} 
-
-#### truncate_weights_adaptive()
-truncate_weights_adaptive <- function(
-    data, weight_col, folds = 5,
-    lower_grid = seq(0.01, 0.10, by = 0.01),
-    upper_grid = seq(0.90, 0.99, by = 0.01),
-    loss_fn = function(w) var(w, na.rm=TRUE) # variance of weights
-) {
-  n <- nrow(data)
-  fold_ids <- sample(rep(1:folds, length.out = n))
-  loss_mat <- matrix(NA, nrow = length(lower_grid), ncol = length(upper_grid))
-  for (i in seq_along(lower_grid)) {
-    for (j in seq_along(upper_grid)) {
-      if (lower_grid[i] >= upper_grid[j]) next
-      cv_losses <- c()
-      for (fold in 1:folds) {
-        valid_idx <- which(fold_ids == fold)
-        valid_weights <- data[[weight_col]][valid_idx]
-        lower_q <- quantile(valid_weights, probs = lower_grid[i], na.rm = TRUE)
-        upper_q <- quantile(valid_weights, probs = upper_grid[j], na.rm = TRUE)
-        w_trunc <- pmax(pmin(valid_weights, upper_q), lower_q)
-        cv_losses <- c(cv_losses, loss_fn(w_trunc))
+## 2.5 Integrated methods
+### 2.5.1 Trimming and matching
+#### attach_matchit()
+attach_matchit <- function(model, data_list, ..., verbose = FALSE) {
+  matchit_results <- vector("list", length(data_list))
+  names(matchit_results) <- names(data_list)
+  for (i in seq_along(data_list)) {
+    res <- tryCatch(
+      matchit(model, data = data_list[[i]], ...),
+      error = function(e) {
+        return(NULL)
       }
-      loss_mat[i,j] <- mean(cv_losses)
-    }
+    )
+    matchit_results[[i]] <- res
   }
-  idx <- which(loss_mat == min(loss_mat, na.rm = TRUE), arr.ind = TRUE)
-  best_lower <- lower_grid[idx[1]]
-  best_upper <- upper_grid[idx[2]]
-  quantiles <- quantile(data[[weight_col]], probs = c(best_lower, best_upper), na.rm = TRUE)
-  data[[weight_col]] <- pmax(pmin(data[[weight_col]], quantiles[2]), quantiles[1])
-  return(data)
-}
-
-#### attach_weights()
-attach_weights <- function(trimmed_list, model, weight_type = c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight"), estimand = "ATT") {
-  weight_type <- match.arg(weight_type)
-  weight_fun <- function(data) {
-    if (weight_type == "ipw_weight") {
-      w.obj <- WeightIt::weightit(model, data = data, estimand = estimand, method = "glm")
-      data$ipw_weight <- w.obj$weights
-    } else if (weight_type == "opt_weight") {
-      w.obj <- optweight::optweight(model, data = data, estimand = estimand)
-      data$opt_weight <- w.obj$weights
-    } else if (weight_type == "cbps_weight") {
-      w.obj <- WeightIt::weightit(model, data = data, estimand = estimand, method = "cbps")
-      data$cbps_weight <- w.obj$weights
-    } else if (weight_type == "ebal_weight") {
-      w.obj <- WeightIt::weightit(model, data = data, estimand = estimand, method = "ebal")
-      data$ebal_weight <- w.obj$weights
-    }
-    return(data)
-  }
-  weighted_list <- lapply(trimmed_list, weight_fun)
-  return(weighted_list)
+  return(matchit_results)
 }
 
 # 3. Reassessing methods
-## 3.1 Matching
-#### get_smd_stats()
-get_smd_stats <- function(match_object) {
-  bal <- bal.tab(match_object, stats = "mean.diffs", un = TRUE, s.d.denom = "treated")
-  smds <- bal$Balance$Diff.Adj
-  smds <- smds[!(rownames(bal$Balance) %in% c("distance"))]
-  mean_smd <- mean(abs(smds), na.rm = TRUE)
-  max_smd <- max(abs(smds), na.rm = TRUE)
-  return(c(Mean_Abs_SMD = mean_smd, Max_Abs_SMD = max_smd))
-}
-
+## 3.1 Trimming 
 ### 3.1.1 SMD
-#### compute_abs_smd_matchit()
-compute_abs_smd_matchit <- function(match_list) {
-  smd_list <- lapply(match_list, get_smd_stats)       
-  smd_mat <- do.call(rbind, smd_list)                 
-  smd_df <- data.frame(
-    Method = names(match_list),
-    Mean_Abs_SMD = smd_mat[, "Mean_Abs_SMD"],
-    Max_Abs_SMD  = smd_mat[, "Max_Abs_SMD"],
-    row.names = NULL
-  )
-  return(smd_df)
-}  
-
-### 3.1.2 ESS
-#### compute_ess_matchit()
-compute_ess_matchit <- function(bal_tab_object) {
-  samples <- bal_tab_object$Observations
-  df <- as.data.frame(samples)
-  df$Method <- rownames(samples)
-  df <- df[, c("Method","Control", "Treated")]
-  rownames(df) <- NULL
-  df
-}
-
-### 3.1.3 Visuals
-#### plot_matching_balance()***
-plot_matching_balance <- function(matchit_objects, threshold = 0.1, title = NULL) {
-  if (!is.list(matchit_objects)) {
-    matchit_objects <- list(single = matchit_objects)
-  }
-  plot_list <- list()
-  for (name in names(matchit_objects)) {
-    matchit_object <- matchit_objects[[name]]
-    bal <- cobalt::bal.tab(matchit_object, un = TRUE)
-    smd_df <- data.frame(
-      Variable = rownames(bal$Balance),
-      Pre = abs(bal$Balance[, "Diff.Un"]),
-      Post = abs(bal$Balance[, "Diff.Adj"])
-    )
-    # remove propensity score or non-covariate rows if present
-    smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
-    # convert to long format
-    smd_long <- pivot_longer(
-      smd_df,
-      cols = c("Pre", "Post"),
-      names_to = "Matching",
-      values_to = "Std_Diff"
-    )
-    smd_long$Matching <- factor(
-      smd_long$Matching, 
-      levels = c("Pre", "Post"), 
-      labels = c("Pre-Matching", "Post-Matching")
-    )
-    # build titles
-    plot_title <- if (length(matchit_objects) > 1) paste(title, "-", name) else title
-    # create ggplot 
-    p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Matching)) +
-      geom_point(size = 3) +
-      geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-      geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
-      geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
-      coord_flip() +
-      labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
-      theme_minimal() +
-      theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
-            plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
-      scale_color_manual(values = c("Pre-Matching" = "#00CFC1", "Post-Matching" = "#FC766A"))
-    plot_list[[name]] <- p
-  }
-  
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
-  } else {
-    return(plot_list)
-  }
-}
-
-## 3.2 Weighting
-### 3.2.1 SMD
-#### compute_abs_smd_weight()
-compute_abs_smd_weight <- function(data, treat, covar, weights_list) {
-  smd_list <- lapply(names(weights_list), function(method) {
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-      data = data,
-      weights = weights_list[[method]],
-      un = TRUE,
-      s.d.denom = "treated"
-    )
-    smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Adj)
-    mean_smd <- mean(smd_vals, na.rm = TRUE)
-    max_smd  <- max(smd_vals, na.rm = TRUE)
-    return(data.frame(
-      Method = method,
-      Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd
-    ))
-  })
-  do.call(rbind, smd_list)
-}
-
-### 3.2.2 ESS
-#### compute_ess_weight()
-compute_ess_weight <- function(data, treat, covar, weights_list) {
-  ess_list <- lapply(names(weights_list), function(method) {
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-      data = data,
-      weights = weights_list[[method]],
-      un = FALSE
-    )
-    samples <- bal_obj$Observations
-    if ("Adjusted" %in% rownames(samples)) {
-      df <- samples["Adjusted", c("Control", "Treated"), drop = FALSE]
-    } else {
-      df <- samples[1, c("Control", "Treated"), drop = FALSE]
-    }
-    df <- cbind(Method = method, df)
-    rownames(df) <- NULL
-    return(df)
-  })
-  do.call(rbind, ess_list)
-}
-
-### 3.2.3 Visuals
-#### plot_weighting_balance()***
-plot_weighting_balance <- function(data, treat, covar, weight_list, title = NULL) {
-  plot_list <- list()
-  for (wname in names(weight_list)) {
-    invisible(capture.output({
-    bal <- cobalt::bal.tab(
-      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-      data = data,
-      weights = weight_list[[wname]],
-      un = TRUE,
-      s.d.denom = "treated"
-    )
-    smd_df <- data.frame(
-      Variable = rownames(bal$Balance),
-      Pre  = abs(bal$Balance[, "Diff.Un"]),
-      Post = abs(bal$Balance[, "Diff.Adj"])
-    )
-    smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
-    smd_long <- pivot_longer(
-      smd_df,
-      cols = c("Pre", "Post"),
-      names_to = "Weighting",
-      values_to = "Std_Diff"
-    )
-    smd_long$Weighting <- factor(
-      smd_long$Weighting,
-      levels = c("Pre", "Post"),
-      labels = c("Pre-Weighting", "Post-Weighting")
-    )
-    plot_title <- if (length(weight_list) > 1) paste(title, "-", wname) else title
-    p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Weighting)) +
-      geom_point(size = 3) +
-      geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-      geom_hline(yintercept = 0.1, linetype = "dashed", color = "red") +
-      geom_hline(yintercept = -0.1, linetype = "dashed", color = "red") +
-      coord_flip() +
-      labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
-      theme_minimal() +
-      theme(panel.border = element_rect(color = "black", fill = NA, size = 1) ,
-            plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
-      scale_color_manual(values = c("Pre-Weighting" = "#00CFC1", "Post-Weighting" = "#FC766A"))
-    plot_list[[wname]] <- p
-   }))
-  }  
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
-  } else {
-    return(plot_list)
-  }
-}
-
-## 3.3 Truncation
-#### compute_abs_smd_trunc()
-compute_abs_smd_trunc <- function(trunc_list, treat, covar, weightcol) {
-  smd_list <- lapply(names(trunc_list), function(method) {
-    data <- trunc_list[[method]]
-    if (!(weightcol %in% names(data))) stop("Specified weight column not in dataset: ", weightcol)
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-      data = data,
-      weights = data[[weightcol]],
-      un = TRUE,
-      s.d.denom = "treated"
-    )
-    smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Adj)
-    mean_smd <- mean(smd_vals, na.rm = TRUE)
-    max_smd  <- max(smd_vals, na.rm = TRUE)
-    data.frame(
-      Method = method,
-      Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd
-    )
-  })
-  smd_summary <- do.call(rbind, smd_list)
-  rownames(smd_summary) <- NULL
-  return(smd_summary)
-}
-
-#### compute_ess_trunc()
-compute_ess_trunc <- function(trunc_list, treat, covar, weightcol) {
-  ess_list <- lapply(names(trunc_list), function(method) {
-    data <- trunc_list[[method]]
-    if (!(weightcol %in% names(data))) stop("Specified weight column not in dataset: ", weightcol)
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-      data = data,
-      weights = data[[weightcol]],
-      un = FALSE,
-      s.d.denom = "treated"
-    )
-    samples <- bal_obj$Observations
-    if ("Adjusted" %in% rownames(samples)) {
-      df <- as.data.frame(samples["Adjusted", c("Control", "Treated"), drop = FALSE])
-    } else {
-      df <- as.data.frame(samples[1, c("Control", "Treated"), drop = FALSE])
-    }
-    return(df)
-  })
-  ess_df <- do.call(rbind, ess_list)
-  ess_df$Method <- names(trunc_list)
-  rownames(ess_df) <- NULL
-  ess_df <- ess_df[, c("Method", "Control", "Treated")]
-  return(ess_df)
-}
-    
-#### plot_trunc_balance()
-plot_trunc_balance <- function(trunc_list, treat, covar, weightcol, dataset_name = NULL, threshold = 0.1) {
-  plot_list <- list()
-  for (method in names(trunc_list)) {
-    data <- trunc_list[[method]]
-    if (!(weightcol %in% names(data))) next
-    bal_obj <- cobalt::bal.tab(
-      as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-      data = data,
-      weights = data[[weightcol]],
-      un = TRUE,
-      s.d.denom = "treated"
-    )
-    smd_df <- data.frame(
-      Variable = rownames(bal_obj$Balance),
-      Pre = abs(bal_obj$Balance[, "Diff.Un"]),
-      Post = abs(bal_obj$Balance[, "Diff.Adj"])
-    )
-    smd_df <- smd_df[!grepl("^distance$|^prop.score$", smd_df$Variable), ]
-    smd_long <- tidyr::pivot_longer(smd_df, 
-                                    cols = c("Pre", "Post"), 
-                                    names_to = "Truncation", 
-                                    values_to = "Std_Diff")
-    smd_long$Truncation <- factor(
-      smd_long$Truncation,
-      levels = c("Pre", "Post"),
-      labels = c("Pre-Truncation", "Post-Truncation")
-    )
-    plot_title <- paste0(if (!is.null(dataset_name)) paste0(dataset_name, " - ") else "", method, " truncation")
-    p <- ggplot2::ggplot(smd_long, ggplot2::aes(x = Variable, y = Std_Diff, color = Truncation)) +
-      ggplot2::geom_point(size = 3) +
-      ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-      ggplot2::geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
-      ggplot2::geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
-      ggplot2::coord_flip() +
-      ggplot2::labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
-      ggplot2::theme_minimal() +
-      ggplot2::theme(panel.border = ggplot2::element_rect(color = "black", fill = NA, size = 1),
-                     plot.title = ggplot2::element_text(face = "plain", size = 11, hjust = 0.5)) +
-      ggplot2::scale_color_manual(values = c("Pre-Truncation" = "#00CFC1", "Post-Truncation" = "#FC766A"))
-    plot_list[[method]] <- p
-  }
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
-  } else {
-    return(plot_list)
-  }
-}
-      
-## 3.4 Trimming
-### 3.4.1 SMD
 #### compute_abs_smd_trim()
-compute_abs_smd_trim <- function(trimming_list, treat, covar) {
-  smd_list <- lapply(names(trimming_list), function(name) {
-    data <- trimming_list[[name]]
+compute_abs_smd_trim <- function(data_list, treat = "treat", covar) {
+  smd_list <- lapply(names(data_list), function(name) {
+    data <- data_list[[name]]
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
       un = TRUE, 
       s.d.denom = "treated"
     )
-    smd_df <- as.data.frame(bal_obj$Balance)
-    smd_vals <- abs(smd_df$Diff.Un)
+    smds <- bal$Balance$Diff.Adj
+    smd_vals <- abs(smds)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
@@ -560,432 +173,269 @@ compute_abs_smd_trim <- function(trimming_list, treat, covar) {
   return(smd_summary)
 }
 
-### 3.4.2 ESS
-#### compute_ess_trim()
-compute_ess_trim <- function(trimming_list, treat, covar) {
-  ess_list <- lapply(trimming_list, function(data) {
-    bal_obj <- cobalt::bal.tab(as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-                               data = data, un = TRUE)
-    samples <- bal_obj$Observations
-    df <- as.data.frame(samples)[c("Control", "Treated")]
-    return(df)
+### 3.1.2 OVL
+#### compute_ovl_trim()
+compute_ovl_trim <- function(data_list, ps = "ps_assoverlap", treat = "treat", n_points = 512) {
+  ovl_res <- lapply(names(data_list), function(meth) {
+    dat <- data_list[[meth]]
+    ps <- as.numeric(dat[[ps]])
+    treat <- dat[[treat]]
+    valid_idx <- !is.na(ps) & !is.na(treat) & (ps >= 0 & ps <= 1)
+    ps <- ps[valid_idx]
+    treat <- treat[valid_idx]
+    treated_scores <- ps[treat == 1]
+    control_scores <- ps[treat == 0]
+    dens_treated <- density(treated_scores, from = 0, to = 1, n = n_points)
+    dens_control <- density(control_scores, from = 0, to = 1, n = n_points)
+    x_grid <- dens_treated$x
+    min_density <- pmin(dens_treated$y, dens_control$y)
+    bin_width <- x_grid[2] - x_grid[1]
+    ovl <- sum(min_density) * bin_width
+    data.frame(Method = meth, OVL = ovl)
   })
-  ess_df <- do.call(rbind, ess_list)
-  ess_df$Method <- names(trimming_list)
-  rownames(ess_df) <- NULL
-  ess_df <- ess_df[, c("Method", "Control", "Treated")]
-  return(ess_df)
+  res <- do.call(rbind, ovl_res)
+  rownames(res) <- NULL
+  return(res)
 }
 
-### 3.4.3 Visuals
-#### plot_trim_overlap()
-plot_trim_overlap <- function(data_list, treat, covar, prefix = NULL, 
-                              main.size = 1.1, lab.size = 1, axis.size = 1) {
-  par(mfrow = c(2, 3), mar = c(4, 4, 1, 1),
-      cex.lab = lab.size, font.lab = 1,
-      cex.axis = axis.size, font.axis = 1)
-  for (name in names(data_list)) {
-    data_obj <- data_list[[name]]
-    invisible(capture.output(
-      assess_overlap(data_obj, treat = treat, cov = covar)
-    ))
-    title(main = paste0(prefix, " - ", name), cex.main = main.size, font.main = 1)
-  }
-}
-
-## 3.5 Combined methods
-### 3.5.1 Trimming and matching
-# NA
-
-### 3.5.2 Trimming and weighting
-#### SMD
-#### compute_abs_smd_trim_weight()
-compute_abs_smd_trim_weight <- function(combined_list, treat, covar) {
-  smd_list <- lapply(names(combined_list), function(weight_method) {
-    method_list <- combined_list[[weight_method]]
-    res <- lapply(names(method_list), function(trim_method) {
-      data <- method_list[[trim_method]]
-      # use equal weights if weight column missing
-      if (!"weight" %in% colnames(data)) {
-        data$weight <- rep(1, nrow(data))
+## 3.3 Trimming and matching
+### 3.3.1 SMD
+#### compute_abs_smd_matchit()
+compute_abs_smd_matchit <- function(match_list, data_list) {
+  match_sizes <- vapply(match_list, length, integer(1))
+  smd_results <- list()
+  for (method_name in names(match_list)) {
+    method_sublist <- match_list[[method_name]]
+    n_match <- length(method_sublist)
+    for (i in seq_len(n_match)) {
+      match_obj <- method_sublist[[i]]
+      data <- data_list[[i]] 
+      if (is.null(match_obj)) {
+        warning(sprintf(
+          "compute_abs_smd_matchit(): skipping '%s' match object %d because it is NULL; check attach_matchit() failures. match_list lengths: %s",
+          method_name,
+          i,
+          paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+        ), call. = FALSE)
+        next
       }
-      bal_obj <- cobalt::bal.tab(
-        as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
+      if (is.null(data)) {
+        warning(sprintf(
+          "compute_abs_smd_matchit(): skipping '%s' source data %d because it is NULL; verify trimming outputs. match_list lengths: %s",
+          method_name,
+          i,
+          paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+        ), call. = FALSE)
+        next
+      }
+      bal <- bal.tab(
+        match_obj,
         data = data,
-        weights = data$weight,
+        stats = "mean.diffs",
         un = TRUE,
         s.d.denom = "treated"
       )
-      smd_df <- as.data.frame(bal_obj$Balance)
-      smd_vals <- abs(smd_df$Diff.Adj)
-      method_name <- paste(weight_method, trim_method, sep = "_")
-      data.frame(
+      smds <- bal$Balance$Diff.Adj
+      smd_vals <- abs(smds)
+      mean_smd <- mean(smd_vals, na.rm = TRUE)
+      max_smd <- max(smd_vals, na.rm = TRUE)
+      smd_results[[paste(method_name, i, sep = "_")]] <- data.frame(
         Method = method_name,
-        Mean_Abs_SMD = mean(smd_vals, na.rm = TRUE),
-        Max_Abs_SMD = max(smd_vals, na.rm = TRUE)
+        MatchIndex = i,
+        Mean_Abs_SMD = mean_smd,
+        Max_Abs_SMD = max_smd
       )
-    })
-    do.call(rbind, res)
-  })
-  smd_summary <- do.call(rbind, smd_list)
+    }
+  }
+  if (length(smd_results) == 0) {
+    return(data.frame(
+      Method = character(0),
+      MatchIndex = integer(0),
+      Mean_Abs_SMD = numeric(0),
+      Max_Abs_SMD = numeric(0)
+    ))
+  }
+  smd_summary <- do.call(rbind, smd_results)
   rownames(smd_summary) <- NULL
   return(smd_summary)
 }
 
-### ESS
-#### compute_ess_trim_weight()
-compute_ess_trim_weight <- function(combined_list, treat, covar) {
-  ess_list <- lapply(names(combined_list), function(weight_method) {
-    method_list <- combined_list[[weight_method]]
-    res <- lapply(names(method_list), function(trim_method) {
-      data <- method_list[[trim_method]]
-      # use equal weights if weight column missing
-      if (!"weight" %in% colnames(data)) {
-        data$weight <- rep(1, nrow(data))
-      }
-      bal_obj <- cobalt::bal.tab(
-        as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-        data = data,
-        weights = data$weight,
-        un = TRUE,
-        s.d.denom = "treated"
-      )
-      samples <- bal_obj$Observations
-      if ("Adjusted" %in% rownames(samples)) {
-        control_ess <- samples["Adjusted", "Control"]
-        treated_ess <- samples["Adjusted", "Treated"]
-      } else {
-        control_ess <- samples[1, "Control"]
-        treated_ess <- samples[1, "Treated"]
-      }
-      method_name <- paste(weight_method, trim_method, sep = "_")
-      data.frame(
-        Method = method_name,
-        Control = control_ess,
-        Treated = treated_ess
-      )
-    })
-    do.call(rbind, res)
-  })
-  ess_summary <- do.call(rbind, ess_list)
-  rownames(ess_summary) <- NULL
-  return(ess_summary)
-}
-
-
-### 3.5.3 Truncation and weighting
-#### SMD
-#### compute_abs_smd_trunc_weight()
-compute_abs_smd_trunc_weight <- function(trunc_list, treat, covar, weightcols) {
-  all_smd <- list()
-  for(trunc_name in names(trunc_list)) {
-    dataset <- trunc_list[[trunc_name]]
-    smd_list <- lapply(weightcols, function(wcol) {
-      if (wcol %in% names(dataset)) {
-        bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-          data = dataset,
-          weights = dataset[[wcol]],
-          un = TRUE,
-          s.d.denom = "treated"
-        )
-        smd_df <- as.data.frame(bal_obj$Balance)
-        smd_vals <- abs(smd_df$Diff.Adj)
-        data.frame(
-          Method = paste(trunc_name, wcol, sep = "_"),
-          Mean_Abs_SMD = mean(smd_vals, na.rm = TRUE),
-          Max_Abs_SMD = max(smd_vals, na.rm = TRUE)
-        )
-      } else {
-        NULL
-      }
-    })
-    all_smd[[trunc_name]] <- do.call(rbind, smd_list)
+### 3.3.2 OVL
+#### compute_ovl_matchit()
+compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", treat = "treat", 
+                                covar = NULL, num.trees = NULL, seed = 42, n_points = 512) {
+  if (!is.list(match_list) || !length(match_list)) {
+    stop("compute_ovl_matchit(): 'match_list' must be a non-empty list of MatchIt outputs")
   }
-  smd_summary <- do.call(rbind, all_smd)
-  rownames(smd_summary) <- NULL  
-  return(smd_summary)
-}
+  if (!is.list(data_list) || !length(data_list)) {
+    stop("compute_ovl_matchit(): 'data_list' must be a non-empty list of trimming datasets")
+  }
 
-#### ESS
-#### compute_ess_trunc_weight()
-compute_ess_trunc_weight <- function(trunc_list, treat, covar, weightcols) {
-  all_ess <- list()
-  for(trunc_name in names(trunc_list)) {
-    dataset <- trunc_list[[trunc_name]]
-    ess_list <- lapply(weightcols, function(wcol) {
-      if (wcol %in% names(dataset)) {
-        bal_obj <- cobalt::bal.tab(
-          as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-          data = dataset,
-          weights = dataset[[wcol]],
-          un = FALSE,
-          s.d.denom = "treated"
-        )
-        samples <- bal_obj$Observations
-        if ("Adjusted" %in% rownames(samples)) {
-          df <- data.frame(
-            Method = paste(trunc_name, wcol, sep = "_"),
-            Control = samples["Adjusted", "Control"],
-            Treated = samples["Adjusted", "Treated"]
-          )
-        } else {
-          df <- data.frame(
-            Method = paste(trunc_name, wcol, sep = "_"),
-            Control = samples[1, "Control"],
-            Treated = samples[1, "Treated"]
-          )
+  match_sizes <- vapply(match_list, length, integer(1))
+  data_count <- length(data_list)
+  if (!all(match_sizes == data_count)) {
+    warning(sprintf(
+      "compute_ovl_matchit(): not all match method lists align with data_list length (%d). sizes: %s",
+      data_count,
+      paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+    ), call. = FALSE)
+  }
+
+  ovl_results <- list()
+
+  for (method_name in names(match_list)) {
+    method_sublist <- match_list[[method_name]]
+    if (!is.list(method_sublist)) {
+      warning(sprintf("compute_ovl_matchit(): skipping method '%s' because entry is not a list", method_name), call. = FALSE)
+      next
+    }
+    for (i in seq_along(method_sublist)) {
+      match_obj <- method_sublist[[i]]
+
+      if (is.null(match_obj)) {
+        warning(sprintf(
+          "compute_ovl_matchit(): skipping '%s' match object %d because it is NULL; check attach_matchit() failures",
+          method_name,
+          i
+        ), call. = FALSE)
+        next
+      }
+
+      if (!inherits(match_obj, "matchit")) {
+        warning(sprintf(
+          "compute_ovl_matchit(): skipping '%s' match object %d because it is class '%s' not 'matchit'",
+          method_name,
+          i,
+          paste(class(match_obj), collapse = "/")
+        ), call. = FALSE)
+        next
+      }
+
+      if (i > length(data_list) || is.null(data_list[[i]])) {
+        warning(sprintf(
+          "compute_ovl_matchit(): trimming dataset %d missing for method '%s'; verify data_list ordering",
+          i,
+          method_name
+        ), call. = FALSE)
+        next
+      }
+
+      data <- data_list[[i]]
+      if (!is.data.frame(data)) {
+        warning(sprintf(
+          "compute_ovl_matchit(): data_list[[%d]] for method '%s' is type '%s' not data.frame",
+          i,
+          method_name,
+          paste(class(data), collapse = "/")
+        ), call. = FALSE)
+        next
+      }
+      if (!nrow(data)) {
+        warning(sprintf(
+          "compute_ovl_matchit(): data_list[[%d]] for method '%s' has zero rows",
+          i,
+          method_name
+        ), call. = FALSE)
+        next
+      }
+
+      matched_data <- match.data(match_obj, data = data)
+
+      if (!is.data.frame(matched_data) || !nrow(matched_data)) {
+        warning(sprintf(
+          "compute_ovl_matchit(): matched data empty for method '%s' (index %d)",
+          method_name,
+          i
+        ), call. = FALSE)
+        next
+      }
+
+      if (ps %in% names(matched_data)) {
+        ps_vals <- as.numeric(matched_data[[ps]])
+      } else {
+        if (is.null(covar)) {
+          stop(paste0("Propensity scores not found for '", method_name, "' on iteration ", i,
+                      " and 'covar' not provided to estimate them"))
         }
-        df
-      } else {
-        NULL
-      }
-    })
-    all_ess[[trunc_name]] <- do.call(rbind, ess_list)
-  }
-  ess_summary <- do.call(rbind, all_ess)
-  rownames(ess_summary) <- NULL   
-  return(ess_summary)
-}
-
-#### Visuals
-#### plot_trunc_weight_balance()
-plot_trunc_weight_balance <- function(trunc_list, treat, covar, weightcols, dataset_name = NULL, threshold = 0.1) {
-  plot_list <- list()
-  for (trunc_name in names(trunc_list)) {
-    dataset <- trunc_list[[trunc_name]]
-    for (wcol in weightcols) 
-      invisible(capture.output({
-        if (wcol %in% names(dataset)) {
-          bal_obj <- cobalt::bal.tab(
-            as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
-            data = dataset,
-            weights = dataset[[wcol]],
-            un = TRUE,
-            s.d.denom = "treated"
-          )
-          smd_df <- data.frame(
-            Variable = rownames(bal_obj$Balance),
-            Pre = abs(bal_obj$Balance[,"Diff.Un"]),
-            Post = abs(bal_obj$Balance[,"Diff.Adj"])
-          )
-          smd_df <- smd_df[!grepl("^distance$|^prop.score$|distance|prop.score", smd_df$Variable), ]
-          smd_long <- pivot_longer(
-            smd_df,
-            cols = c("Pre", "Post"),
-            names_to = "Truncation",
-            values_to = "Std_Diff"
-          )
-          smd_long$Truncation <- factor(
-            smd_long$Truncation,
-            levels = c("Pre", "Post"),
-            labels = c("Pre-Truncation", "Post-Truncation")
-          )
-          plot_title <- paste0(
-            if (!is.null(dataset_name)) paste0(dataset_name, " - ") else "",
-            trunc_name, "_", wcol, " truncation"
-          )
-          p <- ggplot(smd_long, aes(x = Variable, y = Std_Diff, color = Truncation)) +
-            geom_point(size = 3) +
-            geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
-            geom_hline(yintercept = threshold, linetype = "dashed", color = "red") +
-            geom_hline(yintercept = -threshold, linetype = "dashed", color = "red") +
-            coord_flip() +
-            labs(title = plot_title, x = "Covariates", y = "Absolute Standardized Mean Differences") +
-            theme_minimal() +
-            theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
-                  plot.title = element_text(face = "plain", size = 11, hjust = 0.5)) +
-            scale_color_manual(values = c("Pre-Truncation" = "#00CFC1", "Post-Truncation" = "#FC766A"))
-          plot_list[[paste(trunc_name, wcol, sep = "_")]] <- p
+        X <- matched_data[, covar, drop = FALSE]
+        Y <- as.factor(matched_data[[treat]])
+        if (is.null(num.trees)) {
+          p.forest1 <- probability_forest(X = X, Y = Y, seed = seed)
         } else {
-          message(sprintf("Column %s not found in %s", wcol, trunc_name))
+          p.forest1 <- probability_forest(X = X, Y = Y, seed = seed, num.trees = num.trees)
         }
-      }))
+        ps_vals <- p.forest1$predictions[, 2]
+        ps_vals[which(abs(ps_vals) <= 1e-7)] <- 1e-7
+      }
+
+      treat_vals <- matched_data[[treat]]
+      valid_idx <- !is.na(ps_vals) & !is.na(treat_vals) & (ps_vals >= 0 & ps_vals <= 1)
+      ps_vals <- ps_vals[valid_idx]
+      treat_vals <- treat_vals[valid_idx]
+
+      if (!length(ps_vals) || length(unique(treat_vals)) < 2) {
+        warning(sprintf(
+          "compute_ovl_matchit(): insufficient treated/control overlap after cleaning for method '%s' (index %d)",
+          method_name,
+          i
+        ), call. = FALSE)
+        next
+      }
+
+      treated_scores <- ps_vals[treat_vals == 1]
+      control_scores <- ps_vals[treat_vals == 0]
+
+      dens_treated <- density(treated_scores, from = 0, to = 1, n = n_points)
+      dens_control <- density(control_scores, from = 0, to = 1, n = n_points)
+      x_grid <- dens_treated$x
+      min_density <- pmin(dens_treated$y, dens_control$y)
+      bin_width <- x_grid[2] - x_grid[1]
+      ovl <- sum(min_density) * bin_width
+
+      ovl_results[[paste(method_name, i, sep = "_")]] <- data.frame(Method = paste(method_name, i, sep = "_"), OVL = ovl)
+    }
   }
-  if (length(plot_list) == 1) {
-    return(plot_list[[1]])
-  } else {
-    return(plot_list)
+
+  if (!length(ovl_results)) {
+    return(data.frame(Method = character(0), OVL = numeric(0)))
   }
+
+  final_df <- do.call(rbind, ovl_results)
+  rownames(final_df) <- NULL
+  return(final_df)
 }
 
-### 3.5.3 Visuals
-#### plot_comb_overlap()
-plot_comb_overlap <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                              prefix_cps = NULL, prefix_psid = NULL,
-                              main.size = 1.1, lab.size = 1, axis.size = 1) {
-  all_combined_list <- list()
-  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
-  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
-  
-  for (ds_name in names(all_combined_list)) {
-    combined_list <- all_combined_list[[ds_name]]
-    plot_list <- list()
-    method_names <- character()
-    for (weight_method in names(combined_list)) {
-      for (trim_method in names(combined_list[[weight_method]])) {
-        full_method_name <- paste(weight_method, trim_method, sep = "_")
-        plot_list[[full_method_name]] <- combined_list[[weight_method]][[trim_method]]
-        method_names <- c(method_names, full_method_name)
-      }
-    }
-    total_plots <- length(plot_list)
-    plots_per_page <- 6
-    for (i in seq(1, total_plots, by = plots_per_page)) {
-      start_idx <- i
-      end_idx <- min(i + plots_per_page - 1, total_plots)
-      par(mfrow = c(2, 3), mar = c(4, 4, 1, 1), 
-          cex.lab = lab.size, font.lab = 1,
-          cex.axis = axis.size, font.axis = 1)
-      for (j in start_idx:end_idx) {
-        data <- plot_list[[j]]
-        prefix <- if (ds_name == "CPS") prefix_cps else prefix_psid
-        invisible(capture.output(
-          assess_overlap(data, treat = treat, cov = covar) 
-        ))
-        title(main = paste0(prefix, " - ", method_names[j]), cex.main = main.size, font.main = 1)
-      }
-      if ((end_idx - start_idx + 1) < plots_per_page) {
-        for (k in seq_len(plots_per_page - (end_idx - start_idx + 1))) plot.new()
-      }
-    }
-  }
-}
-
-#### save_comb_hist()
-save_comb_hist <- function(comb_meth_cps = NULL, comb_meth_psid = NULL, treat, covar,
-                           prefix = NULL,
-                           prefix_cps = NULL, prefix_psid = NULL,
-                           path = "graphs/lalonde") {
-  all_combined_list <- list()
-  if (!is.null(comb_meth_cps)) all_combined_list$CPS <- comb_meth_cps
-  if (!is.null(comb_meth_psid)) all_combined_list$PSID <- comb_meth_psid
-  
-  file_index <- 1
-  for (ds_name in names(all_combined_list)) {
-    combined_list <- all_combined_list[[ds_name]]
-    plot_list <- list()
-    method_names <- character()
-    for (weight_method in names(combined_list)) {
-      for (trim_method in names(combined_list[[weight_method]])) {
-        full_method_name <- paste(weight_method, trim_method, sep = "_")
-        plot_list[[full_method_name]] <- combined_list[[weight_method]][[trim_method]]
-        method_names <- c(method_names, full_method_name)
-      }
-    }
-    total_plots <- length(plot_list)
-    plots_per_page <- 4
-    for (i in seq(1, total_plots, by = plots_per_page)) {
-      start_idx <- i
-      end_idx <- min(i + plots_per_page - 1, total_plots)
-      pdf_file <- file.path(path, sprintf("%s_ov_%d.pdf", prefix, file_index))
-      pdf(pdf_file, width = 10, height = 8)
-      par(mfrow = c(2, 2), mar = c(4, 4, 2, 1), cex.lab = 1, font.lab = 1, cex.axis = 1, font.axis = 1)
-      for (j in start_idx:end_idx) {
-        data <- plot_list[[j]]
-        prefix_str <- if (ds_name == "CPS") prefix_cps else prefix_psid
-        invisible(capture.output(
-        assess_overlap(data, treat = treat, cov = covar)
-        ))
-        title(main = paste0(prefix_str, " - ", method_names[j]), cex.main = 1, font.main = 1)
-      }
-      if ((end_idx - start_idx + 1) < 4) {
-        for (k in seq_len(4 - (end_idx - start_idx + 1))) plot.new()
-      }
-      dev.off()
-      file_index <- file_index + 1
-    }
-  }
-}
 
 ## 3.6 Getting top methods and datasets
 #### combine_results()
 combine_results <- function(dataset_name) {
   dataset_lower <- tolower(dataset_name)
   # retrieve individual method results
-  smd_matching <- get(paste0("smd_matchit.", dataset_lower))
-  ess_matching <- get(paste0("ess_matchit.", dataset_lower))
   smd_trimming <- get(paste0("smd_trim.", dataset_lower))
-  ess_trimming <- get(paste0("ess_trim.", dataset_lower))
+  ovl_trimming <- get(paste0("ovl_trim.", dataset_lower))
   smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
-  ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
-  smd_weighting <- get(paste0("smd_weight.", dataset_lower))
-  ess_weighting <- get(paste0("ess_weight.", dataset_lower))
-  # retrieve combined method results
+  ovl_trunc <- get(paste0("ovl_trunc.", dataset_lower))
+  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", dataset_lower))
+  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", dataset_lower))
   smd_trim_weight_combined <- get(paste0("smd_trim_weight_comb.", dataset_lower))
-  ess_trim_weight_combined <- get(paste0("ess_trim_weight_comb.", dataset_lower))
-  smd_trunc_weight_combined<- get(paste0("smd_trunc_weight_comb.", dataset_lower))
-  ess_trunc_weight_combined<- get(paste0("ess_trunc_weight_comb.", dataset_lower))
-  # combine all SMD results
+  ovl_trim_weight_combined <- get(paste0("ovl_trim_weight_comb.", dataset_lower))
   smd_all <- do.call(rbind, list(
-    smd_matching,
     smd_trimming,
-    smd_trunc,
-    smd_weighting,
-    smd_trim_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trunc_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
-  ))
-  # Combine all ESS results
-  ess_all <- do.call(rbind, list(
-    ess_matching,
-    ess_trimming,
-    ess_trunc,
-    ess_weighting,
-    ess_trim_weight_combined[, c("Method", "Control", "Treated")],
-    ess_trunc_weight_combined[, c("Method", "Control", "Treated")]
-  ))
-  # merge SMD and ESS results by method
-  final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
-  # remove dataset suffixes for clean labels
-  final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
-  final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
-  # reset row names
-  rownames(final_df) <- NULL
-  return(final_df)
-}
-
-#### combine_results_plus()
-combine_results_plus <- function(dataset_name) {
-  dataset_lower <- tolower(dataset_name)
-  # retrieve individual method results
-  smd_matching <- get(paste0("smd_matchit.", dataset_lower))
-  ess_matching <- get(paste0("ess_matchit.", dataset_lower))
-  smd_trimming <- get(paste0("smd_trim.", dataset_lower))
-  ess_trimming <- get(paste0("ess_trim.", dataset_lower))
-  smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
-  ess_trunc <- get(paste0("ess_trunc.", dataset_lower))
-  smd_weighting <- get(paste0("smd_weight.", dataset_lower))
-  ess_weighting <- get(paste0("ess_weight.", dataset_lower))
-  # retrieve combined method results
-  smd_trim_weight_combined <- get(paste0("smd_trim_weight_comb.", dataset_lower))
-  ess_trim_weight_combined <- get(paste0("ess_trim_weight_comb.", dataset_lower))
-  smd_trunc_weight_combined<- get(paste0("smd_trunc_weight_comb.", dataset_lower))
-  ess_trunc_weight_combined<- get(paste0("ess_trunc_weight_comb.", dataset_lower))
-  # retrieve combined plus results
-  smd_trim_match_combined  <- get(paste0("smd_trim_match_comb.", dataset_lower))
-  ess_trim_match_combined  <- get(paste0("ess_trim_match_comb.", dataset_lower))
-  # combine all SMD results
-  smd_all <- do.call(rbind, list(
-    smd_matching,
-    smd_trimming,
-    smd_trunc,
-    smd_weighting,
     smd_trim_match_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
     smd_trim_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
+    smd_trunc_match_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
     smd_trunc_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
   ))
-  # Combine all ESS results
-  ess_all <- do.call(rbind, list(
-    ess_matching,
-    ess_trimming,
-    ess_trunc,
-    ess_weighting,
-    ess_trim_match_combined[, c("Method", "Control", "Treated")],
-    ess_trim_weight_combined[, c("Method", "Control", "Treated")],
-    ess_trunc_weight_combined[, c("Method", "Control", "Treated")]
+  # combine all OVL results
+  ovl_all <- do.call(rbind, list(
+    ovl_trimming,
+    ovl_trim_match_combined[, c("Method", "OVL")],
+    ovl_trim_weight_combined[, c("Method", "OVL")],
+    ovl_trunc_match_combined[, c("Method", "OVL")],
+    ovl_trunc_weight_combined[, c("Method", "OVL")]
   ))
-  # merge SMD and ESS results by method
-  final_df <- merge(smd_all, ess_all, by = "Method", all = TRUE)
+  # merge absolute SMD and OVL results by method
+  final_df <- merge(smd_all, ovl_all, by = "Method", all = TRUE)
   # remove dataset suffixes for clean labels
   final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
@@ -1002,29 +452,15 @@ save_csv <- function(data, filename) {
   write.csv(data, file = file_csv, row.names = FALSE)
 }
 
-#### assess_methods
+#### assess_methods()
 assess_methods <- function(data) {
   data %>%
-    mutate(
-      # ess score
-      ess_balance_ratio = pmin(Control, Treated) / pmax(Control, Treated),
-      ess_total = Control + Treated,
-      # normalize balance_ratio and ess_total
-      ess_balance_score = (ess_balance_ratio - min(ess_balance_ratio, na.rm = TRUE)) /
-        (max(ess_balance_ratio, na.rm = TRUE) - min(ess_balance_ratio, na.rm = TRUE)),
-      ess_size_score = (ess_total - min(ess_total, na.rm = TRUE)) /
-        (max(ess_total, na.rm = TRUE) - min(ess_total, na.rm = TRUE)),
-      # combine size and balance equally
-      ess_score = 0.5 * ess_balance_score + 0.5 * ess_size_score,
-      # smd score
-      smd_score = 1 - (Mean_Abs_SMD - min(Mean_Abs_SMD, na.rm = TRUE)) /
-        (max(Mean_Abs_SMD, na.rm = TRUE) - min(Mean_Abs_SMD, na.rm = TRUE)),
-      # composite score
-      Score = 0.5 * smd_score + 0.5 * ess_score
-    ) %>%
-    dplyr::select(Method, Score) %>%
-    arrange(desc(Score))
+    dplyr::select(Method, OVL) %>%
+    arrange(desc(OVL))
 }
+
+#### rank_methods()
+
 
 #### get_top_methods()
 get_top_methods <- function(summary_df, top_n = 5) {
@@ -1038,36 +474,23 @@ get_top_methods <- function(summary_df, top_n = 5) {
 }
 
 #### create_top5_datasets()
-create_top5_datasets <- function(dataset_list, top5_method_names) {
+create_top5_datasets <- function(dataset_list, top5_method_names, weight_list, trunc_list, trim_list) {
   lapply(top5_method_names, function(method_name) {
-    if (!method_name %in% names(dataset_list)) {
-      stop(paste0("Method '", method_name, "' not found in the dataset lookup list"))
-    }
-    ds <- dataset_list[[method_name]]
-    if (inherits(ds, "matchit")) {
-      # for matchit class, extract matched data
-      return(as.data.frame(match.data(ds)))
-    } else if (is.data.frame(ds)) {
-      # if already dataframe, return as is
-      return(ds)
-    } else if (is.vector(ds)) {
-      # merge with original data
-      if (!"original" %in% names(dataset_list)) {
-        stop("Original dataset not found in dataset_list to merge weights")
+      if (!method_name %in% names(dataset_list)) {
+        stop(paste0("Method '", method_name, "' not found in the dataset lookup list"))
       }
-      original_df <- dataset_list[["original"]]
-      if (length(ds) != nrow(original_df)) {
-        stop(paste0("Length of weight vector for method '", method_name, "' does not match number of rows in original dataset"))
+      ds <- dataset_list[[method_name]]
+      # matching 
+      if (inherits(ds, "matchit")) {
+        return(as.data.frame(match.data(ds)))
+      # dataframe (trimming and truncation)
+      } else if (is.data.frame(ds)) {
+        return(ds)
+      } else {
+        stop(paste("Unsupported data type for method", method_name))
       }
-      # create new data frame with weights appended
-      weighted_df <- original_df
-      weighted_df[["weights"]] <- ds
-      return(weighted_df)
-    } else {
-      stop(paste("Unsupported data type for method", method_name))
-    }
-  })
-}
+    })
+}  
 
 #### save_top5_datasets()
 save_top5_datasets <- function(combined_methods_list, top5_method_names, prefix) {

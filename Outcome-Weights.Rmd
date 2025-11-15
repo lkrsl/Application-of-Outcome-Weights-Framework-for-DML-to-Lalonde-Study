@@ -1,3 +1,41 @@
+--- 
+title: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study"
+author: "Laura Kreisel"
+date: "`r Sys.Date()`"
+site: bookdown::bookdown_site
+documentclass: book
+bibliography: [tutorial/book.bib, tutorial/packages.bib]
+description: |
+  This book replicates the LaLonde study by Imbens & Xu (2024) and extends it by comparing a
+  full with a reduced covariate model to mitigate potential confounding. 
+  It evaluates various methods to improve overlap and covariate balance for robust 
+  treatment effect estimation and applies the outcome weights framework by Knaus & Pfleiderer (2024) 
+  to assess another estimator and analyse the distributional properties of outcome weights.
+  The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
+link-citations: yes
+github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study
+---
+
+# Preface {-}
+
+This book replicates the LaLonde study by @imbens2024 and extends it by comparing a
+full with a reduced covariate model to mitigate potential confounding. 
+It evaluates various methods to improve overlap and covariate balance for robust treatment effect estimation and 
+applies the outcome weights framework by @OW_Package to assess another estimator and analyse the distributional properties of outcome weights. 
+The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
+
+```{r, echo=FALSE, out.width="80%", fig.align="center"}
+knitr::include_graphics("tutorial/Outcome-Weights_files/figure-html/image3.jpg")
+```
+
+Section 1 introduces required packages and wrapper functions used throughout the analysis. 
+Section 2 replicates and extends the full covariate model from @imbens2024 using the LaLonde-Dehejia-Wahba (LDW) dataset. 
+Section 3 applies a reduced covariate set to the same LDW dataset. 
+Section 4 analyzes the original LaLonde dataset following similar methods and 
+section 5 explores the LaLonde-Calónico-Smith (LCS) dataset, focusing on female samples.
+
+<!--chapter:end:index.Rmd-->
+
 # LaLonde-Dehejia-Wahba (LDW) Data
 LaLonde (1986) evaluated the effect of the National Supported Work Demonstration (NSW) program on both female and male participants. While the female participants were drawn from the Aid to Families with Dependent Children (AFDC) program, the male participants were drawn from three other groups: former drug addicts, ex-criminal offenders, and high-school dropouts. LaLonde relied on two main data sources:
 (1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
@@ -19,15 +57,8 @@ This section (2) covers model A, which includes the outcome variable 1978 earnin
 ## Set up
 ### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
-# source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-# source("tutorial/functions.R")
-
-# source functions (skip remote copy when offline)
-remote_url <- "https://raw.githubusercontent.com/xuyiqing/lalonde/main/tutorial/functions.R"
-tryCatch(
-        source(remote_url, local = FALSE),
-        error = function(e) message("Skipping remote helper script: ", conditionMessage(e))
-)
+# source functions
+source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
 source("tutorial/functions.R")
 ```
 
@@ -682,11 +713,6 @@ smd_trim_match_comb.cps
 smd_trim_match_comb.psid
 ```
 
-###### OVL
-```{r, message=FALSE, warning=FALSE}
-# compute overlap coefficients
-ovl_trim_match_comb.cps <- compute_ovl_matchit(trim_match_comb.cps, all_trim.cps, ps = "ps_assoverlap", treat = "treat", covar = covar)
-ovl_trim_match_comb.psid <- compute_ovl_matchit(trim_match_comb.psid, all_trim.psid, ps = "ps_assoverlap", treat = "treat", covar = covar)
 
-ovl_trim_match_comb.cps
-```
+<!--chapter:end:tutorial/02-LDW-Model-A.Rmd-->
+
