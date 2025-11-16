@@ -17,6 +17,63 @@ install_all <- function(packages) {
 
 install_all(packages)
 
+find_outcomeweights_source <- function(max_up = 6) {
+  current <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+  visited <- character(0)
+  for (i in seq_len(max_up + 1)) {
+    if (is.na(current) || current %in% visited || !nzchar(current)) break
+    candidate <- file.path(current, "package", "OutcomeWeights")
+    if (dir.exists(candidate)) return(candidate)
+    visited <- c(visited, current)
+    parent <- normalizePath(file.path(current, ".."), winslash = "/", mustWork = FALSE)
+    if (identical(parent, current)) break
+    current <- parent
+  }
+  return(NULL)
+}
+
+extend_outcomeweights <- function() {
+  has_aipw_att <- function() {
+    tryCatch({
+      fn <- get("dml_with_smoother", inherits = TRUE)
+      any(grepl("AIPW_ATT", deparse(body(fn)), fixed = TRUE))
+    }, error = function(e) FALSE)
+  }
+
+  if (has_aipw_att()) return(invisible(TRUE))
+
+  ow_dir <- find_outcomeweights_source()
+  if (is.null(ow_dir)) {
+    if (interactive()) message("OutcomeWeights ATT extension not found. Continuing with installed version.")
+    return(invisible(FALSE))
+  }
+
+  r_dir <- file.path(ow_dir, "R")
+  if (!dir.exists(r_dir)) {
+    warning("OutcomeWeights ATT extension found but R/ directory missing at ", ow_dir, call. = FALSE)
+    return(invisible(FALSE))
+  }
+
+  scripts <- list.files(r_dir, pattern = "\\.[Rr]$", full.names = TRUE)
+  if (!length(scripts)) {
+    warning("OutcomeWeights ATT extension R scripts not found in ", r_dir, call. = FALSE)
+    return(invisible(FALSE))
+  }
+
+  target_env <- globalenv()
+  for (script in scripts) {
+    tryCatch(source(script, local = target_env, encoding = "UTF-8"),
+             error = function(e) stop("Failed to source ", basename(script), ": ", e$message, call. = FALSE))
+  }
+
+  if (!has_aipw_att()) {
+    warning("AIPW-ATT extension could not be activated even after sourcing local scripts.", call. = FALSE)
+    return(invisible(FALSE))
+  }
+
+  invisible(TRUE)
+}
+
 # load packages
 library(CBPS)
 library(cobalt)
@@ -46,6 +103,7 @@ library(tidyverse)
 library(ppcor)
 library(WeightIt)
 library(OutcomeWeights)
+extend_outcomeweights()
 
 # 1.2 Data inspection
 #### inspect_datasets()
@@ -131,18 +189,57 @@ ps_estimate <- function(data, treat, cov, odds = TRUE, num.trees = NULL, seed = 
 ### 2.5.1 Trimming and matching
 #### attach_matchit()
 attach_matchit <- function(model, data_list, ..., verbose = FALSE) {
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("attach_matchit(): 'data_list' must be a non-empty list", call. = FALSE)
+  }
   matchit_results <- vector("list", length(data_list))
   names(matchit_results) <- names(data_list)
+  dims_report <- character(length(data_list))
   for (i in seq_along(data_list)) {
+    data_i <- data_list[[i]]
+    label_i <- if (length(names(matchit_results))) names(matchit_results)[i] else i
     res <- tryCatch(
-      matchit(model, data = data_list[[i]], ...),
+      {
+        obj <- matchit(model, data = data_i, ...)
+        attr(obj, "match_source") <- data_i
+        obj
+      },
       error = function(e) {
-        return(NULL)
+        warning(sprintf("attach_matchit(): '%s' failed: %s", label_i, e$message), call. = FALSE)
+        NULL
       }
     )
     matchit_results[[i]] <- res
+    source_rows <- tryCatch(nrow(data_i), error = function(e) NA_integer_)
+    matched_rows <- if (inherits(res, "matchit")) {
+      tryCatch(nrow(match.data(res, data = data_i)), error = function(e) NA_integer_)
+    } else {
+      NA_integer_
+    }
+    dims_report[[i]] <- sprintf("%s: source=%s matched=%s", label_i, source_rows, matched_rows)
   }
+  if (isTRUE(verbose)) {
+    message("attach_matchit(): ", paste(dims_report, collapse = "; "))
+  }
+  attr(matchit_results, "match_dims") <- dims_report
   return(matchit_results)
+}
+
+wrap_match_entries <- function(match_list, source_list, prefix) {
+        if (!is.list(match_list)) {
+                return(list())
+        }
+        max_idx <- min(length(match_list), length(source_list))
+        entries <- vector("list", max_idx)
+        names(entries) <- paste0(prefix, "_", seq_len(max_idx))
+        for (i in seq_len(max_idx)) {
+                match_obj <- match_list[[i]]
+                if (is.null(match_obj)) {
+                        next
+                }
+                entries[[i]] <- list(matchit = match_obj, data = source_list[[i]])
+        }
+        Filter(Negate(is.null), entries)
 }
 
 # 3. Reassessing methods
@@ -202,35 +299,57 @@ compute_ovl_trim <- function(data_list, ps = "ps_assoverlap", treat = "treat", n
 ### 3.3.1 SMD
 #### compute_abs_smd_matchit()
 compute_abs_smd_matchit <- function(match_list, data_list) {
-  match_sizes <- vapply(match_list, length, integer(1))
+  if (!is.list(match_list) || length(match_list) == 0) {
+    stop("compute_abs_smd_matchit(): 'match_list' must be a non-empty list", call. = FALSE)
+  }
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("compute_abs_smd_matchit(): 'data_list' must be a non-empty list", call. = FALSE)
+  }
+  data_len <- length(data_list)
+  data_labels <- if (length(names(data_list))) names(data_list) else seq_len(data_len)
   smd_results <- list()
   for (method_name in names(match_list)) {
     method_sublist <- match_list[[method_name]]
-    n_match <- length(method_sublist)
-    for (i in seq_len(n_match)) {
+    if (!is.list(method_sublist)) {
+      warning(sprintf("compute_abs_smd_matchit(): '%s' is not a list of matchit objects; skipping", method_name), call. = FALSE)
+      next
+    }
+    method_len <- length(method_sublist)
+    if (method_len != data_len) {
+      warning(sprintf(
+        "compute_abs_smd_matchit(): '%s' match list length (%d) differs from data_list length (%d); only the first %d elements are considered.",
+        method_name,
+        method_len,
+        data_len,
+        min(method_len, data_len)
+      ), call. = FALSE)
+    }
+    max_idx <- min(method_len, data_len)
+    for (i in seq_len(max_idx)) {
       match_obj <- method_sublist[[i]]
-      data <- data_list[[i]] 
+      data_i <- data_list[[i]]
+      label_i <- if (i <= length(data_labels)) data_labels[[i]] else i
       if (is.null(match_obj)) {
         warning(sprintf(
-          "compute_abs_smd_matchit(): skipping '%s' match object %d because it is NULL; check attach_matchit() failures. match_list lengths: %s",
+          "compute_abs_smd_matchit(): skipping '%s' match object %d (%s) because it is NULL; check attach_matchit() failures.",
           method_name,
           i,
-          paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+          label_i
         ), call. = FALSE)
         next
       }
-      if (is.null(data)) {
+      if (is.null(data_i)) {
         warning(sprintf(
-          "compute_abs_smd_matchit(): skipping '%s' source data %d because it is NULL; verify trimming outputs. match_list lengths: %s",
+          "compute_abs_smd_matchit(): skipping '%s' source data %d (%s) because it is NULL; verify trimming outputs.",
           method_name,
           i,
-          paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+          label_i
         ), call. = FALSE)
         next
       }
       bal <- bal.tab(
         match_obj,
-        data = data,
+        data = data_i,
         stats = "mean.diffs",
         un = TRUE,
         s.d.denom = "treated"
@@ -262,75 +381,79 @@ compute_abs_smd_matchit <- function(match_list, data_list) {
 
 ### 3.3.2 OVL
 #### compute_ovl_matchit()
-compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", treat = "treat", 
+compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", treat = "treat",
                                 covar = NULL, num.trees = NULL, seed = 42, n_points = 512) {
-  if (!is.list(match_list) || !length(match_list)) {
-    stop("compute_ovl_matchit(): 'match_list' must be a non-empty list of MatchIt outputs")
+  if (!is.list(match_list) || length(match_list) == 0) {
+    stop("compute_ovl_matchit(): 'match_list' must be a non-empty list", call. = FALSE)
   }
-  if (!is.list(data_list) || !length(data_list)) {
-    stop("compute_ovl_matchit(): 'data_list' must be a non-empty list of trimming datasets")
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("compute_ovl_matchit(): 'data_list' must be a non-empty list", call. = FALSE)
   }
-
-  match_sizes <- vapply(match_list, length, integer(1))
-  data_count <- length(data_list)
-  if (!all(match_sizes == data_count)) {
-    warning(sprintf(
-      "compute_ovl_matchit(): not all match method lists align with data_list length (%d). sizes: %s",
-      data_count,
-      paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
-    ), call. = FALSE)
-  }
-
+  data_len <- length(data_list)
+  data_labels <- if (length(names(data_list))) names(data_list) else seq_len(data_len)
   ovl_results <- list()
-
   for (method_name in names(match_list)) {
     method_sublist <- match_list[[method_name]]
     if (!is.list(method_sublist)) {
-      warning(sprintf("compute_ovl_matchit(): skipping method '%s' because entry is not a list", method_name), call. = FALSE)
+      warning(sprintf("compute_ovl_matchit(): '%s' is not a list of matchit objects; skipping", method_name), call. = FALSE)
       next
     }
-    for (i in seq_along(method_sublist)) {
+    method_len <- length(method_sublist)
+    if (method_len != data_len) {
+      warning(sprintf(
+        "compute_ovl_matchit(): '%s' match list length (%d) differs from data_list length (%d); only the first %d elements are considered.",
+        method_name,
+        method_len,
+        data_len,
+        min(method_len, data_len)
+      ), call. = FALSE)
+    }
+    max_idx <- min(method_len, data_len)
+    for (i in seq_len(max_idx)) {
       match_obj <- method_sublist[[i]]
-
+      data_i <- data_list[[i]]
+      label_i <- if (i <= length(data_labels)) data_labels[[i]] else i
       if (is.null(match_obj)) {
         warning(sprintf(
-          "compute_ovl_matchit(): skipping '%s' match object %d because it is NULL; check attach_matchit() failures",
+          "compute_ovl_matchit(): skipping '%s' match object %d (%s) because it is NULL; check attach_matchit() failures.",
           method_name,
-          i
+          i,
+          label_i
         ), call. = FALSE)
         next
       }
-
       if (!inherits(match_obj, "matchit")) {
         warning(sprintf(
-          "compute_ovl_matchit(): skipping '%s' match object %d because it is class '%s' not 'matchit'",
+          "compute_ovl_matchit(): skipping '%s' match object %d (%s) because it is class '%s' not 'matchit'",
           method_name,
           i,
+          label_i,
           paste(class(match_obj), collapse = "/")
         ), call. = FALSE)
         next
       }
-
-      if (i > length(data_list) || is.null(data_list[[i]])) {
-        warning(sprintf(
-          "compute_ovl_matchit(): trimming dataset %d missing for method '%s'; verify data_list ordering",
-          i,
-          method_name
-        ), call. = FALSE)
-        next
+      if (is.null(data_i)) {
+        data_i <- attr(match_obj, "match_source")
+        if (is.null(data_i)) {
+          warning(sprintf(
+            "compute_ovl_matchit(): source data missing for method '%s' index %d (%s); cannot recover matched data.",
+            method_name,
+            i,
+            label_i
+          ), call. = FALSE)
+          next
+        }
       }
-
-      data <- data_list[[i]]
-      if (!is.data.frame(data)) {
+      if (!is.data.frame(data_i)) {
         warning(sprintf(
           "compute_ovl_matchit(): data_list[[%d]] for method '%s' is type '%s' not data.frame",
           i,
           method_name,
-          paste(class(data), collapse = "/")
+          paste(class(data_i), collapse = "/")
         ), call. = FALSE)
         next
       }
-      if (!nrow(data)) {
+      if (!nrow(data_i)) {
         warning(sprintf(
           "compute_ovl_matchit(): data_list[[%d]] for method '%s' has zero rows",
           i,
@@ -338,24 +461,26 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
         ), call. = FALSE)
         next
       }
-
-      matched_data <- match.data(match_obj, data = data)
-
+      matched_data <- match.data(match_obj, data = data_i)
       if (!is.data.frame(matched_data) || !nrow(matched_data)) {
         warning(sprintf(
-          "compute_ovl_matchit(): matched data empty for method '%s' (index %d)",
+          "compute_ovl_matchit(): matched data empty for method '%s' index %d (%s)",
           method_name,
-          i
+          i,
+          label_i
         ), call. = FALSE)
         next
       }
-
       if (ps %in% names(matched_data)) {
         ps_vals <- as.numeric(matched_data[[ps]])
       } else {
         if (is.null(covar)) {
-          stop(paste0("Propensity scores not found for '", method_name, "' on iteration ", i,
-                      " and 'covar' not provided to estimate them"))
+          stop(sprintf(
+            "compute_ovl_matchit(): propensity scores missing for '%s' index %d (%s) and 'covar' not provided",
+            method_name,
+            i,
+            label_i
+          ), call. = FALSE)
         }
         X <- matched_data[, covar, drop = FALSE]
         Y <- as.factor(matched_data[[treat]])
@@ -367,39 +492,36 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
         ps_vals <- p.forest1$predictions[, 2]
         ps_vals[which(abs(ps_vals) <= 1e-7)] <- 1e-7
       }
-
       treat_vals <- matched_data[[treat]]
       valid_idx <- !is.na(ps_vals) & !is.na(treat_vals) & (ps_vals >= 0 & ps_vals <= 1)
       ps_vals <- ps_vals[valid_idx]
       treat_vals <- treat_vals[valid_idx]
-
       if (!length(ps_vals) || length(unique(treat_vals)) < 2) {
         warning(sprintf(
-          "compute_ovl_matchit(): insufficient treated/control overlap after cleaning for method '%s' (index %d)",
+          "compute_ovl_matchit(): insufficient treated/control overlap after cleaning for method '%s' index %d (%s)",
           method_name,
-          i
+          i,
+          label_i
         ), call. = FALSE)
         next
       }
-
       treated_scores <- ps_vals[treat_vals == 1]
       control_scores <- ps_vals[treat_vals == 0]
-
       dens_treated <- density(treated_scores, from = 0, to = 1, n = n_points)
       dens_control <- density(control_scores, from = 0, to = 1, n = n_points)
       x_grid <- dens_treated$x
       min_density <- pmin(dens_treated$y, dens_control$y)
       bin_width <- x_grid[2] - x_grid[1]
       ovl <- sum(min_density) * bin_width
-
-      ovl_results[[paste(method_name, i, sep = "_")]] <- data.frame(Method = paste(method_name, i, sep = "_"), OVL = ovl)
+      ovl_results[[paste(method_name, i, sep = "_")]] <- data.frame(
+        Method = paste(method_name, i, sep = "_"),
+        OVL = ovl
+      )
     }
   }
-
-  if (!length(ovl_results)) {
+  if (length(ovl_results) == 0) {
     return(data.frame(Method = character(0), OVL = numeric(0)))
   }
-
   final_df <- do.call(rbind, ovl_results)
   rownames(final_df) <- NULL
   return(final_df)
@@ -413,29 +535,46 @@ combine_results <- function(dataset_name) {
   # retrieve individual method results
   smd_trimming <- get(paste0("smd_trim.", dataset_lower))
   ovl_trimming <- get(paste0("ovl_trim.", dataset_lower))
-  smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
-  ovl_trunc <- get(paste0("ovl_trunc.", dataset_lower))
   smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", dataset_lower))
   ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", dataset_lower))
-  smd_trim_weight_combined <- get(paste0("smd_trim_weight_comb.", dataset_lower))
-  ovl_trim_weight_combined <- get(paste0("ovl_trim_weight_comb.", dataset_lower))
-  smd_all <- do.call(rbind, list(
-    smd_trimming,
-    smd_trim_match_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trim_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trunc_match_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trunc_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
-  ))
-  # combine all OVL results
-  ovl_all <- do.call(rbind, list(
-    ovl_trimming,
-    ovl_trim_match_combined[, c("Method", "OVL")],
-    ovl_trim_weight_combined[, c("Method", "OVL")],
-    ovl_trunc_match_combined[, c("Method", "OVL")],
-    ovl_trunc_weight_combined[, c("Method", "OVL")]
-  ))
+
+  format_smd_results <- function(df) {
+    if (is.null(df) || !nrow(df)) {
+      return(data.frame(Method = character(0), Mean_Abs_SMD = numeric(0), Max_Abs_SMD = numeric(0)))
+    }
+    out <- df
+    if ("MatchIndex" %in% names(out)) {
+      out$Method <- paste(out$Method, out$MatchIndex, sep = "_")
+      out$MatchIndex <- NULL
+    }
+    out[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD"), drop = FALSE]
+  }
+
+  format_ovl_results <- function(df) {
+    if (is.null(df) || !nrow(df)) {
+      return(data.frame(Method = character(0), OVL = numeric(0)))
+    }
+    df[, c("Method", "OVL"), drop = FALSE]
+  }
+
+  smd_all <- dplyr::bind_rows(
+    format_smd_results(smd_trimming),
+    format_smd_results(smd_trim_match_combined)
+  )
+
+  ovl_all <- dplyr::bind_rows(
+    format_ovl_results(ovl_trimming),
+    format_ovl_results(ovl_trim_match_combined)
+  )
+
   # merge absolute SMD and OVL results by method
-  final_df <- merge(smd_all, ovl_all, by = "Method", all = TRUE)
+  final_df <- dplyr::full_join(smd_all, ovl_all, by = "Method")
+
+  if (!nrow(final_df)) {
+    return(final_df)
+  }
+
+  final_df$Method <- as.character(final_df$Method)
   # remove dataset suffixes for clean labels
   final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
@@ -463,33 +602,69 @@ assess_methods <- function(data) {
 
 
 #### get_top_methods()
-get_top_methods <- function(summary_df, top_n = 5) {
-  if (!all(c("Method", "Score") %in% names(summary_df))) {
-    stop("Data frame must contain columns 'Method' and 'Score'")
+get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
+  if (!"Method" %in% names(summary_df)) {
+    stop("Data frame must contain column 'Method'")
   }
-  top_methods_df <- summary_df %>%
-    arrange(desc(Score)) %>%
-    head(top_n)
-  return(top_methods_df$Method)
+  if (is.null(score_col)) {
+    if ("Score" %in% names(summary_df)) {
+      score_col <- "Score"
+    } else if ("OVL" %in% names(summary_df)) {
+      score_col <- "OVL"
+    } else {
+      stop("Data frame must contain a scoring column ('Score' or 'OVL'), or specify 'score_col'")
+    }
+  }
+  if (!score_col %in% names(summary_df)) {
+    stop(sprintf("Column '%s' not found in summary_df", score_col))
+  }
+  summary_df %>%
+    dplyr::filter(!is.na(.data[[score_col]])) %>%
+    arrange(dplyr::desc(.data[[score_col]])) %>%
+    head(top_n) %>%
+    dplyr::pull(Method)
 }
 
 #### create_top5_datasets()
-create_top5_datasets <- function(dataset_list, top5_method_names, weight_list, trunc_list, trim_list) {
-  lapply(top5_method_names, function(method_name) {
-      if (!method_name %in% names(dataset_list)) {
-        stop(paste0("Method '", method_name, "' not found in the dataset lookup list"))
+create_top5_datasets <- function(dataset_list, top_method_names) {
+  if (!is.list(dataset_list) || length(dataset_list) == 0) {
+    stop("create_top5_datasets(): 'dataset_list' must be a non-empty list", call. = FALSE)
+  }
+  if (length(top_method_names) == 0) {
+    stop("create_top5_datasets(): 'top_method_names' must contain at least one method name", call. = FALSE)
+  }
+  missing_methods <- setdiff(top_method_names, names(dataset_list))
+  if (length(missing_methods)) {
+    stop(sprintf(
+      "create_top5_datasets(): the following methods are missing from 'dataset_list': %s",
+      paste(missing_methods, collapse = ", ")
+    ), call. = FALSE)
+  }
+  out <- lapply(top_method_names, function(method_name) {
+    ds <- dataset_list[[method_name]]
+    if (is.null(ds)) {
+      stop(sprintf("create_top5_datasets(): dataset for method '%s' is NULL", method_name), call. = FALSE)
+    }
+    if (inherits(ds, "matchit")) {
+      source_data <- attr(ds, "match_source")
+      if (is.null(source_data)) {
+        stop(sprintf(
+          "create_top5_datasets(): matchit object '%s' is missing source data. Regenerate it with attach_matchit() so 'match_source' attribute is available or provide a data.frame entry instead.",
+          method_name
+        ), call. = FALSE)
       }
-      ds <- dataset_list[[method_name]]
-      # matching 
-      if (inherits(ds, "matchit")) {
-        return(as.data.frame(match.data(ds)))
-      # dataframe (trimming and truncation)
-      } else if (is.data.frame(ds)) {
-        return(ds)
-      } else {
-        stop(paste("Unsupported data type for method", method_name))
-      }
-    })
+      return(as.data.frame(match.data(ds, data = source_data)))
+    }
+    if (is.list(ds) && inherits(ds$matchit, "matchit") && is.data.frame(ds$data)) {
+      return(as.data.frame(match.data(ds$matchit, data = ds$data)))
+    }
+    if (is.data.frame(ds)) {
+      return(ds)
+    }
+    stop(sprintf("create_top5_datasets(): unsupported entry type for method '%s'", method_name), call. = FALSE)
+  })
+  names(out) <- top_method_names
+  out
 }  
 
 #### save_top5_datasets()
@@ -606,7 +781,7 @@ cbps <- function(data, Y, treat, covar) {
 }
 
 # ebal()
-#library(hbal)
+# library(hbal)
 ebal <- function(data, Y, treat, covar) {
   ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
   out <- hbal::att(ebal.out, dr = FALSE)[1, c(1, 2, 5, 6)]

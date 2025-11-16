@@ -19,16 +19,16 @@ This section (2) covers model A, which includes the outcome variable 1978 earnin
 ## Set up
 ### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
-# source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
-# source("tutorial/functions.R")
-
-# source functions (skip remote copy when offline)
-remote_url <- "https://raw.githubusercontent.com/xuyiqing/lalonde/main/tutorial/functions.R"
-tryCatch(
-        source(remote_url, local = FALSE),
-        error = function(e) message("Skipping remote helper script: ", conditionMessage(e))
-)
+source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
 source("tutorial/functions.R")
+#source("C:/Users/lkreisel/workspace/uni-projects/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study/tutorial/functions.R")
+# source functions (skip remote copy when offline)
+# remote_url <- "https://raw.githubusercontent.com/xuyiqing/lalonde/main/tutorial/functions.R"
+# tryCatch(
+#         source(remote_url, local = FALSE),
+#         error = function(e) message("Skipping remote helper script: ", conditionMessage(e))
+# )
+# source("tutorial/functions.R")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -639,6 +639,51 @@ bal<-bal.tab(profile_trim_comb.psid[[1]],
 bal$Balance$Diff.Adj
 ```
 
+## Assessing methods
+
+We now systematically reassess all methods described above by evaluating the overlap coefficient (OVL) and the absolute standardized mean differences (ASMD). Specifically, we compute the ASMD and OVL for each approach and compute a composite score to determine the best performing methods.
+
+### Single methods
+#### Trimming
+##### SMD
+```{r, message=FALSE, warning=FALSE}
+# compute absolute SMD
+smd_trim.cps <- compute_abs_smd_trim(all_trim.cps, "treat", covar)
+smd_trim.psid <- compute_abs_smd_trim(all_trim.psid, "treat", covar)
+```
+
+##### OVL
+```{r, message=FALSE, warning=FALSE}
+# compute overlap coefficients
+ovl_trim.cps <- compute_ovl_trim(all_trim.cps, "ps_assoverlap", "treat")
+ovl_trim.psid <- compute_ovl_trim(all_trim.psid, "ps_assoverlap", "treat")
+```
+
+### Integrated methods
+#### Trimming and matching
+##### Extended datasets
+(Similar to tutorial by @imbens2024)
+```{r, message=FALSE, warning=FALSE}
+# list all trimmed and matched samples
+trim_match_comb.cps_plus <- list(ps_threshold_match = ldw_cps.trim_match)
+trim_match_comb.psid_plus <- list(ps_threshold_match = ldw_psid.trim_match)
+```
+
+###### SMD
+```{r, message=FALSE, warning=FALSE}
+# compute absolute SMD
+smd_trim_match_comb.cps_plus <- compute_abs_smd_trim(trim_match_comb.cps_plus, "treat", covar)
+smd_trim_match_comb.psid_plus <- compute_abs_smd_trim(trim_match_comb.psid_plus, "treat", covar)
+```
+
+###### OVL
+```{r, message=FALSE, warning=FALSE}
+# compute overlap coefficients
+ovl_trim_match_comb.cps_plus <- compute_ovl_trim(trim_match_comb.cps_plus, "ps_assoverlap", "treat")
+ovl_trim_match_comb.psid_plus <- compute_ovl_trim(trim_match_comb.psid_plus, "ps_assoverlap", "treat")
+```
+
+##### Initial datasets
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
 trim_match_comb.cps <- list(
@@ -689,4 +734,147 @@ ovl_trim_match_comb.cps <- compute_ovl_matchit(trim_match_comb.cps, all_trim.cps
 ovl_trim_match_comb.psid <- compute_ovl_matchit(trim_match_comb.psid, all_trim.psid, ps = "ps_assoverlap", treat = "treat", covar = covar)
 
 ovl_trim_match_comb.cps
+```
+
+
+
+## Identifying best methods
+
+### Ranking
+To identify the top five methods for each observational dataset, we first combine for each dataset all results of the absolute SMD and OVL into a single data frame. This allows for a comprehensive comparison across all methods.
+
+<div class="callout-note">
+Only results based on the non-plus datasets are included in the identification of the best methods, as the objective is to identify the overall best-performing methods for the original observational samples. 
+</div>
+```{r, message=FALSE, warning=FALSE}
+# combine all results
+all_cps <- combine_results("cps")
+all_psid <- combine_results("psid") 
+
+all_cps
+```
+
+```{r, message=FALSE, warning=FALSE}
+# save results
+save_csv(all_cps, "ldw_model_a_cps1_all_results")
+save_csv(all_psid, "ldw_model_a_psid1_all_results")
+```
+
+Next, each method is evaluated according to its OVL value. The top five methods are then selected based on the highest OVL values, with higher OVL values indicating better overlap between treated and control groups.
+```{r, message=FALSE, warning=FALSE}
+# rank comparatively
+ranked_cps  <- assess_methods(all_cps)
+ranked_psid <- assess_methods(all_psid)
+
+# get top 5 methods
+top5_methods.cps <- get_top_methods(ranked_cps, top_n = 5)
+top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
+
+# rerank top 5 methods
+```
+
+```{r, message=FALSE, warning=FALSE}
+# print results
+top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5)
+top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5)
+
+datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS1",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
+datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID1",
+          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
+```
+
+
+### Dataset construction
+For the subsequent estimation, we need to construct datasets of the top‑ranked methods. Therefore, we match all method names back to their corresponding datasets, objects or vectors and construct corresponding datasets. 
+```{r, message=FALSE, warning=FALSE}
+trim_only_cps <- list(
+        ps_threshold = ldw_cps.ps_trim,
+        common_range = ldw_cps.ps_common,
+        stuermer = ldw_cps.ps_stuermer,
+        walker = ldw_cps.ps_walker,
+        crump = ldw_cps.ps_crump
+)
+
+match_lookup_cps <- c(
+        wrap_match_entries(nn_trim_comb.cps, all_trim.cps, "nn"),
+        wrap_match_entries(k2_trim_comb.cps, all_trim.cps, "k2"),
+        wrap_match_entries(k3_trim_comb.cps, all_trim.cps, "k3"),
+        wrap_match_entries(caliper_trim_comb.cps, all_trim.cps, "caliper"),
+        wrap_match_entries(cs_trim_comb.cps, all_trim.cps, "cs"),
+        wrap_match_entries(mahvars_trim_comb.cps, all_trim.cps, "mahvars"),
+        wrap_match_entries(optimal_pair_trim_comb.cps, all_trim.cps, "optimal_pair"),
+        wrap_match_entries(optimal_full_trim_comb.cps, all_trim.cps, "optimal_full"),
+        wrap_match_entries(genetic_trim_comb.cps, all_trim.cps, "genetic"),
+        wrap_match_entries(exact_trim_comb.cps, all_trim.cps, "exact"),
+        wrap_match_entries(cem_trim_comb.cps, all_trim.cps, "cem"),
+        wrap_match_entries(subcl_trim_comb.cps, all_trim.cps, "subcl")
+)
+
+trim_only_psid <- list(
+        ps_threshold = ldw_psid.ps_trim,
+        common_range = ldw_psid.ps_common,
+        stuermer = ldw_psid.ps_stuermer,
+        walker = ldw_psid.ps_walker,
+        crump = ldw_psid.ps_crump
+)
+
+match_lookup_psid <- c(
+        wrap_match_entries(nn_trim_comb.psid, all_trim.psid, "nn"),
+        wrap_match_entries(k2_trim_comb.psid, all_trim.psid, "k2"),
+        wrap_match_entries(k3_trim_comb.psid, all_trim.psid, "k3"),
+        wrap_match_entries(caliper_trim_comb.psid, all_trim.psid, "caliper"),
+        wrap_match_entries(cs_trim_comb.psid, all_trim.psid, "cs"),
+        wrap_match_entries(mahvars_trim_comb.psid, all_trim.psid, "mahvars"),
+        wrap_match_entries(optimal_pair_trim_comb.psid, all_trim.psid, "optimal_pair"),
+        wrap_match_entries(optimal_full_trim_comb.psid, all_trim.psid, "optimal_full"),
+        wrap_match_entries(genetic_trim_comb.psid, all_trim.psid, "genetic"),
+        wrap_match_entries(exact_trim_comb.psid, all_trim.psid, "exact"),
+        wrap_match_entries(cem_trim_comb.psid, all_trim.psid, "cem"),
+        wrap_match_entries(subcl_trim_comb.psid, all_trim.psid, "subcl")
+)
+
+list_cps <- c(trim_only_cps, match_lookup_cps)
+list_psid <- c(trim_only_psid, match_lookup_psid)
+```
+
+```{r, message=FALSE, warning=FALSE}
+# create datasets corresponding to the top 5 methods for each dataset
+top5_datasets.cps <- create_top5_datasets(list_cps, top5_methods.cps)
+top5_datasets.psid <- create_top5_datasets(list_psid, top5_methods.psid)
+```
+
+```{r, message=FALSE, warning=FALSE}
+# save datasets into .RData files
+save_top5_datasets(list_cps, top5_methods.cps, prefix = "ldw_model_a_cps1")
+save_top5_datasets(list_psid, top5_methods.psid, prefix = "ldw_model_a_psid1")
+```
+
+
+## Estimating
+### Average treatment effect on the treated (ATT)
+
+Next, we estimate the average treatment effect on the treated (ATT) using the LDW-Experimental sample, the top‑ranked observational samples (LDW‑CPS1 and LDW‑PSID1), and, for comparison, the trimmed and matched plus‑datasets. We employ a broad set of estimators, including difference-in-means, regression, the Oaxaca-Blinder estimator, generalized random forests (GRF) as an outcome model, 1:5 nearest neighbor matching with bias correction, inverse probability weighting (IPW) with GRF-based propensity scores, covariate balancing propensity score (CBPS), entropy balancing, double/debiased machine learning using elastic net, and augmented inverse probability weighting (AIPW) via GRF. We also incorporate the recently introduced estimand-specific AIPW estimator implemented through an expansion of the `OutcomeWeights` R package by @OW_Package.
+
+We utilize the `estimate_all()` and `plot_coef()` functions as defined by @imbens2024.
+```{r, message=FALSE, warning=FALSE}
+# estimate ATT
+out1 <- estimate_all(ldw, "re78", "treat", covar)
+out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
+out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
+
+out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
+out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
+
+out4 <- out.cps[[1]]
+out5 <- out.cps[[2]]
+out6 <- out.cps[[3]]
+out7 <- out.cps[[4]]
+out8 <- out.cps[[5]]
+
+out9 <- out.psid[[1]]
+out10 <- out.psid[[2]]
+out11 <- out.psid[[3]]
+out12 <- out.psid[[4]]
+out13 <- out.psid[[5]]
 ```
