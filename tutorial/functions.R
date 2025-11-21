@@ -142,7 +142,7 @@ common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
 
 ### 2.3.3 Crump trimming
 #### crump_trim ()
-crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
+crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.01, upper = 0.99) {
   sub <- data[data[[ps]] >= lower & data[[ps]] <= upper, ]
   return(sub)
 }
@@ -150,7 +150,7 @@ crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
 ### 2.3.4 Stuermer trimming
 #### stuermer_trim ()
 stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
-                          lower_percentile = 0.05, upper_percentile = 0.95) {
+                          lower_percentile = 0.01, upper_percentile = 0.99) {
   treated_ps   <- data[[ps]][data[[treat]] == 1]
   untreated_ps <- data[[ps]][data[[treat]] == 0]
   lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
@@ -162,7 +162,7 @@ stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 ### 2.3.5 Walker trimming
 #### walker_trim ()
 walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
-                        lower_cutoff = 0.3, upper_cutoff = 0.7) {
+                        lower_cutoff = 0.2, upper_cutoff = 0.8) {
   treat_prevalence  <- mean(data[[treat]], na.rm = TRUE)
   logit_ps          <- log(data[[ps]] / (1 - data[[ps]]))
   logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
@@ -222,6 +222,16 @@ attach_matchit <- function(model, data_list, ..., verbose = FALSE) {
     message("attach_matchit(): ", paste(dims_report, collapse = "; "))
   }
   attr(matchit_results, "match_dims") <- dims_report
+  
+  # Report summary
+  null_count <- sum(sapply(matchit_results, is.null))
+  success_count <- length(matchit_results) - null_count
+  if (null_count > 0) {
+    failed_names <- names(matchit_results)[sapply(matchit_results, is.null)]
+    cat(sprintf("MATCHING SUMMARY: %d succeeded, %d failed. Failed: %s\n", 
+                success_count, null_count, paste(failed_names, collapse = ", ")))
+  }
+  
   return(matchit_results)
 }
 
@@ -230,8 +240,9 @@ wrap_match_entries <- function(match_list, source_list, prefix) {
                 return(list())
         }
         max_idx <- min(length(match_list), length(source_list))
+        source_labels <- if (length(names(source_list))) names(source_list) else seq_len(max_idx)
         entries <- vector("list", max_idx)
-        names(entries) <- paste0(prefix, "_", seq_len(max_idx))
+        names(entries) <- paste0(prefix, "_", source_labels[seq_len(max_idx)])
         for (i in seq_len(max_idx)) {
                 match_obj <- match_list[[i]]
                 if (is.null(match_obj)) {
@@ -252,17 +263,18 @@ compute_abs_smd_trim <- function(data_list, treat = "treat", covar) {
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
-      un = TRUE, 
+      un = TRUE,
+      stats = "mean.diffs",
       s.d.denom = "treated"
     )
-    smds <- bal$Balance$Diff.Adj
+    smds <- bal_obj$Balance$Diff.Un   # Use Diff.Un for raw/trimmed data
     smd_vals <- abs(smds)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
       Method   = name,
       Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd 
+      Max_Abs_SMD  = max_smd
     ))
   })
   smd_summary <- do.call(rbind, smd_list)
@@ -358,9 +370,9 @@ compute_abs_smd_matchit <- function(match_list, data_list) {
       smd_vals <- abs(smds)
       mean_smd <- mean(smd_vals, na.rm = TRUE)
       max_smd <- max(smd_vals, na.rm = TRUE)
-      smd_results[[paste(method_name, i, sep = "_")]] <- data.frame(
+      smd_results[[paste(method_name, label_i, sep = "_")]] <- data.frame(
         Method = method_name,
-        MatchIndex = i,
+        MatchIndex = label_i,
         Mean_Abs_SMD = mean_smd,
         Max_Abs_SMD = max_smd
       )
@@ -507,14 +519,23 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
       }
       treated_scores <- ps_vals[treat_vals == 1]
       control_scores <- ps_vals[treat_vals == 0]
+      if (length(treated_scores) < 2 || length(control_scores) < 2) {
+        warning(sprintf(
+          "compute_ovl_matchit(): Not enough treated/control units for density estimation in method '%s' index %d (%s)",
+          method_name,
+          i,
+          label_i
+        ), call. = FALSE)
+        next
+      }
       dens_treated <- density(treated_scores, from = 0, to = 1, n = n_points)
       dens_control <- density(control_scores, from = 0, to = 1, n = n_points)
       x_grid <- dens_treated$x
       min_density <- pmin(dens_treated$y, dens_control$y)
       bin_width <- x_grid[2] - x_grid[1]
       ovl <- sum(min_density) * bin_width
-      ovl_results[[paste(method_name, i, sep = "_")]] <- data.frame(
-        Method = paste(method_name, i, sep = "_"),
+      ovl_results[[paste(method_name, label_i, sep = "_")]] <- data.frame(
+        Method = paste(method_name, label_i, sep = "_"),
         OVL = ovl
       )
     }
@@ -594,12 +615,9 @@ save_csv <- function(data, filename) {
 #### assess_methods()
 assess_methods <- function(data) {
   data %>%
-    dplyr::select(Method, OVL) %>%
+    dplyr::select(Method, OVL, Mean_Abs_SMD) %>%
     arrange(desc(OVL))
 }
-
-#### rank_methods()
-
 
 #### get_top_methods()
 get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
@@ -623,6 +641,13 @@ get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
     arrange(dplyr::desc(.data[[score_col]])) %>%
     head(top_n) %>%
     dplyr::pull(Method)
+}
+
+#### rerank_methods()
+rerank_methods <- function(top_methods, ranked_table) {
+  filtered <- ranked_table[ranked_table$Method %in% top_methods, ]
+  filtered <- filtered[order(-filtered$Mean_Abs_SMD), ]
+  filtered$Method
 }
 
 #### create_top5_datasets()
@@ -669,6 +694,7 @@ create_top5_datasets <- function(dataset_list, top_method_names) {
 
 #### save_top5_datasets()
 save_top5_datasets <- function(combined_methods_list, top5_method_names, prefix) {
+  dir.create("tutorial/data", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_along(top5_method_names)) {
     method_name <- top5_method_names[i]
     if (!method_name %in% names(combined_methods_list)) {
@@ -704,11 +730,16 @@ reg <- function(data, Y, treat, covar) {
 # library(Matching)
 # matching()
 matching <- function(data, Y, treat, covar) {
-  m.out <- Match(Y = data[, Y], Tr = data[, treat], X = data[, covar], Z = data[, covar],
-                 estimand = "ATT", M = 5, replace = TRUE, ties = TRUE, BiasAdjust = TRUE)
-  out <- c(m.out$est[1], m.out$se[1], m.out$est[1] - 1.96 * m.out$se[1],
-           m.out$est[1] + 1.96 * m.out$se[1])
-  return(out)
+  tryCatch({
+    m.out <- Match(Y = data[, Y], Tr = data[, treat], X = data[, covar], Z = data[, covar],
+                   estimand = "ATT", M = 5, replace = TRUE, ties = TRUE, BiasAdjust = TRUE)
+    out <- c(m.out$est[1], m.out$se[1], m.out$est[1] - 1.96 * m.out$se[1],
+             m.out$est[1] + 1.96 * m.out$se[1])
+    return(out)
+  }, error = function(e) {
+    cat("Warning in matching method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
 # psm()
@@ -770,22 +801,32 @@ ipw <- function(data, Y, treat, covar) {
 # library("CBPS")
 # cbps()
 cbps <- function(data, Y, treat, covar) {
-  fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
-  ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
-  fml <- as.formula(paste(Y, "~", treat))
-  weights <- rep(1, nrow(data))
-  co <- which(data[, treat] == 0)
-  weights[co] <- ps[co]/(1-ps[co])
-  out <- summary(lm_robust(fml, data = data, weights = weights, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
-  return(out)
+  tryCatch({
+    fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
+    ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
+    fml <- as.formula(paste(Y, "~", treat))
+    weights <- rep(1, nrow(data))
+    co <- which(data[, treat] == 0)
+    weights[co] <- ps[co]/(1-ps[co])
+    out <- summary(lm_robust(fml, data = data, weights = weights, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
+    return(out)
+  }, error = function(e) {
+    cat("Warning in cbps method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
 # ebal()
 # library(hbal)
 ebal <- function(data, Y, treat, covar) {
-  ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
-  out <- hbal::att(ebal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
-  return(out)
+  tryCatch({
+    ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
+    out <- hbal::att(ebal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
+    return(out)
+  }, error = function(e) {
+    cat("Warning in ebal method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
 # hbal
@@ -1301,6 +1342,16 @@ eval_catt <- function(all_catt, plot_titles) {
 }
 
 ## 4.3 QTET
+#### est_qte_safe()
+est_qte_safe <- function(Y, treat, covar, data, cores = 1) {
+  tryCatch({
+    est_qte(Y, treat, covar, data = data, cores = cores)
+  }, error = function(e) {
+    cat("Warning in est_qte:", e$message, "\n")
+    return(NULL)
+  })
+}
+
 #### plot_qte_top()
 plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, 
                          ylim = c(-25000, 15000), col = NULL) {
@@ -1359,19 +1410,44 @@ get_res_att <- function(dataset_list, Y, treat, covar,
                             smoother = "honest_forest",
                             n_cf_folds = 5,
                             n_reps = 1) {
-  lapply(dataset_list,
-      function(data) {
-        dml_with_smoother(
-          Y = data[[Y]],
-          D = data[[treat]],
-          X = data[, covar, drop = FALSE],
-          estimator = estimator,
-          smoother = smoother,
-          n_cf_folds = n_cf_folds,
-          n_reps = n_reps
-      )
-    }
+  results <- lapply(seq_along(dataset_list),
+      function(i) {
+        data <- dataset_list[[i]]
+        n_obs <- nrow(data)
+        
+        # Adjust n_cf_folds for small samples
+        folds <- if (n_obs < 100) {
+          max(2, min(3, n_cf_folds))
+        } else if (n_obs < 300) {
+          max(3, min(4, n_cf_folds))
+        } else {
+          n_cf_folds
+        }
+        
+        tryCatch({
+          dml_with_smoother(
+            Y = data[[Y]],
+            D = data[[treat]],
+            X = data[, covar, drop = FALSE],
+            estimator = estimator,
+            smoother = smoother,
+            n_cf_folds = folds,
+            n_reps = n_reps
+          )
+        }, error = function(e) {
+          cat(sprintf("WARNING: get_res_att failed for dataset %d (n=%d): %s\n", i, n_obs, e$message))
+          return(NULL)
+        })
+      }
   )
+  
+  # Summary report
+  null_count <- sum(sapply(results, is.null))
+  success_count <- length(results) - null_count
+  cat(sprintf("OUTCOME WEIGHTS SUMMARY: %d succeeded, %d failed out of %d datasets\n", 
+              success_count, null_count, length(results)))
+  
+  return(results)
 }
 
 #### derive_ow()
@@ -1468,14 +1544,27 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
 save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_titles, prefix) {
   folder <- "graphs/lalonde"
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  success_count <- 0
+  fail_count <- 0
   for (i in seq_along(filtered_datasets)) {
     idx <- i
     file_name <- file.path(folder, paste0(prefix, "_sensitivity_", idx, ".pdf"))
     pdf(file_name, width = 8, height = 8)
-    sens_ana(filtered_datasets[[i]], Y, treat, covar, bm, kd = 1:3)
-    if (!missing(plot_titles) && length(plot_titles) >= idx) {
-      title(main = plot_titles[idx])
-    }
+    tryCatch({
+      sens_ana(filtered_datasets[[i]], Y, treat, covar, bm, kd = 1:3)
+      if (!is.null(plot_titles) && length(plot_titles) >= idx) {
+        title(main = plot_titles[idx])
+      }
+      success_count <- success_count + 1
+    }, error = function(e) {
+      plot.new()
+      title_text <- if (!is.null(plot_titles) && length(plot_titles) >= idx) plot_titles[idx] else paste("Dataset", idx)
+      text(0.5, 0.5, paste("ERROR:", title_text, "\n", e$message), cex = 0.8)
+      cat(sprintf("WARNING: Sensitivity plot %d (%s) failed: %s\n", idx, title_text, e$message))
+      fail_count <- fail_count + 1
+    })
     dev.off()
- }
+  }
+  cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
+              success_count, fail_count, length(filtered_datasets)))
 }
