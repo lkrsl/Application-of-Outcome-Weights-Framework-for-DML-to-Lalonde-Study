@@ -1251,7 +1251,7 @@ save_main_catt_panels <- function(
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx <- min(page * plots_per_page, n_panels)
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       ref_idx <- min(i, length(catt_refs))
@@ -1296,7 +1296,7 @@ save_plus_catt_panels <- function(
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx <- min(page * plots_per_page, n_panels)
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       catt1 <- catt1_list[[i]]$catt
