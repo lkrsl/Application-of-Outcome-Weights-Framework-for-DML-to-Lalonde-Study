@@ -3,13 +3,12 @@ delete_merged_file: true
 output_dir: "docs"
 rmd_files: [
   "index.Rmd",
-  #"tutorial/01-Start.Rmd", #Wrapper Funktionen anpassen
-  "tutorial/02-LDW-Model-A.Rmd", #OW Problem nur
-  #"tutorial/03-LDW-Model-B.Rmd", #OW Problem nur
-  #"tutorial/04-NSW.Rmd", #OW Problem nur, auch Weights
-  #"tutorial/05-LCS.Rmd",  #OW Problem nur
-  #"tutorial/06-references.Rmd",
-  #"tutorial/07-test.Rmd"
+  "tutorial/01-Start.Rmd", 
+  "tutorial/02-LDW-Model-A.Rmd", 
+  "tutorial/03-LDW-Model-B.Rmd", 
+  "tutorial/04-NSW.Rmd", 
+  "tutorial/05-LCS.Rmd", 
+  "tutorial/06-references.Rmd"
 ]
 language:
   ui:
