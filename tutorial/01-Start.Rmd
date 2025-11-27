@@ -103,7 +103,7 @@ inspect_data <- function(data, treat = "treat") {
     data <- list(dataset = data)
   }
   data.frame(
-    dataset = names(data),
+    sample = names(data),
     num_obs = sapply(data, nrow),
     num_treated = sapply(data, function(df) sum(df[[treat]] == 1, na.rm = TRUE)),
     num_controls = sapply(data, function(df) sum(df[[treat]] == 0, na.rm = TRUE)),
@@ -118,6 +118,49 @@ inspect_data <- function(data, treat = "treat") {
 
 - `data`: A data frame or a list of data frames containing structured data.
 - `treat`: A character string indicating the name of the (binary) treatment indicator (default is `treat`). 
+
+`save_overlap_panels()`*** saves the histograms that visualize overlap between the treatment groups.
+```{r}
+save_overlap_panels <- function(
+    data_list,
+    treat,
+    covar,
+    plot_titles = NULL,
+    prefix = "overlap_panels",
+    folder = "graphs/lalonde",
+    plots_per_page = 1
+) {
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  n <- length(data_list)
+  pages <- ceiling(n / plots_per_page)
+  for (p in seq_len(pages)) {
+    start <- (p - 1) * plots_per_page + 1
+    end   <- min(p * plots_per_page, n)
+    file_name <- file.path(folder, paste0(prefix, "_", p, ".pdf"))
+    pdf(file_name, width = 8, height = 2.75 * (end - start + 1))
+    par(mfrow = c(end - start + 1, 1), mar = c(4, 5, 3, 2))
+    for (i in start:end) {
+      assess_overlap(data = data_list[[i]], treat = treat, cov = covar)
+      if (!is.null(plot_titles) && length(plot_titles) >= i) {
+        title(main = plot_titles[i])
+      } else {
+        title(main = paste("Panel", i))
+      }
+    }
+    dev.off()
+  }
+}
+```
+
+**Argument**
+
+- `data_list`: A data frame or a list of data frames containing structured data.
+- `treat`: A character string indicating the name of the (binary) treatment indicator (default is `treat`). 
+- `covar`: A vector of covariate names.
+- `plot_titles`: A character vector of titles for each plot.
+- `prefix`: A string prefix used for saved file names to identify dataset.
+- `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
+- `plots_per_page`: The number of plots to display per page / panel (default 1).
 
 <br>
 
@@ -173,7 +216,7 @@ crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
 `stuermer_trim ()` trims the dataset to observations based on propensity score quantiles separately for treated and control group.
 ```{r}
 stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
-                          lower_percentile = 0.05, upper_percentile = 0.95) {
+                          lower_percentile = 0.01, upper_percentile = 0.99) {
   treated_ps   <- data[[ps]][data[[treat]] == 1]
   untreated_ps <- data[[ps]][data[[treat]] == 0]
   lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
@@ -188,8 +231,8 @@ stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 - `data`: The data frame containing structured data.
 - `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
 - `ps`: The column name of propensity scores as string (default is `ps_assoverlap`).
-- `lower_percentile`: Numeric value between 0 and 1 specifying the lower quantile cutoff for propensity scores in the treated group (default is 0.05, i.e., 5th percentile).
-- `upper_percentile`: Numeric value between 0 and 1 specifying the upper quantile cutoff for propensity scores in the untreated group (default is 0.95, i.e., 95th percentile).
+- `lower_percentile`: Numeric value between 0 and 1 specifying the lower quantile cutoff for propensity scores in the treated group (default is 0.01, i.e., 1st percentile).
+- `upper_percentile`: Numeric value between 0 and 1 specifying the upper quantile cutoff for propensity scores in the untreated group (default is 0.99, i.e., 99th percentile).
 
 `walker_trim()` trims the dataset to observations based on preference scores that adjust for treatment prevalence using logit transformations.
 ```{r}
@@ -1504,7 +1547,7 @@ save_main_catt_panels <- function(
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx <- min(page * plots_per_page, n_panels)
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       ref_idx <- min(i, length(catt_refs))
@@ -1562,7 +1605,7 @@ save_plus_catt_panels <- function(
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx <- min(page * plots_per_page, n_panels)
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       catt1 <- catt1_list[[i]]$catt
@@ -1644,7 +1687,7 @@ est_qte_safe <- function(Y, treat, covar, data, cores = 1) {
 - `data`: The data frame used for QTET estimation.
 - `cores`: The number of CPU cores used for parallel computation (default is 1).
 
-`plot_qte_top()` plots QTET of top-ranked samples for comparison against an experimental benchmark.
+`plot_qte_top()`*** plots QTET of top-ranked samples for comparison against an experimental benchmark.
 ```{r}
 plot_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start = 1, 
                          ylim = c(-25000, 15000), col = NULL) {
@@ -1671,7 +1714,7 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
 - `ylim`: A numeric vector specifying the y-axis limits for the plots.
 - `col`: Color specification.
 
-`save_qtet()` generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates.
+`save_qtet()`*** generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates.
 ```{r}
 save_qtet <- function(plots, plot_titles = NULL, main_start = 1, 
                       ylim = c(-25000, 15000), col = NULL, prefix = "ldw") {
@@ -1700,7 +1743,7 @@ save_qtet <- function(plots, plot_titles = NULL, main_start = 1,
 - `col`: Color specification.
 - `prefix`: A string prefix for saved PDF filenames (default is "ldw").
 
-`save_qte_top()` generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates of top-ranked samples.
+`save_qte_top()`*** generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates of top-ranked samples.
 ```{r}
 save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start = 1,
                          ylim = c(-25000, 15000), col = NULL, prefix = "ldw_top") {
@@ -1975,14 +2018,10 @@ save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_
 - `plot_titles`: A vector of titles for plots corresponding to datasets.
 - `prefix`: A string prefix for saving output PDF files.
 
-<div class="callout-tip">
-Please refer to the accompanying paper for a detailed explanation of the metrics used in the analysis, including absolute standardized mean differences (SMDs), effective sample sizes (ESS), and the composite scoring approach employed to evaluate covariate balance and overlap across multiple methods. 
-</div>
-
 <a name="bal-ana"></a>
 
 ### Balance analysis
-`save_balance()` generates balance plots that visualize the distribution of a specified covariate across treated and control groups for each dataset and method.
+`save_balance()` generates balance plots that visualize the distribution of a specified covariate across treated and control groups for each sample and method.
 ```{r}
 save_balance <- function(
     datasets,
@@ -2025,5 +2064,5 @@ save_balance <- function(
 - `method_names`: A list of methods names that were used to generate the datasets.
 - `balance_var`: The name of the covariate that shall be used for balance check.
 - `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
-- `plots_per_page`: The number of plots to display per page / panel (default 4).
+- `plots_per_page`: The number of plots to display per page / panel (default 5).
 - `prefix`: A string prefix for saving output PDF files.

@@ -7,7 +7,6 @@ For detailed explanations of the analysis steps and notes, please refer to secti
 ### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
 # source functions
-setwd("C:/Users/lkreisel/workspace/uni-projects/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study")
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
 source("tutorial/functions.R")
 ```
@@ -28,7 +27,7 @@ set.seed(42)
 treat <- "treat"
 nsw_co$treat <- 1
 
-# drop re74, u74, tau from CPS1 and PSID1 and merge data
+# drop re74, u74, tau from CPS-1 and PSID-1 and merge data
 cps1a <- subset(cps1, select =  -c(re74, u74))
 nsw_cps <- rbind.data.frame(nsw_tr, cps1a)
 
@@ -41,10 +40,10 @@ nsw_psid.plus <- rbind.data.frame(nsw_psid, nsw_co)
 
 ### Inspect data
 ```{r, message=FALSE, warning=FALSE}
-# collect datasets in a list
+# collect samples in a list
 data <- list(nsw = nsw, nsw_cps = nsw_cps, nsw_psid = nsw_psid, nsw_cps.plus = nsw_cps.plus, nsw_psid.plus = nsw_psid.plus)
 
-# print and inspect key metrics of each dataset
+# print and inspect key metrics of each sample
 summary_stats <- inspect_data(data)
 datatable(summary_stats, caption = "Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
@@ -59,7 +58,7 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re75", "u75")
 ```
 
-### Pre-assessing overlap 
+### Pre-assessing methods 
 #### Overlap
 ```{r, fig.cap='FIGUREC1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
 nsw_ps <- assess_overlap(data = nsw, treat = treat, cov = covar, xlim = c(-2, 1.5))
@@ -67,18 +66,17 @@ nsw_cps_ps <- assess_overlap(data = nsw_cps, treat = treat, cov = covar, xlim = 
 nsw_psid_ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar, xlim = c(-15, 5))
 ```
 
-As anticipated, the NSW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets NSW-CPS1 and NSW-PSID1 display weak overlap. 
+As anticipated, the NSW-Experimental data exhibits an almost perfect overlap. In contrast, the observational samples NSW-CPS1 and NSW-PSID1 show poor overlap. 
 ```{r, fig.cap='FIGUREC1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 nsw_cps.plus_ps <- assess_overlap(data = nsw_cps.plus, treat = treat, cov = covar, xlim = c(-15, 5))
 nsw_psid.plus_ps <- assess_overlap(data = nsw_psid.plus, treat = treat, cov = covar, xlim = c(-15, 5))
 ```
 
 With the expanded datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater coverage of log-odds densities across both samples.
-
 ```{r, message=FALSE, warning=FALSE}
 # combine results
 data_list <- list(nsw, nsw_cps, nsw_psid, nsw_cps.plus, nsw_psid.plus)
-plot_titles <- c("(A) LDW-Experimental","(B) LDW-CPS1", "(C) LDW-PSID1", "(D) LDW-CPS1-PLUS", "(E) LDW-PSID1-PLUS")
+plot_titles <- c("(A) NSW-Experimental","(B) NSW-CPS-1", "(C) NSW-PSID-1", "(D) NSW-CPS-1-PLUS", "(E) NSW-PSID-1-PLUS")
 
 # save results
 save_overlap_panels(
@@ -96,7 +94,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
 <div class="callout-note">
-In the subsequent analysis, the primary focus is on improving overlap between treated and control groups. However, covariate imbalance is also addressed, as it may induce bias in estimated treatment effects. Only the original datasets NSW-CPS1 and NSW-PSID1 are considered. The NSW-CPS1-PLUS and NSW-PSID1-PLUS datasets are included exclusively for comparison and replication purposes. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate overlap. 
+In the subsequent analysis, the primary focus is on improving overlap between treated and control groups. However, covariate imbalance is also addressed, as it may induce bias in estimated treatment effects. Only the original observational samples NSW-CPS-1 and NSW-PSID-1 are considered. The NSW-CPS-1-PLUS and NSW-PSID1-PLUS samples are included exclusively for comparison and replication purposes. The NSW-Experimental data is only consulted as benchmark, as randomization already ensures adequate overlap. 
 </div>
 
 ## Improving overlap
@@ -104,7 +102,7 @@ In the subsequent analysis, the primary focus is on improving overlap between tr
 #### Trimming 
 1) Propensity score threshold trimming 
 ```{r, message=FALSE, warning=FALSE}
-# apply trimming with threshold 
+# apply trimming with a threshold 
 nsw_cps.ps_trim <- ps_trim(nsw_cps_ps, threshold = 0.9)
 nsw_psid.ps_trim <- ps_trim(nsw_psid_ps, threshold = 0.9)
 
@@ -183,6 +181,7 @@ nsw_trim_psid$treat[which(nsw_trim_psid$sample == 0.5)] <- 0
 
 ##### Initial datasets
 ```{r, message=FALSE, warning=FALSE}
+# combine trimmed samples
 all_trim.cps  <- list(
   ps_threshold = nsw_cps.ps_trim, 
   common_range = nsw_cps.ps_common, 
@@ -313,7 +312,7 @@ profile_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method
 #### Trimming
 ##### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
+# compute absolute standardized mean differences
 smd_trim.cps <- compute_abs_smd_trim(all_trim.cps, "treat", covar)
 smd_trim.psid <- compute_abs_smd_trim(all_trim.psid, "treat", covar)
 ```
@@ -327,7 +326,7 @@ ovl_trim.psid <- compute_ovl_trim(all_trim.psid, "ps_assoverlap", "treat")
 
 ### Integrated methods
 #### Trimming and matching
-##### Extended datasets
+##### Extended samples
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
@@ -337,7 +336,7 @@ trim_match_comb.psid_plus <- list(ps_threshold_match = nsw_psid_trim_match)
 
 ###### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
+# compute absolute standardized mean differences
 smd_trim_match_comb.cps_plus <- compute_abs_smd_trim(trim_match_comb.cps_plus, "treat", covar)
 smd_trim_match_comb.psid_plus <- compute_abs_smd_trim(trim_match_comb.psid_plus, "treat", covar)
 ```
@@ -349,7 +348,7 @@ ovl_trim_match_comb.cps_plus <- compute_ovl_trim(trim_match_comb.cps_plus, "ps_a
 ovl_trim_match_comb.psid_plus <- compute_ovl_trim(trim_match_comb.psid_plus, "ps_assoverlap", "treat")
 ```
 
-##### Initial datasets
+##### Initial samples
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
 trim_match_comb.cps <- list(
@@ -385,7 +384,7 @@ trim_match_comb.psid <- list(
 
 ###### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
+# compute absolute standardized mean differences
 smd_trim_match_comb.cps <- compute_abs_smd_matchit(trim_match_comb.cps, all_trim.cps) 
 smd_trim_match_comb.psid <- compute_abs_smd_matchit(trim_match_comb.psid, all_trim.psid)
 ```
@@ -397,7 +396,8 @@ ovl_trim_match_comb.cps <- compute_ovl_matchit(trim_match_comb.cps, all_trim.cps
 ovl_trim_match_comb.psid <- compute_ovl_matchit(trim_match_comb.psid, all_trim.psid, ps = "ps_assoverlap", treat = "treat", covar = covar)
 ```
 
-## Identifying best methods
+## Identifying most efficient methods
+### Ranking
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps <- combine_results("cps")
@@ -430,10 +430,8 @@ top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5) %>% arrange
 top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 
 # print table output 
-datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS1",
-          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID1",
-          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
+datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
+datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -442,8 +440,11 @@ save_csv(top5_methods.cps, "nsw_cps1_top5_methods")
 save_csv(top5_methods.psid, "nsw_psid1_top5_methods")
 ```
 
-The table shows that CPS1 and PSID1 share only one top method, all others are based on various trimming and matching methods. 
+The table shows that NSW-CPS-1 and NSW-PSID-1 share only one top method, all others are based on various trimming and matching methods. 
+
+### Sample construction
 ```{r, message=FALSE, warning=FALSE}
+# create lookup lists
 trim_only_cps <- list(
         ps_threshold = nsw_cps.ps_trim,
         common_range = nsw_cps.ps_common,
@@ -495,17 +496,17 @@ list_psid <- c(trim_only_psid, match_lookup_psid)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# create datasets corresponding to the top 5 methods for each dataset
+# create samples corresponding to the top 5 methods for each dataset
 top5_datasets.cps <- create_top5_datasets(list_cps, top5_methods.cps)
 top5_datasets.psid <- create_top5_datasets(list_psid, top5_methods.psid)
 
-# extract top5 objects for bal.plot()
+# extract top5 objects
 top5_objects.cps <- lapply(top5_methods.cps, function(m) list_cps[[m]])
 top5_objects.psid <- lapply(top5_methods.psid, function(m) list_psid[[m]])
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# save datasets into .RData files
+# save samples into .RData files
 save_top5_datasets(list_cps, top5_methods.cps, prefix = "nsw_cps1")
 save_top5_datasets(list_psid, top5_methods.psid, prefix = "nsw_psid1")
 ```
@@ -532,7 +533,7 @@ out6 <- estimate_all(nsw_cps_trim_match, "re78", "treat", covar)
 out7 <- estimate_all(nsw_psid_trim_match, "re78", "treat", covar)
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC10. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. ATT Estimates Given Unconfoundedness using NSW Samples"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC2. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. ATT Estimates Given Unconfoundedness using NSW Samples"}
 par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
 
 # experimental benchmarks
@@ -544,10 +545,10 @@ plot_coef(out1,  band = band.exp, line = est.exp,
           ylim = c(-15500, 5500), main = "(A) NSW-Experimental")
 
 plot_coef(out2,  band = band.exp, line = est.exp, 
-          ylim = c(-15500, 5500), main = "(B) NSW-CPS1")
+          ylim = c(-15500, 5500), main = "(B) NSW-CPS-1")
 
 plot_coef(out3,  band = band.exp, line = est.exp,
-          ylim = c(-15500, 5500), main = "(C) NSW-PSID1")
+          ylim = c(-15500, 5500), main = "(C) NSW-PSID-1")
 
 # get nonexperimtenal benchmarks
 method_names_cps <- sapply(top5_methods.cps, function(m) {
@@ -564,14 +565,15 @@ est.cps  <- lapply(method_names_cps, function(j) out.cps_trim[[j]][1, 1])
 band.psid <- lapply(method_names_psid, function(j) out.psid_trim[[j]][1, 3:4])
 est.psid  <- lapply(method_names_psid, function(j) out.psid_trim[[j]][1, 1])
 
+# plot results
 for (i in seq_along(out.cps)) {
-  this_title <- paste0("(", LETTERS[i+3], ") Top CPS1: ", top5_methods.cps[i])
+  this_title <- paste0("(", LETTERS[i+3], ") Top CPS-1: ", top5_methods.cps[i])
   plot_coef(out.cps[[i]], band = band.cps[[i]], line = est.cps[[i]],
             ylim = c(-15500, 5500), main = this_title)
 }
 
 for (i in seq_along(out.psid)) {
-  this_title <- paste0("(", LETTERS[i+8], ") Top PSID1: ", top5_methods.psid[i])
+  this_title <- paste0("(", LETTERS[i+8], ") Top PSID-1: ", top5_methods.psid[i])
   plot_coef(out.psid[[i]], band = band.psid[[i]], line = est.psid[[i]],
             ylim = c(-15500, 5500), main = this_title)
 }
@@ -584,11 +586,11 @@ est.psid_plus <- out5[1, 1]
 
 # plot results
 plot_coef(out6, band = band.cps_plus, line = est.cps_plus, 
-          ylim = c(-15500, 5500), main = "(N) Trimmed NSW-CPS1-PLUS")
+          ylim = c(-15500, 5500), main = "(N) Trimmed NSW-CPS-1-PLUS")
 
 
 plot_coef(out7, band = band.psid_plus, line = est.psid_plus, 
-          ylim = c(-15500, 5500), main = "(O) Trimmed NSW-PSID1-PLUS")
+          ylim = c(-15500, 5500), main = "(O) Trimmed NSW-PSID-1-PLUS")
 
 ```
 
@@ -617,15 +619,13 @@ save_att_panels(
 )
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS1, NSW-PSID1, trimmed versions of the NSW-CPS1-PLUS and NSW-PSID1-PLUS samples (analogous to Imbens & Xu (2024)) and a series of top-ranked subsamples of both NSW-CPS1 and NSW-PSID1 based on various trimming and integrated trimming and matching criteria.
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS-1, NSW-PSID-1, trimmed and matched versions of the NSW-CPS-1-PLUS and NSW-PSID1-PLUS samples (analogous to Imbens & Xu (2024)) and a series of top-ranked subsamples of both NSW-CPS-1 and NSW-PSID-1 based on various trimming and integrated trimming and matching criteria.
 
-Figure (A) presents the benchmark from the experimental sample (NSW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, NSW-CPS1 and NSW-PSID1, while figures (D) and (E) present those for the trimmed versions, replicating the tutorial results of Imbens & Xu (2024). Figures (F) through (J) display results for CPS1-based subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-based subsamples under parallel rules.
+Figure (A) presents the benchmark from the experimental sample (NSW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, NSW-CPS-1 and NSW-PSID-1, while figures (N) and (O) present those for the trimmed and matched versions of NSW-CPS-1-PLUS and NSW-PSID-1-PLUS, respectively, replicating the tutorial results of Imbens & Xu (2024). Figures (D) through (H) display results for NSW-CPS1-based subsamples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding NSW-PSID-1-based subsamples under parallel rules.
 
-Across the NSW-CPS1 and its top-ranked subsamples, only in the `genetic_crump` and `cem_crump` subsample all estimators produce ATT estimates that closely align with the experimental benchmark, though some estimates are negative. Some larger deviations from the  benchmark occur for the `optimal_pair_walker`, `nn_walker` and `k3_walker` subsamples. 
+Across the NSW-CPS-1 and its top-ranked subsamples, only in the `genetic_crump` and `cem_crump` subsample all estimators produce ATT estimates that closely align with the benchmark, though some estimates are negative. Some larger deviations from the benchmark occur for the `optimal_pair_walker`, `nn_walker` and `k3_walker` subsamples. Nevertheless, these ATT estimates deviate relatively more from the benchmark than those obtained under models A and B in previous sections using LDW data.
 
-(INTMIS: Nevertheless, these ATT estimates deviate more from the benchmark than those obtained under models A and B in previous sections using LDW data.)
-
-In comparison, PSID1-based subsamples exhibit significantly greater deviation and substantially higher standard errors than NSW-CPS1 samples, consistent with previous observations from LDW data. All ATT estimates remain negatively aligned, reflecting heightened methodological uncertainty within these samples.
+In comparison, NSW-PSID-1-based subsamples exhibit significantly greater deviation and substantially higher standard errors than the NSW-CPS-1 samples, consistent with previous observations from LDW data. All their ATT estimates remain negatively aligned, reflecting heightened methodological uncertainty within these samples.
 ```{r, message=FALSE, warning=FALSE}
 # evaluate results
 all_summaries <- lapply(all_outs, eval_att)
@@ -649,11 +649,11 @@ datatable(result_mat, caption = "ATT Estimates and SEs",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(L) summarize results for the top-ranked subsamples for both NSW-CPS1 and NSW-PSID1. Columns (N) and (O) report results for the NSW-CPS1-PLUS and NSW-PSID1-PLUS sample, respectively.
+The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS-1 sample, and column (C) for the NSW-PSID-1 sample. Columns (D)-(M) summarize results for the top-ranked subsamples for both NSW-CPS-1 and NSW-PSID1. Columns (N) and (O) report results for the trimmed and matched versions of NSW-CPS-1-PLUS and NSW-PSID-1-PLUS sample, respectively.
 
-For most CPS1-based samples, ATT estimates remain negative. The subsample `genetic_crump` and `cem_crump` exhibit frequently positive estimates and are relatively close to the benchmark. In contrast, the PSID1-based estimates exhibit larger negative magnitudes, and increased standard errors, underscoring the heightened difficulty of achieving consistent ATT effect estimates in this observational dataset. 
+For most NSW-CPS-1-based samples, ATT estimates remain negative. The subsample `genetic_crump` and `cem_crump` exhibit frequently positive estimates and are relatively close to the benchmark. In contrast, the NSW-PSID-1-based estimates exhibit larger negative magnitudes, and increased standard errors, underscoring the heightened difficulty of achieving consistent ATT effect estimates in this observational dataset. 
 
-Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain methods can bring observational estimates closer to the respective benchmark. 
+Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain methods can bring observational estimates closer to the benchmark. 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat, "nsw_att_estimates")
@@ -678,7 +678,7 @@ catt.nsw.cps <- catt(nsw_trim_cps, Y, treat, covar)
 catt.nsw.psid <- catt(nsw_trim_psid, Y, treat, covar)
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC11. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. CATT Estimates using NSW Data: Experimental vs. Nonexperimental"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC3. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. CATT Estimates using NSW Data: Experimental vs. Nonexperimental"}
 # plot results
 par(mfrow = c(2,2)) 
 par(cex.main = 0.9)
@@ -689,8 +689,8 @@ plot_catt(
   att1  = catt.nsw$att[1],
   att2  = catt.cps$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (CPS1)",
-  main  = "(B) NSW-CPS1", 
+  ylab  = "CATT (CPS-1)",
+  main  = "(B) NSW-CPS-1", 
   axes.range = c(-8000, 8000)
 )
 
@@ -700,21 +700,21 @@ plot_catt(
   att1  = catt.nsw$att[1],
   att2  = catt.psid$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (PSID1)",
-  main  = "(C) NSW-PSID1",
+  ylab  = "CATT (PSID-1)",
+  main  = "(C) NSW-PSID-1",
   axes.range = c(-8000, 8000)
 )
 
 plot_catt_panels(
   exp_catt = catt.top5_cps_trim,
   catt_list  = catt.top5_cps,
-  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps)
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS-1: ", top5_methods.cps)
 )
 
 plot_catt_panels(
   exp_catt = catt.top5_psid_trim,
   catt_list  = catt.top5_psid,
-  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid)
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID-1: ", top5_methods.psid)
 )
 
 plot_catt(
@@ -723,8 +723,8 @@ plot_catt(
   att1 <- catt.nsw.cps$att[1],
   att2 <- catt.cps.trim$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (CPS1-PLUS-Trimmed)",
-  main  = "(N) Trimmed NSW-CPS1-PLUS", 
+  ylab  = "CATT (CPS-1-PLUS-Trimmed)",
+  main  = "(N) Trimmed NSW-CPS-1-PLUS", 
   axes.range = c(-8000, 8000)
 )
 
@@ -734,13 +734,13 @@ plot_catt(
   att1 <- catt.nsw.psid$att[1],
   att2 <- catt.psid.trim$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (PSID1-PLUS-Trimmed)",
-  main  = "(O) Trimmed NSW-PSID1-PLUS",
+  ylab  = "CATT (PSID-1-PLUS-Trimmed)",
+  main  = "(O) Trimmed NSW-PSID-1-PLUS",
   axes.range = c(-8000, 8000)
 )
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC12. CATT Estimates using NSW Data"}
+```{r, out.width='100%', fig.asp=1.}
 # combine all catt objects 
 all_catt <- c(list(catt.nsw, catt.cps, catt.psid), 
               catt.top5_cps, catt.top5_psid, 
@@ -754,43 +754,43 @@ datatable(all_catt_eval, caption = "CATT Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-With NSW-CPS1, the CATT estimates range from $-8,994.51 to $6,328.35, contrasting with the benchmark where CATT estimates span from $-1,146.76 to $3,347.6, with a mean CATT estimate of $814.53. Alike in the previous sections, the NSW-PSID1 data exhibits a narrower CATT estimates range compared to NSW-CPS1, spanning from $-8,179.54 to $867,51. Yet its mean CATT estimate remains substantially negative, at approximately $-2,364.14, contrary to the positive mean CATT estimates observed in models A and B (INTMIS).
+With NSW-CPS-1, the CATT estimates range from $-8,994.51 to $6,328.35, contrasting with the benchmark where CATT estimates span from $-1,146.76 to $3,347.6, with a mean CATT estimate of $814.53. Unlike in the previous sections, the NSW-PSID-1 data exhibits a narrower CATT estimates range compared to NSW-CPS-1, spanning from $-8,179.54 to $867,51. Yet its mean CATT estimate remains substantially negative, at approximately $-2,364.14, contrary to the positive mean CATT estimates observed in models A and B.
 
-Among the top-ranked NSW-CPS1 subsamples, CATT estimates exhibit substantial variability. Subsamples such as `optimal_pair_walker`, `nn_walker` or `k3_walker` yield notably negative minimum CATT values alongside substantial negative mean CATT estimates. Similarly, `genetic_crump` and `cem_crump` subsamples produce consistently negative minimum CATT estimates, whereas their mean CATT estimates are positive and closest to the experimental benchmark.
+Among the top-ranked NSW-CPS-1 subsamples, CATT estimates exhibit substantial variability. Subsamples such as `optimal_pair_walker`, `nn_walker` or `k3_walker` yield notably negative minimum CATT values alongside substantial negative mean CATT estimates. Similarly, `genetic_crump` and `cem_crump` subsamples produce consistently negative CATT estimates, whereas their mean CATT estimates are positive and closer to the benchmark.
 
-The NSW-PSID1 top-ranked subsamples deliver substantially decreased mean CATT estimates, reflecting greater difficulties in producing reliable effect estimates, while producing narrower extremes compared to the NSW-CPS1 subsamples.
+The NSW-PSID-1 top-ranked subsamples deliver substantially decreased mean CATT estimates, reflecting greater difficulties in producing reliable effect estimates, while producing narrower extremes compared to the NSW-CPS-1 subsamples.
 
-This variation in range and means across samples, as observed in previous sections, reflects substantial heterogeneity in treatment effect estimation but also indicates that while certain criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
+This variation in range and means across samples, as observed in previous sections, reflects substantial heterogeneity in treatment effect estimation across observational samples but also indicates that while certain criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
 ```{r, message=FALSE, warning=FALSE}
 # save results
 save_main_catt_panels(
   catt_refs = list(catt.nsw),
   catt_comps = list(catt.cps, catt.psid),
-  ylabels = c("CATT (CPS1)", "CATT (PSID1)"),
+  ylabels = c("CATT (CPS-1)", "CATT (PSID-1)"),
   prefix = "nsw_catt_main_panels",
-  main_titles = c("(B) NSW-CPS1", "(C) NSW-PSID1")
+  main_titles = c("(B) NSW-CPS-1", "(C) NSW-PSID-1")
 )
 
 save_catt_panels(
   exp_catt = catt.top5_cps_trim,
   catt_list  = catt.top5_cps,
-  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps),
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS-1: ", top5_methods.cps),
   prefix = "nsw_catt_top5_cps"
 )
 
 save_catt_panels(
   exp_catt = catt.top5_psid_trim,
   catt_list  = catt.top5_psid,
-  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid),
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID-1: ", top5_methods.psid),
   prefix = "nsw_catt_top5_psid"
 )
 
 save_plus_catt_panels(
   catt1_list = list(catt.nsw.cps, catt.nsw.psid),
   catt2_list = list(catt.cps.trim, catt.psid.trim),
-  ylabels = c("CATT (CPS1-PLUS-Trimmed)", "CATT (PSID1-PLUS-Trimmed)"),
+  ylabels = c("CATT (CPS-1-PLUS-Trimmed)", "CATT (PSID-1-PLUS-Trimmed)"),
   prefix = "nsw_catt_plus_panels",
-  main_titles = c("(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS"),
+  main_titles = c("(N) Trimmed NSW-CPS-1-PLUS", "(O) Trimmed NSW-PSID-1-PLUS"),
   folder = "graphs/lalonde"
 )
 ```
@@ -826,16 +826,16 @@ qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps_trim_match)
 qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid_trim_match) 
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC13. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC4. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2))
 par(cex.main = 0.9)
 ylim = c(-25000, 15000)
 
-plot_qte(qte.nsw_cps, qte.nsw_cps0, qte.nsw, main = "(B) NSW-CPS1", ylim)
+plot_qte(qte.nsw_cps, qte.nsw_cps0, qte.nsw, main = "(B) NSW-CPS-1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-plot_qte(qte.nsw_psid, qte.nsw_psid0, qte.nsw, main = "(C) NSW-PSID1", ylim)
+plot_qte(qte.nsw_psid, qte.nsw_psid0, qte.nsw, main = "(C) NSW-PSID-1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
@@ -843,33 +843,33 @@ plot_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_title
 
 plot_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9)
 
-plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) NSW-CPS1-PLUS (Trimmed)", ylim)
+plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) NSW-CPS-1-PLUS (Trimmed)", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) NSW-PSID1-PLUS (Trimmed)", ylim)
+plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) NSW-PSID-1-PLUS (Trimmed)", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
 
 These figures display QTET estimates derived from both the NSW experimental and various observational samples. 
 
-The QTETs estimated from the NSW-CPS1 sample (B) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from top-ranked subsamples show clear biases when compared to the experimental benchmark (D, E and G), except for `k3_walker` and `cem_crump` (F and H), where the QTET estimates align reasonably well with the true QTET. 
+The QTETs estimated from the NSW-CPS-1 sample (B) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from top-ranked subsamples show clear biases when compared to the experimental benchmark (D, E and G), except for `k3_walker` and `cem_crump` (F and H), where the QTET estimates align reasonably well with the true QTET. 
 
-The QTETs estimated from the NSW-PSID1 sample (C) show notable biases in contrast to the experimental benchmark. Among its top-ranked subsamples (I-M) the QTET estimates exhibit substantial bias and are highly underpowered, reflecting great estimation uncertainty.
+The QTETs estimated from the NSW-PSID-1 sample (C) show notable biases in contrast to the experimental benchmark. Among its top-ranked subsamples (I-M) the QTET estimates exhibit substantial bias and are highly underpowered, reflecting great estimation uncertainty.
 
-For the trimmed NSW-CPS1-PLUS sample, the QTET estimates align reasonably well with the experimental benchmark, whereas for the trimmed NSW-PSID1-PLUS samples, the QTET estimates shows notable biases.
+For the trimmed and matched NSW-CPS-1-PLUS sample (N), the QTET estimates align reasonably well with the experimental benchmark, whereas for the trimmed and matched NSW-PSID-1-PLUS sample (O), the QTET estimates shows notable biases.
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_nsw <- list(
   list(mod = qte.nsw_cps, mod0 = qte.nsw_cps0, bm = qte.nsw, 
-       main = "(B) NSW CPS1"),
+       main = "(B) NSW-CPS-1"),
   list(mod = qte.nsw_psid, mod0 = qte.nsw_psid0, bm = qte.nsw, 
-       main = "(C) NSW PSID1"),
+       main = "(C) NSW-PSID-1"),
   list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw.cps, 
-       main = "(N) NSW CPS1-PLUS (Trimmed)"),
+       main = "(N) NSW-CPS-1-PLUS (Trimmed)"),
   list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw.psid, 
-       main = "(O) NSW PSID1-PLUS (Trimmed)")
+       main = "(O) NSW-PSID-1-PLUS (Trimmed)")
 )
 
 # save results
@@ -890,7 +890,7 @@ res_att <- get_res_att(all_datasets, Y, treat, covar)
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC14. Outcome Weights using NSW Data"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC5. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. Outcome Weights using NSW Data"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
@@ -933,28 +933,27 @@ bm <- c("re75")
 filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC15. Sensitivity Analyses NSW"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC6. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. Sensitivity Analyses NSW"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
 # loop over valid datasets and assign index
 for (i in seq_along(filtered_datasets_sens)) {
-    idx <- which(sapply(all_datasets, identical, filtered_datasets_sens[[i]]))
     sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
-    title(main = all_plot_titles[idx])
+    title(main = all_plot_titles[i])
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "nsw")
+save_sensitivity_plots(all_datasets, Y, treat, covar, bm, all_plot_titles, "nsw")
 ```
 
 The sensitivity analysis shows that for the NSW-Experimental sample, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder. 
 
-For the NSW-CPS1 and NSW-PSID1 sample, as well as the top-ranked subsamples (L) and (M) of NSW-PSID1 the treatment effect estimates are highly sensitive to unmeasured confounding. For the subsample (I), all top-ranked subsamples of NSW-CPS1 (D-H), the NSW-CPS1-PLUS and the NSW-PSID1-PLUS sample the treatment effect estimates are reasonably sensitive. Whereas, for the subsamples (J) and (K) the estimates are fairly robust to unmeasured confounding. 
+For the NSW-CPS-1 (B) and NSW-PSID-1 (C) sample, as well as the top-ranked subsamples (I), (J), (K) and (M) of NSW-PSID-1 the treatment effect estimates are highly sensitive to unmeasured confounding. For the subsample (L) and all top-ranked subsamples of NSW-CPS-1 (D-H) the treatment effect estimates are reasonably sensitive. Whereas, for the NSW-CPS-1-PLUS subsample (N) the estimates are fairly robust to unmeasured confounding. 
 
 ## Summary
-After reexamining the original LaLonde (NSW) dataset, the results confirm that the NSW-Experimental data shows nearly perfect overlap between treated and control groups, while the observational datasets (NSW-CPS1 and NSW-PSID1) display weak overlap, with many treated units outside the control range. Expanding these datasets with experimental controls improves overlap but does not consistently enhance covariate balance. 
+After reexamining the original LaLonde (NSW) sample, the results confirm that the NSW-Experimental data shows nearly perfect overlap between treated and control groups, while the observational samples (NSW-CPS-1 and NSW-PSID-1) display weak overlap, with many treated units outside the control range. Expanding these samples with experimental controls and applying the exact approach as defined by @imbens2024 improves effect estimates considerably.
 
 These findings reinforce the lessons from previous LDW analyses: even with improved overlap and some gains in covariate balance, achieving consistent and reliable effect estimates with observational data remains difficult. 

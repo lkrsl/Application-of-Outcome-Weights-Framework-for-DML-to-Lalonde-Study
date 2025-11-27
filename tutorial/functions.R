@@ -55,7 +55,7 @@ inspect_data <- function(data, treat = "treat") {
     data <- list(dataset = data)
   }
   data.frame(
-    dataset = names(data),
+    sample = names(data),
     num_obs = sapply(data, nrow),
     num_treated = sapply(data, function(df) sum(df[[treat]] == 1, na.rm = TRUE)),
     num_controls = sapply(data, function(df) sum(df[[treat]] == 0, na.rm = TRUE)),
@@ -1389,7 +1389,7 @@ save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
   for (i in seq_len(n)) {
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
-    bm <- bm_list[[i]]                 # Use the i-th entry in bm_list
+    bm <- bm_list[[i]]                 
     main_title <- plot_titles[main_start + i - 1]
     clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
     file_name <- sprintf("graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
