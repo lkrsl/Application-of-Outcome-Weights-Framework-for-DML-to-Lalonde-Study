@@ -7,11 +7,13 @@ documentclass: book
 bibliography: [tutorial/book.bib, tutorial/packages.bib]
 description: |
   This book replicates the LaLonde study by Imbens & Xu (2024) and extends it by comparing a
-  full with a reduced covariate model to mitigate potential confounding. 
+  full with a reduced covariate model to assess potential confounding. 
   It evaluates various methods to improve overlap and covariate balance for robust 
   treatment effect estimation and applies the outcome weights framework by Knaus & Pfleiderer (2024) 
-  to assess another estimator and analyse the distributional properties of outcome weights.
-  The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
+  to assess another estimator, while analysing the distributional properties of resulting outcome weights.
+  It further applies placebo tests and sensitivity analysis to assess the robustness of the treatment effect estimates.
+  The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and 
+  LaLonde–Calónico–Smith (LCS) samples.
 link-citations: yes
 github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study
 ---
@@ -19,17 +21,18 @@ github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-S
 # Preface {-}
 
 This book replicates the LaLonde study by @imbens2024 and extends it by comparing a
-full with a reduced covariate model to mitigate potential confounding. 
+full with a reduced covariate model to assess potential confounding.
 It evaluates various methods to improve overlap and covariate balance for robust treatment effect estimation and 
-applies the outcome weights framework by @OW_Package to assess another estimator and analyse the distributional properties of outcome weights. 
-The analysis draws on the original LaLonde dataset as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) datasets.
+applies the outcome weights framework by @OW_Package to assess another estimator, while analysing the distributional properties of resulting outcome weights.
+It further applies placebo tests and sensitivity analysis to assess the robustness of the treatment effect estimates. 
+The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) samples.
 
 ```{r, echo=FALSE, out.width="80%", fig.align="center"}
 knitr::include_graphics("tutorial/Outcome-Weights_files/figure-html/image3.jpg")
 ```
 
 Section 1 introduces required packages and wrapper functions used throughout the analysis. 
-Section 2 replicates and extends the full covariate model from @imbens2024 using the LaLonde-Dehejia-Wahba (LDW) dataset. 
-Section 3 applies a reduced covariate set to the same LDW dataset. 
-Section 4 analyzes the original LaLonde dataset following similar methods and 
-section 5 explores the LaLonde-Calónico-Smith (LCS) dataset, focusing on female samples.
+Section 2 replicates and extends the full covariate model from @imbens2024 using the LDW sample. 
+Section 3 applies a reduced covariate set to the same LDW sample. 
+Section 4 analyzes the original LaLonde data following similar methods and 
+section 5 explores the LaLonde-Calónico-Smith (LCS) sample, focusing on female samples.
