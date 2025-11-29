@@ -354,12 +354,10 @@ ranked_psid <- assess_methods(all_psid)
 top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
 
 # rerank top 5 methods
-top5_methods.psid <- rerank_methods(top5_methods.psid, ranked_psid)
-```
-
-```{r, message=FALSE, warning=FALSE}
-# get results
 top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
+
+# get results
+top5_methods.psid <- top5_methods_df.psid$Method
 
 # print table output
 datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
@@ -648,7 +646,7 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
 
 plot_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 3)
 
-plot_qte(qte.lcs_psid.trim, qte.lcs_psid.trim0, qte.lcs.psid, main = "(H) LCS-PSID-1-PLUS (Trimmed)", ylim)
+plot_qte(qte.lcs_psid.trim, qte.lcs_psid.trim0, qte.lcs.psid, main = "(H) Trimmed LCS-PSID-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
@@ -657,12 +655,11 @@ These figures display QTET estimates derived from both the LCS experimental and 
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_lcs <- list(list(mod = qte.lcs_psid, mod0 = qte.lcs_psid0, bm = qte.lcs, main = "(B) LCS-PSID-1"),
-                  list(mod = qte.lcs_psid.trim, mod0 = qte.lcs_psid.trim0, bm = qte.lcs.psid, main = "(H) LCS-PSID-1-PLUS (Trimmed)"))
+                  list(mod = qte.lcs_psid.trim, mod0 = qte.lcs_psid.trim0, bm = qte.lcs.psid, main = "(H) Trimmed LCS-PSID-1-PLUS"))
 
 # save results
 save_qtet(plots_lcs, prefix = "lcs")
-save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, 
-             main_start = 3, prefix = "lcs_top")
+save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 3, prefix = "lcs_top")
 ```
 
 ### Assessing outcome weights (OW)
@@ -764,7 +761,7 @@ est.psid_plus_pl <- out3_pl[1, 1]
 
 # plot placebo results
 plot_coef(out4_pl, band = band.psid_plus_pl, line = est.psid_plus_pl, 
-          ylim = c(-1.5, 1), main = "(H) LCS-PSID-1-PLUS (Trimmed)")
+          ylim = c(-1.5, 1), main = "(H) Trimmed LCS-PSID-1-PLUS")
 ```
 
 ```{r, message=FALSE, warning=FALSE}

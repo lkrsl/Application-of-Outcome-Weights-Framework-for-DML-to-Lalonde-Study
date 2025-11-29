@@ -73,12 +73,12 @@ ldw.ps <- assess_overlap(data = ldw, treat = treat, cov = covar)
 ldw_cps.ps <- assess_overlap(data = ldw_cps, treat = treat, cov = covar) 
 ldw_psid.ps <- assess_overlap(data = ldw_psid, treat = treat, cov = covar) 
 ```
-
+Model B exhibits overlap patterns that are very similar to those observed for model A. As anticipated, LDW-Experimental again exhibits an almost perfect overlap. In contrast, the observational samples LDW-CPS-1 and LDW-PSID-1 show poor overlap. Notably, many treated units have propensity scores outside the range of the controls, while a large share of control units have propensity scores concentrated at very low log-odds.
 ```{r, fig.cap='FIGUREB1. SubfigureD:LDW-CPS-1-PLUS. SubfigureE:LDW-PSID-1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 ldw_cps_plus.ps <- assess_overlap(data = ldw_cps_plus, treat = treat, cov = covar) 
 ldw_psid_plus.ps <- assess_overlap(data = ldw_psid_plus, treat = treat, cov = covar)
 ```
-
+The LDW-CPS-1-PLUS and LDW-PSID-1-PLUS samples also exhibit improved overlap relative to their non-plus counterparts in model B, as in model A, but again are used here only as reference samples for comparison.
 ```{r, message=FALSE, warning=FALSE}
 # combine results
 data_list <- list(ldw, ldw_cps, ldw_psid, ldw_cps_plus, ldw_psid_plus)
@@ -93,7 +93,6 @@ save_overlap_panels(
   prefix = "ldw_overlap_model_b_panels"
 )
 ```
-Since we use the same experimental and observational samples as within model A, overlap patterns are essentially unchanged.
 ```{r, message=FALSE, warning=FALSE}
 # set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
@@ -408,8 +407,8 @@ all_psid <- combine_results("psid")
 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
-save_csv(all_cps, "ldw_model_a_cps1_all_results")
-save_csv(all_psid, "ldw_model_a_psid1_all_results")
+save_csv(all_cps, "ldw_model_b_cps1_all_results")
+save_csv(all_psid, "ldw_model_b_psid1_all_results")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -422,15 +421,14 @@ top5_methods.cps <- get_top_methods(ranked_cps, top_n = 5)
 top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
 
 # rerank top 5 methods
-top5_methods.cps <- rerank_methods(top5_methods.cps, ranked_cps)
-top5_methods.psid <- rerank_methods(top5_methods.psid, ranked_psid)
-```
-
-```{r, message=FALSE, warning=FALSE}
-# print results
 top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 
+# get results 
+top5_methods.cps <- top5_methods_df.cps$Method
+top5_methods.psid <- top5_methods_df.psid$Method
+
+# print table output
 datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
@@ -605,7 +603,9 @@ Again, figure (A) presents the benchmark, serving as a reference for bias and va
 
 The LDW-CPS-1 sample produces ATT estimates that closely align with the benchmark with an exception for one estimator similar as in model A. Across its `nn_crump` and `caliper_crump` and `genetic_crump` subsamples all estimators produce ATT estimates that reasonably closely align with the benchmark. Some larger deviations from the benchmark occur for the `genetic_common_range` and `genetic_ps_threshold` subsamples. 
 
-As for LDW-CPS-1, the LDW-PSID-1 sample produces ATT estimates that reasonably closely align with the benchmark with an exception for only one estimator. Across its top-ranked samples, all estimators generally yield ATT estimates that exhibit greater dispersion from the benchmark and considerably larger standard errors. 
+As for LDW-CPS-1, the LDW-PSID-1 sample produces ATT estimates that reasonably closely align with the benchmark with an exception for only one estimator. Across its top-ranked subsamples, all estimators generally yield ATT estimates that exhibit greater dispersion from the benchmark and considerably larger standard errors. 
+
+Further, the ATT estimates from the LDW-CPS1-PLUS sample align near the benchmark, while those from the LDW-PSID-PLUS remain reasonably close, though slightly more distant.
 
 Overall, these results show a similar pattern as observed in model A.
 ```{r, message=FALSE, warning=FALSE}
@@ -739,9 +739,9 @@ datatable(all_catt_eval, caption = "CATT Summary Statistics",
 
 In model B, using LDW-CPS-1, CATT estimates range from $-3,316.41 to $7,047.93. This span is considerably narrower than in model A, but still performs worse when contrasted with the experimental benchmark, where CATT estimates range from $-195.61 to $3,809.38 with a mean of $1,744.41. Further, LDW-PSID-1 shows an increased CATT estimate range, from $-7,666.25 to	$4,739.52, and a reasonable lower mean of approximately $433.02 compared to LDW-CPS-1. These patterns mirror those observed in model A.
 
-For LDW-CPS-1 and its top-ranked subsamples, CATT ranges vary considerably, yet their mean estimates are generally closer to the experimental benchmark, as in model A. Moreover, the minimum CATT estimates are less negative, which reduces the spread between minimum and maximum estimates.
+For the top-ranked subsamples of LDW-CPS-1, CATT ranges vary considerably, yet their mean estimates are generally closer to the experimental benchmark, as in model A. Their minimum CATT estimates are less negative, which reduces the spread between minimum and maximum estimates.
 
-The LDW-PSID-1 and its top-ranked subsamples, on the other hand, again yield decreased mean CATT estimates with varying CATT ranges compared to the LDW-CPS-1 sample, signaling persistent difficulties in generating reliable effect estimates. Still, compared to model A, the minimum CATT estimates are less strongly negative, though the mean CATTs do not improve marginally in their proximity to the experimental benchmark.
+The top-ranked subsamples of LDW-PSID-1 by contrast, again yield decreased mean CATT estimates with varying CATT ranges compared to the LDW-CPS-1 sample, signaling persistent difficulties in generating reliable effect estimates. Still, compared to model A, the minimum CATT estimates are less strongly negative, though the mean CATTs do not improve marginally in their proximity to the experimental benchmark.
 
 Hence, alike model A, these results show that there is considerable variation in ranges and means across methods and samples, reflecting substantial heterogeneity in treatment effect estimation. While certain criteria may improve consistency with the benchmark, they may also introduce notable discrepancies and variability in estimated effects. 
 ```{r, message=FALSE, warning=FALSE}
@@ -825,11 +825,11 @@ plot_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_title
 
 plot_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9)
 
-plot_qte(qte.ldw_cps.trim, qte.ldw_cps.trim0, qte.trim.ldw_cps, main = "(N) LDW-CPS-1-PLUS (Trimmed)", ylim)
+plot_qte(qte.ldw_cps.trim, qte.ldw_cps.trim0, qte.trim.ldw_cps, main = "(N) Trimmed LDW-CPS-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-plot_qte(qte.ldw_psid.trim, qte.ldw_psid.trim0, qte.trim.ldw_psid, main = "(O) LDW-PSID-1-PLUS (Trimmed)", ylim)
+plot_qte(qte.ldw_psid.trim, qte.ldw_psid.trim0, qte.trim.ldw_psid, main = "(O) Trimmed LDW-PSID-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
@@ -845,14 +845,14 @@ Overall, these patterns mirror those observed in model A.
 plots_ldw <- list(
   list(mod = qte.ldw_cps, mod0 = qte.ldw_cps0, bm = qte.ldw, main = "(B) LDW-CPS-1"),
   list(mod = qte.ldw_psid, mod0 = qte.ldw_psid0, bm = qte.ldw, main = "(C) LDW-PSID-1"),
-  list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.trim.ldw_cps, main = "(N) LDW-CPS-1-PLUS (Trimmed)"),
-  list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.trim.ldw_psid, main = "(O) LDW-PSID-1-PLUS (Trimmed)")
+  list(mod = qte.ldw_cps.trim, mod0 = qte.ldw_cps.trim0, bm = qte.trim.ldw_cps, main = "(N) Trimmed LDW-CPS-1-PLUS"),
+  list(mod = qte.ldw_psid.trim, mod0 = qte.ldw_psid.trim0, bm = qte.trim.ldw_psid, main = "(O) Trimmed LDW-PSID-1-PLUS")
 )
 
 # save results
 save_qtet(plots_ldw, prefix = "ldw_model_b")
-save_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_titles, main_start = 8, prefix = "ldw_model_b_top")
-save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 13, prefix = "ldw_model_b_top")
+save_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_titles, main_start = 4, prefix = "ldw_model_b_top")
+save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9, prefix = "ldw_model_b_top")
 ```
 
 ### Assessing outcome weights (OW)
@@ -1082,62 +1082,39 @@ save_csv(cor_table, "ldw_model_b_corr_results")
 ```
 
 ### Distributional balance
-```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREB8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureC:LDW-PSID-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model B of re75"}
+```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREB8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model A of re75"}
 # re75
-for (i in seq_along(top5_datasets.cps)) {
+for (i in seq_along(all_datasets)) {
   tryCatch({
-    plot_title <- paste0("(", LETTERS[i+3], ") CPS-1: ", top5_methods.cps[i], " - re75")
-    print(bal.plot(treat ~ re75, data = top5_datasets.cps[[i]], which = "both") + 
-            ggplot2::ggtitle(plot_title))
+    print(
+      bal.plot(treat ~ re75, data = all_datasets[[i]], which = "both") +
+        ggplot2::ggtitle(all_plot_titles[i])
+    )
   }, error = function(e) {
-    cat(sprintf("Could not plot %s: %s\n", top5_methods.cps[i], e$message))
+    cat(sprintf("Could not plot %s: %s\n", all_plot_titles[i], e$message))
   })
 }
 
-for (i in seq_along(top5_datasets.psid)) {
-  tryCatch({
-    plot_title <- paste0("(", LETTERS[i+8], ") PSID-1: ", top5_methods.psid[i], " - re75")
-    print(bal.plot(treat ~ re75, data = top5_datasets.psid[[i]], which = "both") + 
-            ggplot2::ggtitle(plot_title))
-  }, error = function(e) {
-    cat(sprintf("Could not plot %s: %s\n", top5_methods.psid[i], e$message))
-  })
-}
-```
-
-```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREB9. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureC:LDW-PSID-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model B of re74"}
 # re74
-for (i in seq_along(top5_datasets.cps)) {
+for (i in seq_along(all_datasets)) {
   tryCatch({
-    plot_title <- paste0("(", LETTERS[i+3], ") CPS-1: ", top5_methods.cps[i], " - re74")
-    print(bal.plot(treat ~ re74, data = top5_datasets.cps[[i]], which = "both") + 
-            ggplot2::ggtitle(plot_title))
+    print(
+      bal.plot(treat ~ re74, data = all_datasets[[i]], which = "both") +
+        ggplot2::ggtitle(all_plot_titles[i])
+    )
   }, error = function(e) {
-    cat(sprintf("Could not plot %s: %s\n", top5_methods.cps[i], e$message))
-  })
-}
-
-for (i in seq_along(top5_datasets.psid)) {
-  tryCatch({
-    plot_title <- paste0("(", LETTERS[i+8], ") PSID-1: ", top5_methods.psid[i], " - re74")
-    print(bal.plot(treat ~ re74, data = top5_datasets.psid[[i]], which = "both") + 
-            ggplot2::ggtitle(plot_title))
-  }, error = function(e) {
-    cat(sprintf("Could not plot %s: %s\n", top5_methods.psid[i], e$message))
+    cat(sprintf("Could not plot %s: %s\n", all_plot_titles[i], e$message))
   })
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%'}
 # save results
-save_balance(top5_datasets.cps, top5_methods.cps, balance_var = "re75", prefix = "ldw_model_b_balance_panels_cps")
-save_balance(top5_datasets.cps, top5_methods.cps, balance_var = "re74", prefix = "ldw_model_b_balance_panels_cps")
-save_balance(top5_datasets.psid, top5_methods.psid, balance_var = "re75", prefix = "ldw_model_b_balance_panels_psid")
-save_balance(top5_datasets.psid, top5_methods.psid, balance_var = "re74", prefix = "ldw_model_b_balance_panels_psid")
+save_balance(all_datasets, all_plot_titles, balance_var = "re75", prefix = "ldw_model_b_balance_panels_75")
+save_balance(all_datasets, all_plot_titles, balance_var = "re74", prefix = "ldw_model_b_balance_panels_74")
 ```
 
-The density plots show that treated and control units do not substantially differ in `re74` across all samples, Although model B did not control for `re74`, this result suggests that the confounding bias from its omission is likely negligible
-and that exclusion of it in the set of covariates may be justified.
+The density plots show that treated and control units do not substantially differ in `re74` across all samples, Although model B did not control for `re74`, this result suggests that the confounding bias from its omission is likely negligible and that exclusion of it in the set of covariates may be justified.
 
 ## Summary
 After reexamining model B, which uses the LaLonde-Dehejia-Wahba (LDW) data with a reduced set of covariates, we find that changing the covariate set leads to noticeable shifts in effect estimates. For LDW-CPS-1, estimates are generally more consistent and remain closer to the experimental benchmark, though standard errors are considerably large. In contrast, LDW-PSID-1 continues to show greater dispersion and substantially larger standard errors, highlighting persistent challenges with this observational sample.

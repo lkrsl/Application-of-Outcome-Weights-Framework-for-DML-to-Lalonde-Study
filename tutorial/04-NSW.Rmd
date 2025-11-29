@@ -411,25 +411,23 @@ save_csv(all_psid, "nsw_psid1_all_results")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# rank methods 
+# rank comparatively
 ranked_cps  <- assess_methods(all_cps)
 ranked_psid <- assess_methods(all_psid)
 
-# get top 5 methods 
+# get top 5 methods
 top5_methods.cps <- get_top_methods(ranked_cps, top_n = 5)
 top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
 
 # rerank top 5 methods
-top5_methods.cps <- rerank_methods(top5_methods.cps, ranked_cps)
-top5_methods.psid <- rerank_methods(top5_methods.psid, ranked_psid)
-```
-
-```{r, message=FALSE, warning=FALSE}
-# get results
 top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 
-# print table output 
+# get results 
+top5_methods.cps <- top5_methods_df.cps$Method
+top5_methods.psid <- top5_methods_df.psid$Method
+
+# print table output
 datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
@@ -843,11 +841,11 @@ plot_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_title
 
 plot_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9)
 
-plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) NSW-CPS-1-PLUS (Trimmed)", ylim)
+plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) Trimmed NSW-CPS-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) NSW-PSID-1-PLUS (Trimmed)", ylim)
+plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) Trimmed NSW-PSID-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
@@ -862,20 +860,16 @@ For the trimmed and matched NSW-CPS-1-PLUS sample (N), the QTET estimates align 
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_nsw <- list(
-  list(mod = qte.nsw_cps, mod0 = qte.nsw_cps0, bm = qte.nsw, 
-       main = "(B) NSW-CPS-1"),
-  list(mod = qte.nsw_psid, mod0 = qte.nsw_psid0, bm = qte.nsw, 
-       main = "(C) NSW-PSID-1"),
-  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw.cps, 
-       main = "(N) NSW-CPS-1-PLUS (Trimmed)"),
-  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw.psid, 
-       main = "(O) NSW-PSID-1-PLUS (Trimmed)")
+  list(mod = qte.nsw_cps, mod0 = qte.nsw_cps0, bm = qte.nsw, main = "(B) NSW-CPS-1"),
+  list(mod = qte.nsw_psid, mod0 = qte.nsw_psid0, bm = qte.nsw, main = "(C) NSW-PSID-1"),
+  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw.cps, main = "(N) Trimmed NSW-CPS-1-PLUS "),
+  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw.psid, main = "(O) Trimmed NSW-PSID-1-PLUS")
 )
 
 # save results
 save_qtet(plots_nsw, prefix = "nsw")
-save_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_titles, main_start = 8, prefix = "nsw_top")
-save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 13, prefix = "nsw_top")
+save_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_titles, main_start = 4, prefix = "nsw_top")
+save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9, prefix = "nsw_top")
 ```
 
 ### Assessing outcome weights (OW)

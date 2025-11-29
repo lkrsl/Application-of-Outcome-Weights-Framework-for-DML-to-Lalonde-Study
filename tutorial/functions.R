@@ -592,13 +592,6 @@ get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
     dplyr::pull(Method)
 }
 
-#### rerank_methods()
-rerank_methods <- function(top_methods, ranked_table) {
-  filtered <- ranked_table[ranked_table$Method %in% top_methods, ]
-  filtered <- filtered[order(-filtered$Mean_Abs_SMD), ]
-  filtered$Method
-}
-
 ### 4.2 Dataset construction
 #### wrap_match_entries()
 wrap_match_entries <- function(match_list, source_list, prefix) {
@@ -1560,8 +1553,8 @@ save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_
     })
     dev.off()
   }
-  cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
-              success_count, fail_count, length(filtered_datasets)))
+  #cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
+  #            success_count, fail_count, length(filtered_datasets)))
 }
 
 # 7. Balance
@@ -1583,7 +1576,7 @@ save_balance <- function(
     file_name <- file.path(folder, paste0(prefix, "_", balance_var, "_", p, ".pdf"))
     plot_list <- list()
     for (i in start:end) {
-      plot_title <- paste0("(", LETTERS[i], ") ", method_names[i], " - ", balance_var)
+      plot_title <- paste0(method_names[i])
       pl <- tryCatch({
         form <- as.formula(paste0("treat ~ ", balance_var))
         bal.plot(form, data = datasets[[i]], which = "both") +
