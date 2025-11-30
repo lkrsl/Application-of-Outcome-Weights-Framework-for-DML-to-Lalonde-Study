@@ -1564,7 +1564,7 @@ save_balance <- function(
     method_names,
     balance_var = "re75",
     prefix = "balance_panels",
-    plots_per_page = 5,
+    plots_per_page = 4,
     folder = "graphs/lalonde"
 ) {
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)

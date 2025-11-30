@@ -13,7 +13,7 @@ description: |
   to assess another estimator, while analysing the distributional properties of resulting outcome weights.
   It further applies placebo tests and sensitivity analysis to assess the robustness of the treatment effect estimates.
   The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and 
-  LaLonde–Calónico–Smith (LCS) samples.
+  LaLonde–Calónico–Smith (LCS) data.
 link-citations: yes
 github-repo: lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study
 ---
@@ -25,7 +25,7 @@ full with a reduced covariate model to assess potential confounding.
 It evaluates various methods to improve overlap and covariate balance for robust treatment effect estimation and 
 applies the outcome weights framework by @OW_Package to assess another estimator, while analysing the distributional properties of resulting outcome weights.
 It further applies placebo tests and sensitivity analysis to assess the robustness of the treatment effect estimates. 
-The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) samples.
+The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) data.
 
 ```{r, echo=FALSE, out.width="80%", fig.align="center"}
 knitr::include_graphics("tutorial/Outcome-Weights_files/figure-html/image3.jpg")

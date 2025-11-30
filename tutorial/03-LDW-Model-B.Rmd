@@ -835,6 +835,7 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
 ```
 
 These figures display QTET estimates derived from both the experimental and various observational samples. 
+
 The QTETs estimated from LDW-Experimental (A), the LDW-CPS-1 sample (B), its top-ranked `nn_crump` (D), `caliper_crump` (E) and `genetic_ps_threshold` (H) subsamples as well as the trimmed and matched version of LDW-CPS-1-PLUS (N) continue to correspond well with the true QTET. 
 
 The QTET estimates from the LDW-PSID-1 sample (C), its top-ranked subsamples and the trimmed and matched version of LDW-PSID-1-PLUS (O) show clear biases and noticeably wider confidence bands when compared to the experimental benchmark, indicating greater estimation uncertainty. 
@@ -1015,7 +1016,7 @@ datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
 
 The placebo analysis shows that the experimental benchmarks remain close to zero and statistically insignificant, closely mirroring the results in model A. The results for LDW-CPS-1 and LDW-PSID-1 are similar to those observed in model A.
 
-For LDW-CPS-1 subsamples (D-H), ATT estimates remain largely negative with only a few exceptions, with modest improvement toward the benchmark compared to LDW-CPS-1 (B) estimates and notably wider confidence intervals, revealing persistent imbalance and increased uncertainty. For LDW-PSID-1 subsamples (I-M), a similar pattern results compared to the LDW-PSID-1 sample. 
+For LDW-CPS-1 subsamples (D-H), ATT estimates remain largely negative with only a few exceptions, with modest improvement toward the benchmark compared to LDW-CPS-1 (B) estimates and notably wider confidence intervals, revealing persistent bias and increased uncertainty. For LDW-PSID-1 subsamples (I-M), a similar pattern results compared to the LDW-PSID-1 sample. 
 
 As in model A, the trimmed and matched versions of LDW-CPS-1-PLUS and LDW-PSID-1-PLUS exhibit even larger negative ATT estimates, continuing to reflect substantial bias and deviation from the true effect and highlighting the persistent challenges in adjusting for confounding using observational data.
 ```{r, message=FALSE, warning=FALSE}
@@ -1057,7 +1058,7 @@ The sensitivity analysis demonstrates identical results for LDW-Experimental, LD
 
 Specifically, it shows that for the LDW-Experimental sample, as well as for the LDW-CPS-1 and its top-ranked subsamples `nn_crump`, `caliper_crump` and `genetic_crump` (D-F) the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder. For the trimmed and matched LDW-CPS1-PLUS and LDW-PSID1-PLUS samples the estimated treatment effects remain also fairly robust, indicating improved resistance to unmeasured confounding due to this integrated approach. 
 
-For two top-ranked subsamples of LDW-CPS-1, including `genetic_common_range` (G) and `genetic_ps_threshold` (H) and three top-ranked subsamples of LDW-PSID-1, including `optimal_pair_stuermer` (I), `k3_walker` (K) and `mahvars_stuermer` (L) the estimated treatment effect are reasonably sensitive to unmeasured confounding. In contrast, the LDW-PSID-1 sample (C) itself and its top-ranked subsamples `cs_stuermer` (J) and `genetic_stuermer` (M) produce treatment effects estimates that are even more sensitive to unmeasured confounding. 
+For two top-ranked subsamples of LDW-CPS-1, including `genetic_common_range` (G) and `genetic_ps_threshold` (H) and three top-ranked subsamples of LDW-PSID-1, including `optimal_pair_stuermer` (I), `k3_walker` (K) and `mahvars_stuermer` (L) the estimated treatment effect are reasonably sensitive to unmeasured confounding. In contrast, the LDW-PSID-1 sample (C) and its top-ranked subsamples `cs_stuermer` (J) and `genetic_stuermer` (M) produce treatment effects estimates that are even more sensitive to unmeasured confounding. 
 
 Similar to model A, these results overall highlights sample-specific differences in robustness against potential unobserved confounding.
 
@@ -1083,6 +1084,7 @@ save_csv(cor_table, "ldw_model_b_corr_results")
 
 ### Distributional balance
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREB8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model A of re75"}
+par(mfrow = c(5, 1), mar = c(4, 4, 2, 2))
 # re75
 for (i in seq_along(all_datasets)) {
   tryCatch({
@@ -1114,7 +1116,7 @@ save_balance(all_datasets, all_plot_titles, balance_var = "re75", prefix = "ldw_
 save_balance(all_datasets, all_plot_titles, balance_var = "re74", prefix = "ldw_model_b_balance_panels_74")
 ```
 
-The density plots show that treated and control units do not substantially differ in `re74` across all samples, Although model B did not control for `re74`, this result suggests that the confounding bias from its omission is likely negligible and that exclusion of it in the set of covariates may be justified.
+The density plots show that treated and control units do not substantially differ in `re74` across all samples, Although model B did not control for `re74`, this result suggests that any confounding bias from its omission is likely negligible and that exclusion of it in the set of covariates may be reasonable.
 
 ## Summary
 After reexamining model B, which uses the LaLonde-Dehejia-Wahba (LDW) data with a reduced set of covariates, we find that changing the covariate set leads to noticeable shifts in effect estimates. For LDW-CPS-1, estimates are generally more consistent and remain closer to the experimental benchmark, though standard errors are considerably large. In contrast, LDW-PSID-1 continues to show greater dispersion and substantially larger standard errors, highlighting persistent challenges with this observational sample.

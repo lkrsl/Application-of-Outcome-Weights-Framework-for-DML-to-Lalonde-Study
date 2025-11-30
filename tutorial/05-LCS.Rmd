@@ -585,7 +585,7 @@ datatable(all_catt_eval, caption = "CATT Summary Statistics",
 
 With LCS-PSID-1, CATT estimates span from $-3,149.81 to $2,395.66, contrasting with the CATT estimated from experimental data which ranges from $-478.45 to $2,895.23, with a mean CATT estimate of $886.31. 
 
-In contract, across the LCS-PSID-1-based subsamples, the ranges of CATT estimates are considerably large. Importantly, the mean CATT estimates remain positive in all cases and for the `optimal_pair_stuermer` subsample as well as the trimmed and matched version of LCS-PSID-1-PLUS the mean CATT values are notably reduced.
+In contract, across the LCS-PSID-1-based subsamples, the ranges of CATT estimates are considerably large. Importantly, the mean CATT estimates remain positive in all cases. However, for the `optimal_pair_stuermer` subsample as well as the trimmed and matched version of LCS-PSID-1-PLUS the mean CATT values are notably reduced.
 ```{r, message=FALSE, warning=FALSE}
 # save results
 save_main_catt_panels(
@@ -651,7 +651,7 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
 
-These figures display QTET estimates derived from both the LCS experimental and various observational samples. The QTETs estimated from both the original and expanded LCS-PSID1-PLUS samples (B and H), as well as from the top-ranked subsamples (C through G), align comparatively close with the true QTET. However, the QTETs from subsample (D) and (G) exhibit stronger bias, suggesting greater estimation uncertainty.
+These figures display QTET estimates derived from both the LCS experimental and various observational samples. The QTETs estimated from both the original and trimmed and matched LCS-PSID1-PLUS sample (B and H), as well as from the top-ranked subsamples (C through G), align comparatively close with the true QTET. However, the QTETs from subsample (D) and (G) exhibit substantial bias, suggesting greater estimation uncertainty.
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_lcs <- list(list(mod = qte.lcs_psid, mod0 = qte.lcs_psid0, bm = qte.lcs, main = "(B) LCS-PSID-1"),
@@ -792,7 +792,7 @@ datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-The placebo analysis shows that the experimental benchmark is close to zero and statistically insignificant, while all estimators applied to the observational datasets produce large negative estimates, remaining statistically different from zero, stressing the persistent challenges in adjusting for confounding using observational data.
+The placebo analysis shows that the experimental benchmark is close to zero and statistically insignificant, while all estimators applied to the observational samples produce large negative estimates, remaining statistically different from zero, stressing the persistent challenges in adjusting for confounding using observational data.
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat_pl, "lcs_att_estimates_pl")
@@ -829,7 +829,7 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "lcs")
 ```
 
-The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. The treatment effect estimates in the observational sample LCS-PSID-1 (B) instead are reasonable sensitive, whereas the top-ranked LCS-PSID-1 subsamples (C), (E) and (F) as well as the trimmed and matched version of LCS-PSID-1-PLUS (H) produce treatment effects that are rather robust to increasing confounder strength, despite up to triple the correlation levels of the confounder with the treatment and outcome. 
+The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Instead, the treatment effect estimates in the observational sample LCS-PSID-1 (B) are reasonable sensitive, whereas the top-ranked LCS-PSID-1 subsamples (C), (E) and (F) as well as the trimmed and matched version of LCS-PSID-1-PLUS (H) produce treatment effects that are rather robust to increasing confounder strength, despite up to triple the correlation levels of the confounder with the treatment and outcome. 
 
 ## Summary
 After reexamining the LaLonde-Calónico-Smith (LCS) data, the results confirm that, as with the NSW and LDW samples, overlap between treated and control groups is generally greater in the experimental sample than in the observational (LCS-PSID-1) sample. Augmenting the sample with experimental controls generally improves overlap.

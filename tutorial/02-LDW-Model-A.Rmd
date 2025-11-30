@@ -477,29 +477,10 @@ top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
 # rerank top 5 methods
 top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
- 
+
 # get results
 top5_methods.cps <- top5_methods_df.cps$Method
 top5_methods.psid <- top5_methods_df.psid$Method
-
-# print table output
-datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-```
-
-
-```{r, message=FALSE, warning=FALSE}
-# rerank top 5 methods
-top5_methods.cps <- rerank_methods(top5_methods.cps, ranked_cps)
-top5_methods.psid <- rerank_methods(top5_methods.psid, ranked_psid)
-
-top5_methods.cps
-```
-
-```{r, message=FALSE, warning=FALSE}
-# create dataframe of top 5 methods
-top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
-top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
 
 # print table output
 datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
@@ -1214,6 +1195,7 @@ save_csv(cor_table, "ldw_model_a_corr_results")
 To further assess the risk of confounding,
 we examine the distributional balance of `re74` and, for comparison, of `re75` by plotting their density distributions for treated and control units. As model B intentionally omits `re74`, the analysis directly informs whether any covariate imbalance may induce bias in estimated treatment effects.
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREA8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model A of re75"}
+par(mfrow = c(5, 1), mar = c(4, 4, 2, 2))
 # re75
 for (i in seq_along(all_datasets)) {
   tryCatch({
