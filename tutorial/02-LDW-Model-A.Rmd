@@ -665,7 +665,7 @@ The above figures show the ATT estimates and their 95% confidence intervals for 
 
 Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the original observational samples, LDW-CPS-1 and LDW-PSID-1, while figures (D) through (H) display results for LDW-CPS-1-based subsamples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding LDW-PSID-1-based subsamples under parallel rules. Figures (N) and (O) present results for the trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS, replicating the tutorial results of Imbens & Xu (2024). 
 
-The LDW-CPS-1 sample produces ATT estimates that closely align with the benchmark with an exception for one estimator. Its top-ranked subsamples produce ATT estimates that are consistently positive and cluster reasonably close around the benchmark, except for the `cem_stuermer` subsample that exhibits somewhat larger deviations from the benchmark and increased standard errors. 
+The LDW-CPS-1 sample produces ATT estimates that closely align with the benchmark with an exception for one estimator. Its top-ranked subsamples produce ATT estimates that are consistently positive and cluster reasonably close around the benchmark, except for the `cem_stuermer` (G) subsample that exhibits somewhat larger deviations from the benchmark and increased standard errors. 
 
 In contrast, the LDW-PSID-1 sample and its top-ranked subsamples frequently exhibit greater dispersion and substantially higher standard errors compared to the LDW-CPS-1 samples, while almost all its ATT estimates are negative.
 
@@ -819,7 +819,7 @@ datatable(all_catt_eval, caption = "CATT Summary Statistics",
 
 Specifically, with LDW-CPS-1, CATT estimates span from $-5,334.04 to $6,947.08, contrasting with the CATT estimated from experimental data which ranges from $-106.73 to $4009.54, with a mean CATT estimate of $1,748.62. The LDW-PSID-1 sample shows an even broader CATT estimate range, spanning from $-8,552.26 to $4,635.64, and a notably lower mean of approximately $766.50.
 
-Among the top-ranked LDW-CPS-1 subsamples, CATT ranges vary substantially, yet their mean estimates are generally closer to the benchmark compared to the LDW-CPS-1 sample. The subsample `cs_crump` produces the minimum CATT estimate among corresponding top-ranked subsamples, but still produces a positive mean CATT estimate. 
+Among the top-ranked LDW-CPS-1 subsamples, CATT ranges vary substantially, yet their mean estimates are generally closer to the benchmark compared to the LDW-CPS-1 sample. The subsample `cs_crump` (E) produces the minimum CATT estimate among corresponding top-ranked subsamples, but still produces a positive mean CATT estimate. 
 
 The CATT estimates for the LDW-PSID-1 top-ranked subsamples reveal substantially decreased mean CATT estimates compared to the LDW-CPS-1 top-ranked subsamples, reflecting greater difficulties in producing reliable treatment effect estimates.
 
@@ -1195,7 +1195,6 @@ save_csv(cor_table, "ldw_model_a_corr_results")
 To further assess the risk of confounding,
 we examine the distributional balance of `re74` and, for comparison, of `re75` by plotting their density distributions for treated and control units. As model B intentionally omits `re74`, the analysis directly informs whether any covariate imbalance may induce bias in estimated treatment effects.
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREA8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model A of re75"}
-par(mfrow = c(5, 1), mar = c(4, 4, 2, 2))
 # re75
 for (i in seq_along(all_datasets)) {
   tryCatch({

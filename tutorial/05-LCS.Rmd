@@ -492,7 +492,7 @@ The above figures show the ATT estimates and their 95% confidence intervals for 
 
 Figure (A) presents the experimental sample (LCS-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) shows results for the observational sample LCS-PSID-1 and figures (C) through (G) display results for LCS-PSID-1-based top-ranked subsamples. Figure (H) shows results for a trimmed and matched version of LCS-PSID-1-PLUS, replicating the tutorial results of Imbens & Xu (2024). 
 
-Across the LCS-PSID-1 dataset and its top-ranked subsamples, all estimators yield ATT estimates that largely cluster around the experimental benchmark except for `genetric_walker` and `exact_common_range`, which tend to produce estimates that deviate slightly more from the respective benchmarks.
+Across the LCS-PSID-1 dataset and its top-ranked subsamples, all estimators yield ATT estimates that largely cluster around the experimental benchmark except for `genetric_walker` (E) and `exact_common_range` (C), which tend to produce estimates that deviate slightly more from the respective benchmarks.
 ```{r, message=FALSE, warning=FALSE}
 # evaluate results
 all_summaries <- lapply(all_outs, eval_att)
@@ -651,7 +651,7 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
 
-These figures display QTET estimates derived from both the LCS experimental and various observational samples. The QTETs estimated from both the original and trimmed and matched LCS-PSID1-PLUS sample (B and H), as well as from the top-ranked subsamples (C through G), align comparatively close with the true QTET. However, the QTETs from subsample (D) and (G) exhibit substantial bias, suggesting greater estimation uncertainty.
+These figures display QTET estimates derived from both the LCS experimental and various observational samples. The QTETs estimated from both the original and trimmed and matched LCS-PSID1-PLUS sample (B and H), as well as from the top-ranked subsamples (C through G), align comparatively close with the true QTET. However, the QTETs from subsample (C) and (E) exhibit substantial bias, suggesting greater estimation uncertainty.
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_lcs <- list(list(mod = qte.lcs_psid, mod0 = qte.lcs_psid0, bm = qte.lcs, main = "(B) LCS-PSID-1"),
@@ -829,7 +829,7 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "lcs")
 ```
 
-The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Instead, the treatment effect estimates in the observational sample LCS-PSID-1 (B) are reasonable sensitive, whereas the top-ranked LCS-PSID-1 subsamples (C), (E) and (F) as well as the trimmed and matched version of LCS-PSID-1-PLUS (H) produce treatment effects that are rather robust to increasing confounder strength, despite up to triple the correlation levels of the confounder with the treatment and outcome. 
+The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Instead, the treatment effect estimates in the observational sample LCS-PSID-1 (B) are reasonable sensitive, whereas the top-ranked LCS-PSID-1 subsamples (C-F) as well as the trimmed and matched version of LCS-PSID-1-PLUS (H) produce treatment effects that are rather robust to increasing confounder strength, despite up to triple the correlation levels of the confounder with the treatment and outcome. 
 
 ## Summary
 After reexamining the LaLonde-Calónico-Smith (LCS) data, the results confirm that, as with the NSW and LDW samples, overlap between treated and control groups is generally greater in the experimental sample than in the observational (LCS-PSID-1) sample. Augmenting the sample with experimental controls generally improves overlap.
