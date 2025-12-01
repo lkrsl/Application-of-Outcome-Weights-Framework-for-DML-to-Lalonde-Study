@@ -1,5 +1,5 @@
 # LaLonde (NSW) Data 
-This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde dataset (loaded as `nsw`, similar to @imbens2024). 
+This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde data (loaded as `nsw`, similar to @imbens2024). 
 
 For detailed explanations of the analysis steps and notes, please refer to section 2. Here, we only explain the NSW–specific results.
 
@@ -77,7 +77,7 @@ nsw_cps.plus_ps <- assess_overlap(data = nsw_cps.plus, treat = treat, cov = cova
 nsw_psid.plus_ps <- assess_overlap(data = nsw_psid.plus, treat = treat, cov = covar, xlim = c(-15, 5))
 ```
 
-With the expanded datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater coverage of log-odds densities across both samples.
+With the expanded samples NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater coverage of log-odds densities across both samples.
 ```{r, message=FALSE, warning=FALSE}
 # combine results
 data_list <- list(nsw, nsw_cps, nsw_psid, nsw_cps.plus, nsw_psid.plus)
@@ -157,7 +157,7 @@ nsw_psid.ps_walker <- ps_estimate(data = nsw_psid.ps_walker, treat = "treat", co
 
 ### Integrated methods
 #### Trimming and matching 
-##### Extended datasets 
+##### Extended samples 
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # apply trimming with a (maximum) threshold 
@@ -180,7 +180,7 @@ nsw_trim_psid <- subset(nsw_psid_trim, sample %in% c(0,0.5))
 nsw_trim_psid$treat[which(nsw_trim_psid$sample == 0.5)] <- 0
 ```
 
-##### Initial datasets
+##### Initial samples
 ```{r, message=FALSE, warning=FALSE}
 # combine trimmed samples
 all_trim.cps  <- list(
@@ -495,9 +495,9 @@ list_psid <- c(trim_only_psid, match_lookup_psid)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# create samples corresponding to the top 5 methods for each dataset
-top5_datasets.cps <- create_top5_datasets(list_cps, top5_methods.cps)
-top5_datasets.psid <- create_top5_datasets(list_psid, top5_methods.psid)
+# create samples corresponding to the top 5 methods for each sample
+top5_samples.cps <- create_top5_samples(list_cps, top5_methods.cps)
+top5_samples.psid <- create_top5_samples(list_psid, top5_methods.psid)
 
 # extract top5 objects
 top5_objects.cps <- lapply(top5_methods.cps, function(m) list_cps[[m]])
@@ -506,8 +506,8 @@ top5_objects.psid <- lapply(top5_methods.psid, function(m) list_psid[[m]])
 
 ```{r, message=FALSE, warning=FALSE}
 # save samples into .RData files
-save_top5_datasets(list_cps, top5_methods.cps, prefix = "nsw_cps1")
-save_top5_datasets(list_psid, top5_methods.psid, prefix = "nsw_psid1")
+save_top5_samples(list_cps, top5_methods.cps, prefix = "nsw_cps1")
+save_top5_samples(list_psid, top5_methods.psid, prefix = "nsw_psid1")
 ```
 
 ## Estimating
@@ -520,8 +520,8 @@ out3 <- estimate_all(nsw_psid, "re78", "treat", covar)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
-out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
+out.cps <- lapply(top5_samples.cps, function(d) estimate_all(d, "re78", "treat", covar))
+out.psid <- lapply(top5_samples.psid, function(d) estimate_all(d, "re78", "treat", covar))
 out.cps_trim <- lapply(all_trim.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid_trim <- lapply(all_trim.psid, function(d) estimate_all(d, "re78", "treat", covar))
 ```
@@ -668,8 +668,8 @@ save_csv(result_mat, "nsw_att_estimates")
 catt.nsw <- catt(nsw, Y, treat, covar)
 catt.cps <- catt(nsw_cps, Y, treat, covar)
 catt.psid <- catt(nsw_psid, Y, treat, covar)
-catt.top5_cps <- lapply(top5_datasets.cps, function(d) catt(d, Y, treat, covar))
-catt.top5_psid <- lapply(top5_datasets.psid, function(d) catt(d, Y, treat, covar))
+catt.top5_cps <- lapply(top5_samples.cps, function(d) catt(d, Y, treat, covar))
+catt.top5_psid <- lapply(top5_samples.psid, function(d) catt(d, Y, treat, covar))
 catt.top5_cps_trim <- lapply(all_trim.cps, function(d) catt(d, Y, treat, covar))
 catt.top5_psid_trim <- lapply(all_trim.psid, function(d) catt(d, Y, treat, covar))
 ```
@@ -804,8 +804,8 @@ save_plus_catt_panels(
 qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
 qte.nsw_cps <- est_qte(Y, treat, covar, data = nsw_cps)
 qte.nsw_psid <- est_qte(Y, treat, covar, data = nsw_psid)
-qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
-qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps  <- lapply(top5_samples.cps,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_cps_trim  <- lapply(all_trim.cps,  function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_psid_trim <- lapply(all_trim.psid, function(d) est_qte(Y, treat, covar, data = d))
 ```
@@ -821,8 +821,8 @@ qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid_trim_match)
 qte.nsw0 <- est_qte(Y, treat, NULL, data = nsw)
 qte.nsw_cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
 qte.nsw_psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
-qte.top5_cps_trim0  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, NULL, data = d))
-qte.top5_psid_trim0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_cps_trim0  <- lapply(top5_samples.cps,  function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid_trim0 <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -881,11 +881,11 @@ save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_ti
 
 ### Assessing outcome weights (OW)
 ```{r, message=FALSE, warning=FALSE}
-# list all datasets
-all_datasets <- c(list(nsw, nsw_cps, nsw_psid), top5_datasets.cps, top5_datasets.psid, list(nsw_cps_trim_match, nsw_psid_trim_match))
+# list all samples
+all_samples <- c(list(nsw, nsw_cps, nsw_psid), top5_samples.cps, top5_samples.psid, list(nsw_cps_trim_match, nsw_psid_trim_match))
 
 # estimate ATT 
-res_att <- get_res_att(all_datasets, Y, treat, covar)
+res_att <- get_res_att(all_samples, Y, treat, covar)
 
 # extract outcome weights
 ow_att <- derive_ow(res_att)
@@ -901,7 +901,7 @@ plot_ow(ow_att, all_plot_titles)
 
 ```{r, message=FALSE, warning=FALSE}
 # evaluate results
-res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
+res_ow <- eval_ow(ow_att, all_samples, all_plot_titles, treat, "AIPW-ATT")
 
 # print table output
 datatable(res_ow, caption = "Outcome Weights for Treated and Untreated",
@@ -930,24 +930,24 @@ bm <- c("re75")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# check for valid datasets 
-filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
+# check for valid samples 
+filtered_samples_sens <- check_filter_samples(all_samples, Y, treat, covar, bm)
 ```
 
 ```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC6. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. Sensitivity Analyses NSW"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
-# loop over valid datasets and plot results
-for (i in seq_along(filtered_datasets_sens)) {
-    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
+# loop over valid samples and plot results
+for (i in seq_along(filtered_samples_sens)) {
+    sens_ana(filtered_samples_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = all_plot_titles[i])
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(all_datasets, Y, treat, covar, bm, all_plot_titles, "nsw")
+save_sensitivity_plots(filtered_samples_sens, Y, treat, covar, bm, all_plot_titles, "nsw")
 ```
 
 The sensitivity analysis shows that for the NSW-Experimental sample, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder. 

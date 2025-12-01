@@ -60,15 +60,15 @@ library(readr)
 library(rgenoud)
 library(tidyr)
 library(tidyverse)
-library(patchwork)
 library(ppcor)
+library(patchwork)
 library(WeightIt)
 library(OutcomeWeights)
 ```
 
 ## Wrapper functions
 
-Next, the wrapper functions designed to manage the datasets, address overlap and covariate balance, estimate treatment effects and analyze outcome weights are presented.
+Next, the wrapper functions designed to manage the data, address overlap and covariate balance, estimate treatment effects and analyze outcome weights are presented.
 
 <div class="callout-note">
 To use the wrapper functions, the simplest method is to source the R script with the following code.
@@ -83,24 +83,24 @@ If RStudio is used, the functions should now appear in the environment section.
 
 | Function                                            | Description                                                                                                                                                                     |                 Code                  |
 |------------------|------------------------------------|:----------------:|
-| `inspect_data()` | Inspects datasets.    | [More](#inspec) |
-| `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()`, `ps_estimate()`, `attach_matchit()` | Implements methods to improve covariate balancing and overlap and reestimate propensity scores.   | [More](#impl-cov-bal-overl-mthds)  |
-| `compute_abs_smd_trim()`, `compute_ovl_trim()`, `compute_abs_smd_matchit()`, `compute_ovl_matchit()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `rerank_methods()`, `wrap_match_entries()`, `create_top5_datasets()`, `save_top5_datasets()` | Evaluates performance of previous methods through comparative metrics (absolute standardized mean differences (SMD) and overlapping coefficient (OVL)).    |
+| `inspect_data()` , `save_overlap_panels` | Inspects samples and save overlap visualizations.  | [More](#setup) |
+| `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()`, `ps_estimate()`, `attach_matchit()` | Implements methods to improve overlap, address covariate imbalance and reestimate propensity scores.   | [More](#impl-cov-bal-overl-mthds)  |
+| `compute_abs_smd_trim()`, `compute_ovl_trim()`, `compute_abs_smd_matchit()`, `compute_ovl_matchit()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `wrap_match_entries()`, `create_top5_samples()`, `save_top5_samples()` | Evaluates performance of previous methods through comparative metrics (ASMD, OVL).    |
 [More](#eval-mthds) |
-| `estimate_all()`, `plot_coef()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `save_main_catt_panels()`, `save_plus_catt_panels()`, `eval_catt()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes the Average Treatment Effect on the Treated (ATT) using a number of estimators.    | [More](#est-and-plot-att-catt-qtet) |
-| `get_res_att()`, `derive_ow()`, `plot_ow()`, `eval_ow()`, `save_ow()` | Analyses outcome weights of datasets.    | [More](#ow-ana) |
-| `check_filter_datasets()`, `save_sensitivity_plots()` | Validates and filters datasets.    | [More](#sens-ana) |
+| `estimate_all()`, `plot_coef()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `save_main_catt_panels()`, `save_plus_catt_panels()`, `eval_catt()`, `est_qte_safe()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes treatment effect estimands (ATT, CATT, QTET) using a number of estimators.    | [More](#est-and-plot-att-catt-qtet) |
+| `get_res_att()`, `derive_ow()`, `plot_ow()`, `eval_ow()`, `save_ow()` | Analyses outcome weights of samples.    | [More](#ow-ana) |
+| `check_filter_samples()`, `save_sensitivity_plots()` | Validates and filters samples.    | [More](#sens-ana) |
 | `save_balance()` | Saves results of balance check in covariates.    | [More](#bal-ana) |
 
-<a name="inspec"></a>
+<a name="setup"></a>
 
 ### Inspection
 
-`inspect_data()` provides a structured summary of one or multiple datasets by returning a single data frame listing each dataset’s name, number of observations (rows), number of treated units, number of control units, number of variables (columns) and a concatenated string of variable names.
+`inspect_data()` provides a structured summary of one or multiple samples by returning a single data frame listing each dataset’s name, number of observations (rows), number of treated units, number of control units, number of variables (columns) and a concatenated string of variable names.
 ```{r}
 inspect_data <- function(data, treat = "treat") {
   if (is.data.frame(data)) {
-    data <- list(dataset = data)
+    data <- list(sample = data)
   }
   data.frame(
     sample = names(data),
@@ -117,7 +117,7 @@ inspect_data <- function(data, treat = "treat") {
 **Argument**
 
 - `data`: A data frame or a list of data frames containing structured data.
-- `treat`: A character string indicating the name of the (binary) treatment indicator (default is `treat`). 
+- `treat`: A character string indicating the name of the (binary) treatment indicator (default is "treat"). 
 
 `save_overlap_panels()`*** saves the histograms that visualize overlap between the treatment groups.
 ```{r}
@@ -155,10 +155,10 @@ save_overlap_panels <- function(
 **Argument**
 
 - `data_list`: A data frame or a list of data frames containing structured data.
-- `treat`: A character string indicating the name of the (binary) treatment indicator (default is `treat`). 
+- `treat`: A character string indicating the name of the (binary) treatment indicator (default is "treat"). 
 - `covar`: A vector of covariate names.
 - `plot_titles`: A character vector of titles for each plot.
-- `prefix`: A string prefix used for saved file names to identify dataset.
+- `prefix`: A string prefix used for saved file names to identify sample.
 - `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
 - `plots_per_page`: The number of plots to display per page / panel (default 1).
 
@@ -168,7 +168,7 @@ save_overlap_panels <- function(
 
 ### Improving covariate balance and overlap
 #### Trimming 
-`ps_trim()` trims the dataset based on a specified propensity score threshold, removing observations whose propensity scores exceed the given cutoff value.*** 
+`ps_trim()` trims the sample based on a specified propensity score threshold, removing observations whose propensity scores exceed the given cutoff value.*** 
 ```{r}
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
   sub <- data[which(data[, ps] < threshold), ]
@@ -180,9 +180,9 @@ ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) {
 
 - `data`: The data frame containing structured data.
 - `ps`: The name of the propensity score variable as string.
-- `threshold`: The upper limit for propensity score inclusion as numeric value.
+- `threshold`: The upper limit for propensity score inclusion as numeric value (default is 0.9).
 
-`common_range_trim()` trims the dataset to observations with propensity scores within the common support range for treated and control groups. It takes as lower cutpoint the lowest observed propensity score in the treated group, and as upper cutpoint the highest observed propensity score in the control group.
+`common_range_trim()` trims the sample to observations with propensity scores within the common support range for treated and control groups. It takes as lower cutpoint the lowest observed propensity score in the treated group, and as upper cutpoint the highest observed propensity score in the control group.
 ```{r}
 common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   lower_cut <- min(data[[ps]][data[[treat]] == 1], na.rm = TRUE)
@@ -195,10 +195,10 @@ common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `ps`: The column name of propensity scores as string (default is `ps_assoverlap`). 
-- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
+- `ps`: The column name of propensity scores as string (default is "ps_assoverlap"). 
+- `treat`: The column name of the (binary) treatment indicator as string (default is "treat"). 
 
-`crump_trim()` trims the dataset to observations with propensity scores outside specified lower and upper bounds (default 0.1 and 0.9). Only those observations are kept that are within the specified interval (default 0.1 <= PS <= 0.9).
+`crump_trim()` trims the sample to observations with propensity scores outside specified lower and upper bounds (default 0.1 and 0.9). Only those observations are kept that are within the specified interval (default 0.1 <= PS <= 0.9).
 ```{r}
 crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
   sub <- data[data[[ps]] >= lower & data[[ps]] <= upper, ]
@@ -209,11 +209,11 @@ crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `ps`: The column name of propensity scores as string (default is `ps_assoverlap`). 
+- `ps`: The column name of propensity scores as string (default is "ps_assoverlap"). 
 - `lower`: The lower bound for inclusion as numeric value (default is 0.1).
 - `upper`: The upper bound for inclusion as numeric value (default is 0.9).
 
-`stuermer_trim ()` trims the dataset to observations based on propensity score quantiles separately for treated and control group.
+`stuermer_trim ()` trims the sample to observations based on propensity score quantiles separately for treated and control group.
 ```{r}
 stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                           lower_percentile = 0.01, upper_percentile = 0.99) {
@@ -229,12 +229,12 @@ stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
-- `ps`: The column name of propensity scores as string (default is `ps_assoverlap`).
+- `treat`: The column name of the (binary) treatment indicator as string (default is "treat"). 
+- `ps`: The column name of propensity scores as string (default is "ps_assoverlap").
 - `lower_percentile`: Numeric value between 0 and 1 specifying the lower quantile cutoff for propensity scores in the treated group (default is 0.01, i.e., 1st percentile).
 - `upper_percentile`: Numeric value between 0 and 1 specifying the upper quantile cutoff for propensity scores in the untreated group (default is 0.99, i.e., 99th percentile).
 
-`walker_trim()` trims the dataset to observations based on preference scores that adjust for treatment prevalence using logit transformations.
+`walker_trim()` trims the sample to observations based on preference scores that adjust for treatment prevalence using logit transformations.
 ```{r}
 walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
                         lower_cutoff = 0.1, upper_cutoff = 0.9) {
@@ -250,8 +250,8 @@ walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
-- `ps`: The column name of propensity scores as string (default is `ps_assoverlap`).
+- `treat`: The column name of the (binary) treatment indicator as string (default is "treat"). 
+- `ps`: The column name of propensity scores as string (default is "ps_assoverlap").
 - `lower_cutoff`: Numeric value between 0 and 1 specifying the lower cutoff for the preference score (default is 0.1).
 - `upper_cutoff`: Numeric value between 0 and 1 specifying the upper cutoff for the preference score (default is 0.9).
 
@@ -276,7 +276,7 @@ ps_estimate <- function(data, treat, cov, num.trees = NULL, seed = 42) {
 **Arguments**
 
 - `data`: The data frame containing structured data.
-- `treat`: The column name of the (binary) treatment indicator as string (default is `treat`). 
+- `treat`: The column name of the (binary) treatment indicator as string. 
 - `cov`: A vector of covariate names.
 - `num.trees`: Integer specifying the number of trees to grow in the random forest model for propensity score estimation.
 - `seed`: Integer to ensure reproducibility (default is 42).
@@ -333,7 +333,7 @@ attach_matchit <- function(model, data_list, ..., verbose = FALSE) {
 **Arguments**
 
 - `model`: A model formula specifying the treatment and covariates to be used for calculating weights.
-- `data_list`: A list of data frames containing the subsetted dataset after trimming procedures.
+- `data_list`: A list of data frames containing the subsetted sample after trimming procedures.
 
 <br>
 
@@ -341,7 +341,7 @@ attach_matchit <- function(model, data_list, ..., verbose = FALSE) {
 
 ### Assessing methods
 #### Trimming
-`compute_abs_smd_trim()` computes absolute SMDs for multiple datasets.
+`compute_abs_smd_trim()` computes absolute SMDs for multiple samples.
 ```{r}
 compute_abs_smd_trim <- function(data_list, treat = "treat", covar) {
   smd_list <- lapply(names(data_list), function(name) {
@@ -353,7 +353,7 @@ compute_abs_smd_trim <- function(data_list, treat = "treat", covar) {
       stats = "mean.diffs",
       s.d.denom = "treated"
     )
-    smds <- bal_obj$Balance$Diff.Un   # Use Diff.Un for raw/trimmed data
+    smds <- bal_obj$Balance$Diff.Un   
     smd_vals <- abs(smds)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
@@ -372,10 +372,10 @@ compute_abs_smd_trim <- function(data_list, treat = "treat", covar) {
 **Arguments**
 
 - `data_list`: A list of data frames.
-- `treat`: The name of the binary treatment indicator variable as string.
+- `treat`: The name of the binary treatment indicator variable as string (default is "treat").
 - `covar`: A vector of covariate names.
 
-`compute_ovl_trim()` compute the OVL for multiple datasets.
+`compute_ovl_trim()` compute the overlapping coefficient (OVL) for multiple samples.
 ```{r}
 compute_ovl_trim <- function(data_list, ps = "ps_assoverlap", treat = "treat", n_points = 512) {
   ovl_res <- lapply(names(data_list), function(meth) {
@@ -403,12 +403,13 @@ compute_ovl_trim <- function(data_list, ps = "ps_assoverlap", treat = "treat", n
 
 **Arguments**
 
-- `data_list`: A list of data frames, each a trimmed dataset.
-- `treat`: The name of the binary treatment indicator variable as string.
-- `n_points`: The number of grid points to use for the kernel density estimation.
+- `data_list`: A list of data frames, each a trimmed sample.
+- `ps`: A vector containing propensity scores (default is "ps_assoverlap").
+- `treat`: The name of the binary treatment indicator variable as string (default is "treat").
+- `n_points`: The number of grid points to use for the kernel density estimation (default is 512).
 
 #### Integrated methods
-`compute_abs_smd_matchit()` computes the absolute SMD for matchit objects.
+`compute_abs_smd_matchit()` computes the mean absolute standardized difference (ASMD) for matchit objects.
 ```{r}
 compute_abs_smd_matchit <- function(match_list, data_list) {
   if (!is.list(match_list) || length(match_list) == 0) {
@@ -495,7 +496,7 @@ compute_abs_smd_matchit <- function(match_list, data_list) {
 **Arguments**
 
 - `match_list`: A named list of method-specific elements, where each itself is a list of matchit objects.
-- `data_list`:  A list of data frames, each a trimmed dataset.
+- `data_list`:  A list of data frames, each a trimmed sample.
 
 `compute_ovl_matchit()` computes the OVL for matchit objects.
 ```{r}
@@ -658,23 +659,24 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
 **Arguments**
 
 - `match_list`: A named list of method-specific elements, where each itself is a list of matchit objects.
-- `data_list`:  A list of data frames, each a trimmed dataset.
-- `treat`: The name of the binary treatment indicator variable as string.
-- `covar`: A vector of covariate names.
+- `data_list`:  A list of data frames, each a trimmed sample.
+- `ps`: A vector containing propensity scores (default is "ps_assoverlap").
+- `treat`: The name of the binary treatment indicator variable as string (default is "treat").
+- `covar`: A vector of covariate names. 
 - `num.trees`: Integer specifying the number of trees to grow in the random forest model for propensity score estimation.
 - `seed`: Integer to ensure reproducibility (default is 42).
 - `n_points`: The number of grid points to use for the kernel density estimation.
 
 ### Identifying best methods
-`combine_results()` merges and summarizes SMD and OVL statistics from various analysis stages of non-plus-datasets into a final comparison table.
+`combine_results()` merges and summarizes mean ASMD and OVL statistics from various analysis stages of non-plus-samples into a final comparison table.
 ```{r}
-combine_results <- function(dataset_name) {
-  dataset_lower <- tolower(dataset_name)
+combine_results <- function(data) {
+  data_lower <- tolower(data)
   # retrieve individual method results
-  smd_trimming <- get(paste0("smd_trim.", dataset_lower))
-  ovl_trimming <- get(paste0("ovl_trim.", dataset_lower))
-  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", dataset_lower))
-  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", dataset_lower))
+  smd_trimming <- get(paste0("smd_trim.", data_lower))
+  ovl_trimming <- get(paste0("ovl_trim.", data_lower))
+  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", data_lower))
+  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", data_lower))
   format_smd_results <- function(df) {
     if (is.null(df) || !nrow(df)) {
       return(data.frame(Method = character(0), Mean_Abs_SMD = numeric(0), Max_Abs_SMD = numeric(0)))
@@ -706,7 +708,7 @@ combine_results <- function(dataset_name) {
     return(final_df)
   }
   final_df$Method <- as.character(final_df$Method)
-  # remove dataset suffixes for clean labels
+  # remove sample suffixes for clean labels
   final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
   # reset row names
@@ -717,7 +719,7 @@ combine_results <- function(dataset_name) {
 
 **Arguments**
 
-- `dataset_name`: The dataset name for which to combine SMD and ESS summaries.
+- `data`: The sample name for which to combine ASMD and OVL summaries.
 
 `save_csv()` saves the tables into a CSV file.
 ```{r}
@@ -731,7 +733,7 @@ save_csv <- function(data, filename) {
 
 **Arguments**
 
-- `data`: The dataset.
+- `data`: The data frame.
 - `filename`: The name of the file that is to be saved as CSV.
 
 `assess_methods()` ranks methods based on the OVL.
@@ -749,23 +751,23 @@ assess_methods <- function(data) {
 
 `get_top_methods()` retrieves the top-performing methods based on the OVL.
 ```{r}
-get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
-  if (!"Method" %in% names(summary_df)) {
+get_top_methods <- function(data, top_n = 5, score_col = NULL) {
+  if (!"Method" %in% names(data)) {
     stop("Data frame must contain column 'Method'")
   }
   if (is.null(score_col)) {
-    if ("Score" %in% names(summary_df)) {
+    if ("Score" %in% names(data)) {
       score_col <- "Score"
-    } else if ("OVL" %in% names(summary_df)) {
+    } else if ("OVL" %in% names(data)) {
       score_col <- "OVL"
     } else {
       stop("Data frame must contain a scoring column ('Score' or 'OVL'), or specify 'score_col'")
     }
   }
-  if (!score_col %in% names(summary_df)) {
-    stop(sprintf("Column '%s' not found in summary_df", score_col))
+  if (!score_col %in% names(data)) {
+    stop(sprintf("Column '%s' not found in data", score_col))
   }
-  summary_df %>%
+  data %>%
     dplyr::filter(!is.na(.data[[score_col]])) %>%
     arrange(dplyr::desc(.data[[score_col]])) %>%
     head(top_n) %>%
@@ -775,23 +777,9 @@ get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
 
 **Arguments**
 
-- `summary_df`: A data frame including columns used for ranking.
+- `data`: A data frame including columns used for ranking.
 - `top_n`: Integer specifying the number of top-performing methods to return (default 5).
 - `score_col`: The name of the column to use for ranking methods.
-
-`rerank_methods()`
-```{r}
-rerank_methods <- function(top_methods, ranked_table) {
-  filtered <- ranked_table[ranked_table$Method %in% top_methods, ]
-  filtered <- filtered[order(-filtered$Mean_Abs_SMD), ]
-  filtered$Method
-}
-```
-
-**Arguments**
-
-- `top_methods`: A character vector of method names for which to re-rank results.
-- `ranked_table`: A data frame of method performance metrics.
 
 `wrap_match_entries()`
 ```{r}
@@ -820,32 +808,32 @@ wrap_match_entries <- function(match_list, source_list, prefix) {
 - `source_list`: A list of source data frames corresponding to each match object.
 - `prefix`: A string prefix for defining the names of the returned list entries.
 
-`create_top5_datasets()` extracts datasets corresponding to the top five ranked methods for further analysis or presentation.
+`create_top5_samples()` creates samples corresponding to the top five ranked methods for further analysis or presentation.
 ```{r}
-create_top5_datasets <- function(dataset_list, top_method_names) {
-  if (!is.list(dataset_list) || length(dataset_list) == 0) {
-    stop("create_top5_datasets(): 'dataset_list' must be a non-empty list", call. = FALSE)
+create_top5_samples <- function(data_list, top_method_names) {
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("create_top5_samples(): 'data_list' must be a non-empty list", call. = FALSE)
   }
   if (length(top_method_names) == 0) {
-    stop("create_top5_datasets(): 'top_method_names' must contain at least one method name", call. = FALSE)
+    stop("create_top5_samples(): 'top_method_names' must contain at least one method name", call. = FALSE)
   }
-  missing_methods <- setdiff(top_method_names, names(dataset_list))
+  missing_methods <- setdiff(top_method_names, names(data_list))
   if (length(missing_methods)) {
     stop(sprintf(
-      "create_top5_datasets(): the following methods are missing from 'dataset_list': %s",
+      "create_top5_samples(): the following methods are missing from 'data_list': %s",
       paste(missing_methods, collapse = ", ")
     ), call. = FALSE)
   }
   out <- lapply(top_method_names, function(method_name) {
-    ds <- dataset_list[[method_name]]
+    ds <- data_list[[method_name]]
     if (is.null(ds)) {
-      stop(sprintf("create_top5_datasets(): dataset for method '%s' is NULL", method_name), call. = FALSE)
+      stop(sprintf("create_top5_samples(): sample for method '%s' is NULL", method_name), call. = FALSE)
     }
     if (inherits(ds, "matchit")) {
       source_data <- attr(ds, "match_source")
       if (is.null(source_data)) {
         stop(sprintf(
-          "create_top5_datasets(): matchit object '%s' is missing source data. Regenerate it with attach_matchit() so 'match_source' attribute is available or provide a data.frame entry instead.",
+          "create_top5_samples(): matchit object '%s' is missing source data. Regenerate it with attach_matchit() so 'match_source' attribute is available or provide a data.frame entry instead.",
           method_name
         ), call. = FALSE)
       }
@@ -857,7 +845,7 @@ create_top5_datasets <- function(dataset_list, top_method_names) {
     if (is.data.frame(ds)) {
       return(ds)
     }
-    stop(sprintf("create_top5_datasets(): unsupported entry type for method '%s'", method_name), call. = FALSE)
+    stop(sprintf("create_top5_samples(): unsupported entry type for method '%s'", method_name), call. = FALSE)
   })
   names(out) <- top_method_names
   out
@@ -866,12 +854,12 @@ create_top5_datasets <- function(dataset_list, top_method_names) {
 
 **Arguments**
 
-- `dataset_list`: A list of datasets or MatchIt objects containing processed results for different methods.
-- `top_method_names`: A character vector of method names corresponding to the top-ranked datasets. 
+- `data_list`: A list of samples or MatchIt objects containing processed results for different methods.
+- `top_method_names`: A character vector of method names corresponding to the top-ranked samples. 
 
-`save_top5_individual_files()` saves datasets of the top five methods as individual files for reproducibility or sharing. 
+`save_top5_samples()` saves samples of the top five methods as individual files for reproducibility or sharing. 
 ```{r}
-save_top5_datasets <- function(combined_methods_list, top_method_names, prefix) {
+save_top5_samples <- function(combined_methods_list, top_method_names, prefix) {
   dir.create("tutorial/data", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_along(top_method_names)) {
     method_name <- top_method_names[i]
@@ -879,9 +867,9 @@ save_top5_datasets <- function(combined_methods_list, top_method_names, prefix) 
       warning(paste0("Method '", method_name, "' not found in combined methods list"))
       next
     }
-    dataset_to_save <- combined_methods_list[[method_name]]
+    sample_to_save <- combined_methods_list[[method_name]]
     file_name <- sprintf("tutorial/data/top%d_%s_method_%s.RData", i, prefix, method_name)
-    save(dataset_to_save, file = file_name)
+    save(sample_to_save, file = file_name)
   }
 }
 ```
@@ -889,8 +877,8 @@ save_top5_datasets <- function(combined_methods_list, top_method_names, prefix) 
 **Arguments**
 
 - `combined_methods_list`: A list of all combined method results.
-- `top_method_names`: A character vector of method names corresponding to the top-ranked datasets.
-- `prefix`: A string prefix used for saved file names to identify dataset.
+- `top_method_names`: A character vector of method names corresponding to the top-ranked samples.
+- `prefix`: A string prefix used for saved file names to identify sample.
 
 <br>
 
@@ -899,7 +887,7 @@ save_top5_datasets <- function(combined_methods_list, top_method_names, prefix) 
 
 <a name="est-and-plot-att-catt-qtet"></a>
 
-`estimate_all()`*** runs multiple treatment effect estimators on a dataset and returns point estimates, standard errors and confidence intervals.
+`estimate_all()`*** runs multiple treatment effect estimators on a sample and returns point estimates, standard errors and confidence intervals.
 ```{r}
 #### quiet()***
 quiet <- function(x) {
@@ -1325,7 +1313,7 @@ save_att_panels <- function(
 - `plot_titles`: A character vector of titles for each plot.
 - `band_list`: A list of numeric vectors specifying the confidence interval bounds for each plot.
 - `est_list`: A list or numeric vector representing the point estimates (ATT values) for each plot.
-- `prefix`: A string prefix used for saved file names to identify dataset.
+- `prefix`: A string prefix used for saved file names to identify sample (default is "ldw_model_a_plus").
 - `plots_per_page`: The number of plots to display per page / panel (default 4).
 - `ylim`: A numeric vector specifying the y-axis limits for the plots.
 - `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
@@ -1402,23 +1390,23 @@ create_matrix_results <- function(all_outs, all_out_mat, sample_names) {
 
 - `all_outs`: A list of output objects containing ATT estimates and confidence intervals for different methods.
 - `all_out_mat`: A list of objects containing ATT estimates and confidence intervals for different methods used for benchmark construction.
-- `sample_names`: A character vector of sample / dataset names corresponding to `all_outs`.
+- `sample_names`: A character vector of sample names corresponding to `all_outs`.
 
 `eval_att()` computes summary statistics of the treatment effect estimates. 
 ```{r}
-eval_att <- function(result) {
+eval_att <- function(data) {
   data.frame(
-    Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error
-    Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate 
-    Max_Estimate = max(result[, "Estimate"], na.rm = TRUE), # minimum estimate 
-    Diff_Estimate = max(result[, "Estimate"], na.rm = TRUE) - min(result[, "Estimate"], na.rm = TRUE)
+    Mean_SE = mean(data[, "SE"], na.rm = TRUE), # mean standard error
+    Min_Estimate = min(data[, "Estimate"], na.rm = TRUE), # maximum estimate 
+    Max_Estimate = max(data[, "Estimate"], na.rm = TRUE), # minimum estimate 
+    Diff_Estimate = max(data[, "Estimate"], na.rm = TRUE) - min(data[, "Estimate"], na.rm = TRUE)
   )
 }
 ```
 
 **Argument**
 
-- `result`: A data frame containing treatment effect estimation results.
+- `data`: A data frame containing treatment effect estimation results.
 
 #### Conditional average treatment effect on the treated (CATT)
 
@@ -1523,7 +1511,7 @@ save_catt_panels <- function(
 - `exp_catt_list`: A list of objects containing CATT estimates used as experimental benchmark.
 - `catt_list`: A list of objects containing CATT estimates from each comparison with the experimental benchmark.
 - `plot_titles`: A character vector of titles for each plot.
-- `prefix`: A string prefix for saved PDF filenames.
+- `prefix`: A string prefix for saved PDF filenames (default is "catt_top5").
 - `plots_per_page`: The number of plots to display per page / panel (default 1).
 - `range`: A numeric vector of axis limits for plots (default c(-8000, 8000)).
 - `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
@@ -1580,7 +1568,7 @@ save_main_catt_panels <- function(
 - `catt_refs`: List of reference CATT objects used for x-axis values in each comparison plot.
 - `catt_comps`: List of comparison CATT objects used for the y-axis in each plot.
 - `ylabels`: Character vector of plot y-axis labels.
-- `prefix`: A string prefix for saved PDF filenames.
+- `prefix`: A string prefix for saved PDF filenames (default is "catt_main").
 - `plots_per_page`: The number of plots to display per page / panel (default 1).
 - `main_titles`: Character vector of main titles to appear at the top of each plot.
 - `range`: A numeric vector of axis limits for plots (default c(-8000, 8000)).
@@ -1711,7 +1699,7 @@ plot_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
 - `bm_list`: A list containing QTET estimates for experimental benchmark construction.
 - `plot_titles`:  A character vector of titles for each plot, matching the order of elements in `qtet_top`. 
 - `main_start`: Numeric value index specifying where to start selecting titles from `plot_titles` (default is 1).
-- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `ylim`: A numeric vector specifying the y-axis limits for the plots (default is c(-25000, 15000)).
 - `col`: Color specification.
 
 `save_qtet()`*** generates and saves quantile treatment effect on the treated (QTET) plots for a given list of estimates.
@@ -1739,7 +1727,7 @@ save_qtet <- function(plots, plot_titles = NULL, main_start = 1,
 - `plots`: A list of objects containing QTET estimates and corresponding unadjusted estimates.
 - `plot_titles`: A character vector of titles for each plot, matching the order of elements in `plots`.
 - `main_start`: Numeric value index specifying where to start selecting titles from `plot_titles` (default is 1).
-- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `ylim`: A numeric vector specifying the y-axis limits for the plots (default is c(-25000, 15000)).
 - `col`: Color specification.
 - `prefix`: A string prefix for saved PDF filenames (default is "ldw").
 
@@ -1752,7 +1740,7 @@ save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
   for (i in seq_len(n)) {
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
-    bm <- bm_list[[i]]                
+    bm <- bm_list[[i]]                 
     main_title <- plot_titles[main_start + i - 1]
     clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
     file_name <- sprintf("graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
@@ -1772,7 +1760,7 @@ save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
 - `bm_list`: A list containing QTET estimates for experimental benchmark construction.
 - `plot_titles`: A character vector of titles for each plot, matching the order of elements in `qtet_top`.
 - `main_start`: Numeric value index specifying where to start selecting titles from `plot_titles` (default is 1).
-- `ylim`: A numeric vector specifying the y-axis limits for the plots.
+- `ylim`: A numeric vector specifying the y-axis limits for the plots (default is c(-25000, 15000)).
 - `col`: Color specification.
 - `prefix`: A string prefix for saved PDF filenames (default is "ldw_top").
 
@@ -1781,16 +1769,16 @@ save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
 <a name="ow-ana"></a>
 
 ### Outcome weights analysis
-`get_res_att()` estimates average treatment effects on the treated (ATT) using augmented inverse probability weighting with cross-fitting on a list of datasets.
+`get_res_att()` estimates average treatment effects on the treated (ATT) using augmented inverse probability weighting with cross-fitting on a list of sample.
 ```{r}
-get_res_att <- function(dataset_list, Y, treat, covar,
+get_res_att <- function(data_list, Y, treat, covar,
                         estimator = "AIPW_ATT", 
                         smoother = "honest_forest", 
                         n_cf_folds = 5,
                         n_reps = 1) {
-      results <- lapply(seq_along(dataset_list),
+      results <- lapply(seq_along(data_list),
           function(i) {
-            data <- dataset_list[[i]]
+            data <- data_list[[i]]
             n_obs <- nrow(data)
             # adjust n_cf_folds for small samples
             folds <- if (n_obs < 100) {
@@ -1811,7 +1799,7 @@ get_res_att <- function(dataset_list, Y, treat, covar,
                 n_reps = n_reps
               )
             }, error = function(e) {
-              cat(sprintf("WARNING: get_res_att failed for dataset %d (n=%d): %s\n", i, n_obs, e$message))
+              cat(sprintf("WARNING: get_res_att failed for sample %d (n=%d): %s\n", i, n_obs, e$message))
               return(NULL)
             })
           }
@@ -1819,7 +1807,7 @@ get_res_att <- function(dataset_list, Y, treat, covar,
     # summary report
     null_count <- sum(sapply(results, is.null))
     success_count <- length(results) - null_count
-    cat(sprintf("OUTCOME WEIGHTS SUMMARY: %d succeeded, %d failed out of %d datasets\n", 
+    cat(sprintf("OUTCOME WEIGHTS SUMMARY: %d succeeded, %d failed out of %d samples\n", 
                 success_count, null_count, length(results)))
     return(results)
 }
@@ -1827,7 +1815,7 @@ get_res_att <- function(dataset_list, Y, treat, covar,
 
 **Arguments**
 
-- `dataset_list`: A list of datasets. 
+- `data_list`: A list of samples containing data. 
 - `Y`: String specifying the name of the outcome variable.
 - `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
@@ -1855,7 +1843,7 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
     weights <- outcome_weights[[i]]$omega[estimator, ]
-    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
   }
@@ -1872,19 +1860,20 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
 - `xlab`: String specifying the label for the x-axis (default is "Outcome Weight")
 - `estimator`: String specifying the estimator to use (default is "AIPW-ATT").
 
-`eval_ow()` computes summary statistics of outcome weights by treatment group for a list of datasets and returns a data frame for comparison.
+`eval_ow()` computes summary statistics of outcome weights by treatment group for a list of samples and returns a data frame for comparison.
 ```{r}
-eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
+eval_ow <- function(outcome_weights, data_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
   results <- lapply(seq_along(outcome_weights), function(i) {
     ow <- outcome_weights[[i]]$omega[estimator, ]
-    treat <- dataset_list[[i]][[treat]]
-    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    treat <- data_list[[i]][[treat]]
+    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     sum_treated <- sum(ow[treat == 1])
     sum_untreated <- sum(ow[treat == 0])
     data.frame(
       Method = method,
       Sum_Treated = sum_treated,
       Sum_Untreated = sum_untreated,
+      Total_Sum = sum_treated + sum_untreated,
       stringsAsFactors = FALSE
     )
   })
@@ -1895,22 +1884,23 @@ eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "
 **Arguments*
 
 - `outcome_weights`: A list of outcome weight objects.
-- `plot_titles`:  A character vector of titles for each plot.
-- `treat_var`:  String specifying the treatment variable in each dataset (default is "treat").
+- `data_list`: A list of samples containing data. 
+- `plot_titles`: A character vector of titles for each plot.
+- `treat`:  String specifying the treatment variable in each sample (default is "treat").
 - `estimator`: String specifying the estimator to use (default is "AIPW-ATT").
 
-`save_ow()` saves the outcome weight histograms as PDF files, one per dataset, with optional custom titles and formatting.
+`save_ow()` saves the outcome weight histograms as PDF files, one per sample, with optional custom titles and formatting.
 ```{r}
 save_ow <- function(outcome_weights, plot_titles = NULL,
                     breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
-                    prefix = "model_a", estimand = "AIPW-ATT") {
+                    prefix = "model_a", estimator = "AIPW-ATT") {
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
     file_name <- sprintf("graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
     pdf(file = file_name, width = 8, height = 6)
-    weights <- outcome_weights[[i]]$omega[estimand, ]
-    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    weights <- outcome_weights[[i]]$omega[estimator, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
     dev.off()
@@ -1932,14 +1922,14 @@ save_ow <- function(outcome_weights, plot_titles = NULL,
 
 ### Sensitivity analysis
 
-`check_filter_datasets()` filters a list of datasets to retain only those with all required variables, no missing data, binary treatment, and sufficient baseline/covariate variation.
+`check_filter_samples()` filters a list of samples to retain only those with all required variables, no missing data, binary treatment, and sufficient baseline/covariate variation.
 ```{r}
-check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
-  valid_datasets <- list()
-  for (i in seq_along(datasets)) {
-    data <- datasets[[i]]
-    name <- names(datasets)[i]
-    if (is.null(name) || name == "") name <- paste0("dataset_", i)  # provide a name if missing
+check_filter_samples <- function(data_list, Y, treat, covar, bm) {
+  valid_samples <- list()
+  for (i in seq_along(data_list)) {
+    data <- data_list[[i]]
+    name <- names(data_list)[i]
+    if (is.null(name) || name == "") name <- paste0("data_", i)  # provide a name if missing
     vars_needed <- c(Y, treat, covar, bm)
     if (!all(vars_needed %in% names(data))) { # check all variables exist
       message("Removed ", name, ": missing required variables") 
@@ -1963,40 +1953,40 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
       message("Removed ", name, ": covariate variable(s) lack variation")
       next
     }
-    valid_datasets[[name]] <- data # if all passed dataset is kept
+    valid_samples[[name]] <- data # if all passed sample is kept
   }
-  return(valid_datasets)
+  return(valid_samples)
 }
 ```
 
 **Arguments**
 
-- `datasets`: A list of data frames containing data to be filtered.
+- `data_list`: A list of data frames containing data to be filtered.
 - `Y`: The name of the outcome variable.
 - `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `bm`: A vector of baseline variable names.
 
-`save_sensitivity_plots()` generates sensitivity analysis plots for a series of filtered datasets, saving each as a pdf file.
+`save_sensitivity_plots()` generates sensitivity analysis plots for a series of filtered samples, saving each as a pdf file.
 ```{r}
-save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_titles, prefix) {
+save_sensitivity_plots <- function(filtered_data_list, Y, treat, covar, bm, plot_titles, prefix) {
   folder <- "graphs/lalonde"
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   success_count <- 0
   fail_count <- 0
-  for (i in seq_along(filtered_datasets)) {
+  for (i in seq_along(filtered_data_list)) {
     idx <- i
     file_name <- file.path(folder, paste0(prefix, "_sensitivity_", idx, ".pdf"))
     pdf(file_name, width = 8, height = 8)
     tryCatch({
-      sens_ana(filtered_datasets[[i]], Y, treat, covar, bm, kd = 1:3)
+      sens_ana(filtered_data_list[[i]], Y, treat, covar, bm, kd = 1:3)
       if (!is.null(plot_titles) && length(plot_titles) >= idx) {
         title(main = plot_titles[idx])
       }
       success_count <- success_count + 1
     }, error = function(e) {
       plot.new()
-      title_text <- if (!is.null(plot_titles) && length(plot_titles) >= idx) plot_titles[idx] else paste("Dataset", idx)
+      title_text <- if (!is.null(plot_titles) && length(plot_titles) >= idx) plot_titles[idx] else paste("Sample", idx)
       text(0.5, 0.5, paste("ERROR:", title_text, "\n", e$message), cex = 0.8)
       cat(sprintf("WARNING: Sensitivity plot %d (%s) failed: %s\n", idx, title_text, e$message))
       fail_count <- fail_count + 1
@@ -2004,18 +1994,18 @@ save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_
     dev.off()
   }
   cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
-              success_count, fail_count, length(filtered_datasets)))
+              success_count, fail_count, length(filtered_data_list)))
 }
 ```
 
 **Arguments**
 
-- `filtered_datasets`: A list of filtered datasets.
+- `filtered_data_list`: A list of filtered samples containing data.
 - `Y`: The name of the outcome variable.
 - `treat`: The name of the binary treatment indicator variable as string.
 - `covar`: A vector of covariate names.
 - `bm`: A vector of baseline variable names.
-- `plot_titles`: A vector of titles for plots corresponding to datasets.
+- `plot_titles`: A vector of titles for plots corresponding to samples.
 - `prefix`: A string prefix for saving output PDF files.
 
 <a name="bal-ana"></a>
@@ -2024,15 +2014,15 @@ save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_
 `save_balance()` generates balance plots that visualize the distribution of a specified covariate across treated and control groups for each sample and method.
 ```{r}
 save_balance <- function(
-    datasets,
+    data_list,
     method_names,
     balance_var = "re75",
     prefix = "balance_panels",
-    plots_per_page = 5,
+    plots_per_page = 4,
     folder = "graphs/lalonde"
 ) {
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
-  n <- length(datasets)
+  n <- length(data_list)
   pages <- ceiling(n / plots_per_page)
   for (p in seq_len(pages)) {
     start <- (p - 1) * plots_per_page + 1
@@ -2040,10 +2030,10 @@ save_balance <- function(
     file_name <- file.path(folder, paste0(prefix, "_", balance_var, "_", p, ".pdf"))
     plot_list <- list()
     for (i in start:end) {
-      plot_title <- paste0("(", LETTERS[i], ") ", method_names[i], " - ", balance_var)
+      plot_title <- paste0(method_names[i])
       pl <- tryCatch({
         form <- as.formula(paste0("treat ~ ", balance_var))
-        bal.plot(form, data = datasets[[i]], which = "both") +
+        bal.plot(form, data = data_list[[i]], which = "both") +
           ggtitle(plot_title)
       }, error = function(e) {
         message(sprintf("Could not plot %s: %s", method_names[i], e$message))
@@ -2060,9 +2050,10 @@ save_balance <- function(
 
 **Arguments**
 
-- `datasets`: A list of datasets.
-- `method_names`: A list of methods names that were used to generate the datasets.
+- `data_list`: A list of samples containing data.
+- `method_names`: A list of methods names that were used to generate the samples.
 - `balance_var`: The name of the covariate that shall be used for balance check.
-- `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
-- `plots_per_page`: The number of plots to display per page / panel (default 5).
 - `prefix`: A string prefix for saving output PDF files.
+- `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
+- `plots_per_page`: The number of plots to display per page / panel (default 4).
+

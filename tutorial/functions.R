@@ -52,7 +52,7 @@ library(OutcomeWeights)
 #### inspect_datasets()
 inspect_data <- function(data, treat = "treat") {
   if (is.data.frame(data)) {
-    data <- list(dataset = data)
+    data <- list(sample = data)
   }
   data.frame(
     sample = names(data),
@@ -507,13 +507,13 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
 ## 4. Identifying best methods
 ### 4.1 Ranking
 #### combine_results()
-combine_results <- function(dataset_name) {
-  dataset_lower <- tolower(dataset_name)
+combine_results <- function(data) {
+  data_lower <- tolower(data)
   # retrieve individual method results
-  smd_trimming <- get(paste0("smd_trim.", dataset_lower))
-  ovl_trimming <- get(paste0("ovl_trim.", dataset_lower))
-  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", dataset_lower))
-  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", dataset_lower))
+  smd_trimming <- get(paste0("smd_trim.", data_lower))
+  ovl_trimming <- get(paste0("ovl_trim.", data_lower))
+  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", data_lower))
+  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", data_lower))
   format_smd_results <- function(df) {
     if (is.null(df) || !nrow(df)) {
       return(data.frame(Method = character(0), Mean_Abs_SMD = numeric(0), Max_Abs_SMD = numeric(0)))
@@ -545,7 +545,7 @@ combine_results <- function(dataset_name) {
     return(final_df)
   }
   final_df$Method <- as.character(final_df$Method)
-  # remove dataset suffixes for clean labels
+  # remove sample suffixes for clean labels
   final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
   # reset row names
@@ -569,30 +569,30 @@ assess_methods <- function(data) {
 }
 
 #### get_top_methods()
-get_top_methods <- function(summary_df, top_n = 5, score_col = NULL) {
-  if (!"Method" %in% names(summary_df)) {
+get_top_methods <- function(data, top_n = 5, score_col = NULL) {
+  if (!"Method" %in% names(data)) {
     stop("Data frame must contain column 'Method'")
   }
   if (is.null(score_col)) {
-    if ("Score" %in% names(summary_df)) {
+    if ("Score" %in% names(data)) {
       score_col <- "Score"
-    } else if ("OVL" %in% names(summary_df)) {
+    } else if ("OVL" %in% names(data)) {
       score_col <- "OVL"
     } else {
       stop("Data frame must contain a scoring column ('Score' or 'OVL'), or specify 'score_col'")
     }
   }
-  if (!score_col %in% names(summary_df)) {
-    stop(sprintf("Column '%s' not found in summary_df", score_col))
+  if (!score_col %in% names(data)) {
+    stop(sprintf("Column '%s' not found in data", score_col))
   }
-  summary_df %>%
+  data %>%
     dplyr::filter(!is.na(.data[[score_col]])) %>%
     arrange(dplyr::desc(.data[[score_col]])) %>%
     head(top_n) %>%
     dplyr::pull(Method)
 }
 
-### 4.2 Dataset construction
+### 4.2 Sample construction
 #### wrap_match_entries()
 wrap_match_entries <- function(match_list, source_list, prefix) {
   if (!is.list(match_list)) {
@@ -612,31 +612,31 @@ wrap_match_entries <- function(match_list, source_list, prefix) {
   Filter(Negate(is.null), entries)
 }
 
-#### create_top5_datasets()
-create_top5_datasets <- function(dataset_list, top_method_names) {
-  if (!is.list(dataset_list) || length(dataset_list) == 0) {
-    stop("create_top5_datasets(): 'dataset_list' must be a non-empty list", call. = FALSE)
+#### create_top5_samples()
+create_top5_samples <- function(data_list, top_method_names) {
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("create_top5_samples(): 'data_list' must be a non-empty list", call. = FALSE)
   }
   if (length(top_method_names) == 0) {
-    stop("create_top5_datasets(): 'top_method_names' must contain at least one method name", call. = FALSE)
+    stop("create_top5_samples(): 'top_method_names' must contain at least one method name", call. = FALSE)
   }
-  missing_methods <- setdiff(top_method_names, names(dataset_list))
+  missing_methods <- setdiff(top_method_names, names(data_list))
   if (length(missing_methods)) {
     stop(sprintf(
-      "create_top5_datasets(): the following methods are missing from 'dataset_list': %s",
+      "create_top5_samples(): the following methods are missing from 'data_list': %s",
       paste(missing_methods, collapse = ", ")
     ), call. = FALSE)
   }
   out <- lapply(top_method_names, function(method_name) {
-    ds <- dataset_list[[method_name]]
+    ds <- data_list[[method_name]]
     if (is.null(ds)) {
-      stop(sprintf("create_top5_datasets(): dataset for method '%s' is NULL", method_name), call. = FALSE)
+      stop(sprintf("create_top5_samples(): sample for method '%s' is NULL", method_name), call. = FALSE)
     }
     if (inherits(ds, "matchit")) {
       source_data <- attr(ds, "match_source")
       if (is.null(source_data)) {
         stop(sprintf(
-          "create_top5_datasets(): matchit object '%s' is missing source data. Regenerate it with attach_matchit() so 'match_source' attribute is available or provide a data.frame entry instead.",
+          "create_top5_samples(): matchit object '%s' is missing source data. Regenerate it with attach_matchit() so 'match_source' attribute is available or provide a data.frame entry instead.",
           method_name
         ), call. = FALSE)
       }
@@ -648,14 +648,14 @@ create_top5_datasets <- function(dataset_list, top_method_names) {
     if (is.data.frame(ds)) {
       return(ds)
     }
-    stop(sprintf("create_top5_datasets(): unsupported entry type for method '%s'", method_name), call. = FALSE)
+    stop(sprintf("create_top5_samples(): unsupported entry type for method '%s'", method_name), call. = FALSE)
   })
   names(out) <- top_method_names
   out
 }  
 
-#### save_top5_datasets()
-save_top5_datasets <- function(combined_methods_list, top_method_names, prefix) {
+#### save_top5_samples()
+save_top5_samples <- function(combined_methods_list, top_method_names, prefix) {
   dir.create("tutorial/data", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_along(top_method_names)) {
     method_name <- top_method_names[i]
@@ -663,9 +663,9 @@ save_top5_datasets <- function(combined_methods_list, top_method_names, prefix) 
       warning(paste0("Method '", method_name, "' not found in combined methods list"))
       next
     }
-    dataset_to_save <- combined_methods_list[[method_name]]
+    sample_to_save <- combined_methods_list[[method_name]]
     file_name <- sprintf("tutorial/data/top%d_%s_method_%s.RData", i, prefix, method_name)
-    save(dataset_to_save, file = file_name)
+    save(sample_to_save, file = file_name)
   }
 }
 
@@ -1132,12 +1132,12 @@ create_matrix_results <- function(all_outs, all_out_mat, sample_names) {
 }
 
 #### eval_att()
-eval_att <- function(result) {
+eval_att <- function(data) {
   data.frame(
-    Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error
-    Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate 
-    Max_Estimate = max(result[, "Estimate"], na.rm = TRUE), # minimum estimate 
-    Diff_Estimate = max(result[, "Estimate"], na.rm = TRUE) - min(result[, "Estimate"], na.rm = TRUE)
+    Mean_SE = mean(data[, "SE"], na.rm = TRUE), # mean standard error
+    Min_Estimate = min(data[, "Estimate"], na.rm = TRUE), # maximum estimate 
+    Max_Estimate = max(data[, "Estimate"], na.rm = TRUE), # minimum estimate 
+    Diff_Estimate = max(data[, "Estimate"], na.rm = TRUE) - min(data[, "Estimate"], na.rm = TRUE)
   )
 }
 
@@ -1396,14 +1396,14 @@ save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start =
 
 ## 5.4 Assessing outcome weights (OW)
 #### get_res_att()
-get_res_att <- function(dataset_list, Y, treat, covar,
+get_res_att <- function(data_list, Y, treat, covar,
                         estimator = "AIPW_ATT", 
                         smoother = "honest_forest", 
                         n_cf_folds = 5,
                         n_reps = 1) {
-      results <- lapply(seq_along(dataset_list),
+      results <- lapply(seq_along(data_list),
           function(i) {
-            data <- dataset_list[[i]]
+            data <- data_list[[i]]
             n_obs <- nrow(data)
             # adjust n_cf_folds for small samples
             folds <- if (n_obs < 100) {
@@ -1424,7 +1424,7 @@ get_res_att <- function(dataset_list, Y, treat, covar,
                 n_reps = n_reps
               )
             }, error = function(e) {
-              cat(sprintf("WARNING: get_res_att failed for dataset %d (n=%d): %s\n", i, n_obs, e$message))
+              cat(sprintf("WARNING: get_res_att failed for sample %d (n=%d): %s\n", i, n_obs, e$message))
               return(NULL)
             })
           }
@@ -1432,7 +1432,7 @@ get_res_att <- function(dataset_list, Y, treat, covar,
     # summary report
     null_count <- sum(sapply(results, is.null))
     success_count <- length(results) - null_count
-    cat(sprintf("OUTCOME WEIGHTS SUMMARY: %d succeeded, %d failed out of %d datasets\n", 
+    cat(sprintf("OUTCOME WEIGHTS SUMMARY: %d succeeded, %d failed out of %d samples\n", 
                 success_count, null_count, length(results)))
     return(results)
 }
@@ -1449,7 +1449,7 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
     weights <- outcome_weights[[i]]$omega[estimator, ]
-    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
   }
@@ -1457,11 +1457,11 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
 }
 
 #### eval_ow()
-eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
+eval_ow <- function(outcome_weights, data_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
   results <- lapply(seq_along(outcome_weights), function(i) {
     ow <- outcome_weights[[i]]$omega[estimator, ]
-    treat <- dataset_list[[i]][[treat]]
-    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    treat <- data_list[[i]][[treat]]
+    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     sum_treated <- sum(ow[treat == 1])
     sum_untreated <- sum(ow[treat == 0])
     data.frame(
@@ -1478,14 +1478,14 @@ eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "
 #### save_ow()
 save_ow <- function(outcome_weights, plot_titles = NULL,
                     breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
-                    prefix = "model_a", estimand = "AIPW-ATT") {
+                    prefix = "model_a", estimator = "AIPW-ATT") {
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
     file_name <- sprintf("graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
     pdf(file = file_name, width = 8, height = 6)
-    weights <- outcome_weights[[i]]$omega[estimand, ]
-    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    weights <- outcome_weights[[i]]$omega[estimator, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
     dev.off()
@@ -1493,13 +1493,13 @@ save_ow <- function(outcome_weights, plot_titles = NULL,
 }
 
 # 6. Sensitivity Analysis
-#### check_filter_datasets()
-check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
-  valid_datasets <- list()
-  for (i in seq_along(datasets)) {
-    data <- datasets[[i]]
-    name <- names(datasets)[i]
-    if (is.null(name) || name == "") name <- paste0("dataset_", i)  # provide a name if missing
+#### check_filter_samples()
+check_filter_samples <- function(data_list, Y, treat, covar, bm) {
+  valid_samples <- list()
+  for (i in seq_along(data_list)) {
+    data <- data_list[[i]]
+    name <- names(data_list)[i]
+    if (is.null(name) || name == "") name <- paste0("data_", i)  # provide a name if missing
     vars_needed <- c(Y, treat, covar, bm)
     if (!all(vars_needed %in% names(data))) { # check all variables exist
       message("Removed ", name, ": missing required variables") 
@@ -1523,44 +1523,44 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
       message("Removed ", name, ": covariate variable(s) lack variation")
       next
     }
-    valid_datasets[[name]] <- data # if all passed dataset is kept
+    valid_samples[[name]] <- data # if all passed sample is kept
   }
-  return(valid_datasets)
+  return(valid_samples)
 }
 
 #### save_sensitivity_plots()
-save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_titles, prefix) {
+save_sensitivity_plots <- function(filtered_data_list, Y, treat, covar, bm, plot_titles, prefix) {
   folder <- "graphs/lalonde"
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   success_count <- 0
   fail_count <- 0
-  for (i in seq_along(filtered_datasets)) {
+  for (i in seq_along(filtered_data_list)) {
     idx <- i
     file_name <- file.path(folder, paste0(prefix, "_sensitivity_", idx, ".pdf"))
     pdf(file_name, width = 8, height = 8)
     tryCatch({
-      sens_ana(filtered_datasets[[i]], Y, treat, covar, bm, kd = 1:3)
+      sens_ana(filtered_data_list[[i]], Y, treat, covar, bm, kd = 1:3)
       if (!is.null(plot_titles) && length(plot_titles) >= idx) {
         title(main = plot_titles[idx])
       }
       success_count <- success_count + 1
     }, error = function(e) {
       plot.new()
-      title_text <- if (!is.null(plot_titles) && length(plot_titles) >= idx) plot_titles[idx] else paste("Dataset", idx)
+      title_text <- if (!is.null(plot_titles) && length(plot_titles) >= idx) plot_titles[idx] else paste("Sample", idx)
       text(0.5, 0.5, paste("ERROR:", title_text, "\n", e$message), cex = 0.8)
       cat(sprintf("WARNING: Sensitivity plot %d (%s) failed: %s\n", idx, title_text, e$message))
       fail_count <- fail_count + 1
     })
     dev.off()
   }
-  #cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
-  #            success_count, fail_count, length(filtered_datasets)))
+  cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
+              success_count, fail_count, length(filtered_data_list)))
 }
 
 # 7. Balance
 #### save_balance()
 save_balance <- function(
-    datasets,
+    data_list,
     method_names,
     balance_var = "re75",
     prefix = "balance_panels",
@@ -1568,7 +1568,7 @@ save_balance <- function(
     folder = "graphs/lalonde"
 ) {
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
-  n <- length(datasets)
+  n <- length(data_list)
   pages <- ceiling(n / plots_per_page)
   for (p in seq_len(pages)) {
     start <- (p - 1) * plots_per_page + 1
@@ -1579,7 +1579,7 @@ save_balance <- function(
       plot_title <- paste0(method_names[i])
       pl <- tryCatch({
         form <- as.formula(paste0("treat ~ ", balance_var))
-        bal.plot(form, data = datasets[[i]], which = "both") +
+        bal.plot(form, data = data_list[[i]], which = "both") +
           ggtitle(plot_title)
       }, error = function(e) {
         message(sprintf("Could not plot %s: %s", method_names[i], e$message))

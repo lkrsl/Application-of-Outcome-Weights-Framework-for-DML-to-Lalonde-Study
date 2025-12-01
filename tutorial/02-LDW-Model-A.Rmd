@@ -65,10 +65,10 @@ ldw_psid_plus <- rbind.data.frame(
   ldw_psid   # PSID-1 data 
 )
 
-datasets <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
+samples <- list(ldw_cps_plus  = ldw_cps_plus, ldw_psid_plus = ldw_psid_plus)
 
 # print and inspect each sample
-summary_stats_plus <- inspect_data(datasets)
+summary_stats_plus <- inspect_data(samples)
 datatable(summary_stats_plus, caption = "Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
@@ -374,7 +374,7 @@ ovl_trim.psid <- compute_ovl_trim(all_trim.psid, "ps_assoverlap", "treat")
 
 ### Integrated methods
 #### Trimming and matching
-##### Extended datasets
+##### Extended samples
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
@@ -396,7 +396,7 @@ ovl_trim_match_comb.cps_plus <- compute_ovl_trim(trim_match_comb.cps_plus, "ps_a
 ovl_trim_match_comb.psid_plus <- compute_ovl_trim(trim_match_comb.psid_plus, "ps_assoverlap", "treat")
 ```
 
-##### Initial datasets
+##### Initial samples
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
 trim_match_comb.cps <- list(
@@ -532,8 +532,8 @@ list_psid <- c(all_trim.psid, match_lookup_psid)
 
 ```{r, message=FALSE, warning=FALSE}
 # create samples corresponding to the top 5 methods for each sample
-top5_datasets.cps <- create_top5_datasets(list_cps, top5_methods.cps)
-top5_datasets.psid <- create_top5_datasets(list_psid, top5_methods.psid)
+top5_samples.cps <- create_top5_samples(list_cps, top5_methods.cps)
+top5_samples.psid <- create_top5_samples(list_psid, top5_methods.psid)
 
 # extract top 5 objects 
 top5_objects.cps <- lapply(top5_methods.cps, function(d) list_cps[[d]])
@@ -542,8 +542,8 @@ top5_objects.psid <- lapply(top5_methods.psid, function(d) list_psid[[d]])
 
 ```{r, message=FALSE, warning=FALSE}
 # save samples into .RData files
-save_top5_datasets(list_cps, top5_methods.cps, prefix = "ldw_model_a_cps1")
-save_top5_datasets(list_psid, top5_methods.psid, prefix = "ldw_model_a_psid1")
+save_top5_samples(list_cps, top5_methods.cps, prefix = "ldw_model_a_cps1")
+save_top5_samples(list_psid, top5_methods.psid, prefix = "ldw_model_a_psid1")
 ```
 
 ## Estimating
@@ -558,8 +558,8 @@ out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
-out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
+out.cps <- lapply(top5_samples.cps, function(d) estimate_all(d, "re78", "treat", covar))
+out.psid <- lapply(top5_samples.psid, function(d) estimate_all(d, "re78", "treat", covar))
 out.cps_trim <- lapply(all_trim.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid_trim <- lapply(all_trim.psid, function(d) estimate_all(d, "re78", "treat", covar))
 ```
@@ -719,8 +719,8 @@ CATT enables analysis of treatment effect heterogeneity across covariate-defined
 catt.ldw <- catt(ldw, Y, treat, covar)
 catt.cps <- catt(ldw_cps, Y, treat, covar)
 catt.psid <- catt(ldw_psid, Y, treat, covar)
-catt.top5_cps <- lapply(top5_datasets.cps, function(d) catt(d, Y, treat, covar))
-catt.top5_psid <- lapply(top5_datasets.psid, function(d) catt(d, Y, treat, covar))
+catt.top5_cps <- lapply(top5_samples.cps, function(d) catt(d, Y, treat, covar))
+catt.top5_psid <- lapply(top5_samples.psid, function(d) catt(d, Y, treat, covar))
 catt.top5_cps_trim <- lapply(all_trim.cps, function(d) catt(d, Y, treat, covar))
 catt.top5_psid_trim <- lapply(all_trim.psid, function(d) catt(d, Y, treat, covar))
 ```
@@ -862,8 +862,8 @@ QTET provides a robust way to analyze treatment effect heterogeneity while being
 qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
 qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
-qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
-qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps  <- lapply(top5_samples.cps,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_cps_trim  <- lapply(all_trim.cps,  function(d) est_qte_safe(Y, treat, covar, data = d))
 qte.top5_psid_trim <- lapply(all_trim.psid, function(d) est_qte_safe(Y, treat, covar, data = d))
 ```
@@ -879,8 +879,8 @@ qte.ldw_psid.trim <- est_qte(Y, treat, covar, data = ldw_psid_trim)
 qte.ldw0 <- est_qte(Y, treat, NULL, data = ldw)
 qte.ldw_cps0 <- est_qte(Y, treat, NULL, data = ldw_cps)
 qte.ldw_psid0 <- est_qte(Y, treat, NULL, data = ldw_psid)
-qte.top5_cps_trim0  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, NULL, data = d))
-qte.top5_psid_trim0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_cps_trim0  <- lapply(top5_samples.cps,  function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid_trim0 <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -944,13 +944,13 @@ save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_ti
 The outcome weights are not obtained directly from the ATT point estimates due to computational design of other methods. Instead, the ATT is separately estimated for each sample following the approach developed by @OW_Package. Subsequently, the outcome weights are derived and analysed.
 </div>
 ```{r, message=FALSE, warning=FALSE}
-# list all datasets
-all_datasets <- c(list(ldw, ldw_cps, ldw_psid), top5_datasets.cps, top5_datasets.psid, list(ldw_trim_cps, ldw_trim_psid))
+# list all samples
+all_samples <- c(list(ldw, ldw_cps, ldw_psid), top5_samples.cps, top5_samples.psid, list(ldw_trim_cps, ldw_trim_psid))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # estimate ATT 
-res_att <- get_res_att(all_datasets, Y, treat, covar)
+res_att <- get_res_att(all_samples, Y, treat, covar)
 
 # extract outcome weights
 ow_att <- derive_ow(res_att)
@@ -967,7 +967,7 @@ plot_ow(ow_att, all_plot_titles)
 The results of the behavior of outcome weights are presented in the table below.
 ```{r, message=FALSE, warning=FALSE}
 # evaluate results
-res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
+res_ow <- eval_ow(ow_att, all_samples, all_plot_titles, treat, "AIPW-ATT")
 
 # print table output
 datatable(res_ow, caption = "Outcome Weights for Treated and Untreated",
@@ -1000,8 +1000,8 @@ out3_pl <- estimate_all(ldw_psid, Y, "treat", covar)
 
 ```{r, message=FALSE, warning=FALSE}
 # estimate placebo ATT on top ranked samples
-out.cps_pl <- lapply(top5_datasets.cps, function(d) estimate_all(d, Y, "treat", covar))
-out.psid_pl <- lapply(top5_datasets.psid, function(d) estimate_all(d, Y, "treat", covar))
+out.cps_pl <- lapply(top5_samples.cps, function(d) estimate_all(d, Y, "treat", covar))
+out.psid_pl <- lapply(top5_samples.psid, function(d) estimate_all(d, Y, "treat", covar))
 out.cps_trim_pl <- lapply(all_trim.cps, function(d) estimate_all(d, Y, "treat", covar))
 out.psid_trim_pl <- lapply(all_trim.psid, function(d) estimate_all(d, Y, "treat", covar))
 ```
@@ -1130,24 +1130,24 @@ bm <- c("re75")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# check for valid datasets 
-filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
+# check for valid samples 
+filtered_samples_sens <- check_filter_samples(all_samples, Y, treat, covar, bm)
 ```
 
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA7.  SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Sensitivity Analyses Model A"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
-# loop over valid datasets and plot results 
-for (i in seq_along(filtered_datasets_sens)) {
-    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
+# loop over valid samples and plot results 
+for (i in seq_along(filtered_samples_sens)) {
+    sens_ana(filtered_samples_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = all_plot_titles[i])
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "ldw_model_a")
+save_sensitivity_plots(filtered_samples_sens, Y, treat, covar, bm, all_plot_titles, "ldw_model_a")
 ```
 
 The sensitivity analysis shows that for the LDW-Experimental sample, as well as for the LDW-CPS-1 (B) and its top-ranked samples `nn_crump`, `cs_crump`,`k2_crump` and `genetic_crump` (D-F and H) the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder.
@@ -1167,9 +1167,9 @@ The analyses suggest that some samples maintain stable treatment effect estimate
 To evaluate potential collinearity between `re74` and `re75`, we compute their correlation. To determine whether `re74` may act as a confounder in the treatment effect estimation, we report its correlation with both the treatment assignment (`treat`) and the outcome (`re78`).
 ```{r, message=FALSE, warning=FALSE}
 # compute correlations
-cor_treat <- sapply(all_datasets, function(d) cor(d$re74, d$treat, use = "complete.obs"))
-cor_outcome <- sapply(all_datasets, function(d) cor(d$re74, d$re78, use = "complete.obs"))
-cor_cov <-  sapply(all_datasets, function(d) cor(d$re74, d$re75, use = "complete.obs"))
+cor_treat <- sapply(all_samples, function(d) cor(d$re74, d$treat, use = "complete.obs"))
+cor_outcome <- sapply(all_samples, function(d) cor(d$re74, d$re78, use = "complete.obs"))
+cor_cov <-  sapply(all_samples, function(d) cor(d$re74, d$re75, use = "complete.obs"))
 cor_table <- data.frame(Method = all_plot_titles, Cor_re74_treat = cor_treat, Cor_re74_out = cor_outcome, Cor_re74_re75 = cor_cov)
 
 # print table output
@@ -1189,10 +1189,10 @@ save_csv(cor_table, "ldw_model_a_corr_results")
 To further assess the risk of confounding, we examine the distributional balance of `re74` and, for comparison, of `re75` by plotting their density distributions for treated and control units. As model B intentionally omits `re74`, the analysis directly informs whether any covariate imbalance may induce bias in estimated treatment effects.
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREA8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model A of re75"}
 # re75
-for (i in seq_along(all_datasets)) {
+for (i in seq_along(all_samples)) {
   tryCatch({
     print(
-      bal.plot(treat ~ re75, data = all_datasets[[i]], which = "both") +
+      bal.plot(treat ~ re75, data = all_samples[[i]], which = "both") +
         ggplot2::ggtitle(all_plot_titles[i])
     )
   }, error = function(e) {
@@ -1201,10 +1201,10 @@ for (i in seq_along(all_datasets)) {
 }
 
 # re74
-for (i in seq_along(all_datasets)) {
+for (i in seq_along(all_samples)) {
   tryCatch({
     print(
-      bal.plot(treat ~ re74, data = all_datasets[[i]], which = "both") +
+      bal.plot(treat ~ re74, data = all_samples[[i]], which = "both") +
         ggplot2::ggtitle(all_plot_titles[i])
     )
   }, error = function(e) {
@@ -1215,8 +1215,8 @@ for (i in seq_along(all_datasets)) {
 
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%'}
 # save results
-save_balance(all_datasets, all_plot_titles, balance_var = "re75", prefix = "ldw_model_a_balance_panels_75")
-save_balance(all_datasets, all_plot_titles, balance_var = "re74", prefix = "ldw_model_a_balance_panels_74")
+save_balance(all_samples, all_plot_titles, balance_var = "re75", prefix = "ldw_model_a_balance_panels_75")
+save_balance(all_samples, all_plot_titles, balance_var = "re74", prefix = "ldw_model_a_balance_panels_74")
 ```
 
 The density plots show that treated and control units do not substantially differ in `re74` across all samples. This suggests that the potential for confounding is low, and the risk of bias from omitting `re74` from the set of covariates is rather negligible. Conversely, `re75` exhibits pronounced distributional differences between treated and control units across all samples, suggesting material confounding risk and necessitating its inclusion as a covariate to mitigate bias. 

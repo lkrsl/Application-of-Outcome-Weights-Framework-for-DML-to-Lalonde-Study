@@ -63,7 +63,7 @@ model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
 <div class="callout-note">
-In the following analysis, only LCS-PSID-1 data is used as the original LaLonde study and its reconstruction by Calónico and Smith (2017) designate LCS-PSID-1 as the appropriate nonexperimental control group for women, providing a comparable observational dataset that aligns with the experimental sample’s characteristics (@imbens2024). The LCS-Experimental data is only consulted as benchmark, as randomization already ensures adequate overlap.
+In the following analysis, only LCS-PSID-1 data is used as the original LaLonde study and its reconstruction by Calónico and Smith (2017) designate LCS-PSID-1 as the appropriate nonexperimental control group for women, providing a comparable observational sample that aligns with the experimental sample’s characteristics (@imbens2024). The LCS-Experimental data is only consulted as benchmark, as randomization already ensures adequate overlap.
 </div>
 
 ## Pre-assessing methods 
@@ -73,7 +73,7 @@ lcs.ps <- assess_overlap(data = lcs, treat = treat, cov = covar, xlim = c(-1.5, 
 lcs_psid.ps <- assess_overlap(data = lcs_psid, treat = treat, cov = covar, xlim = c(-11, 7), breaks = 40)
 ```
 
-As anticipated, the LCS-Experimental data exhibit an almost perfect overlap. In contrast, the observational dataset LCS-PSID-1 displays weak overlap. 
+As anticipated, the LCS-Experimental data exhibit an almost perfect overlap. In contrast, the observational sample LCS-PSID-1 displays weak overlap. 
 ```{r, message=FALSE, warning=FALSE, fig.cap='FIGURED1. SubfigureC:LCS-PSID-1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
 lcs_psid_plus.ps <- assess_overlap(data = lcs_psid_plus, treat = treat, cov = covar, xlim = c(-15, 5))
 ```
@@ -399,7 +399,7 @@ list_psid <- c(trim_only_psid, match_lookup_psid)
 
 ```{r, message=FALSE, warning=FALSE}
 # create samples corresponding to the top 5 methods for each sample
-top5_datasets.psid <- create_top5_datasets(list_psid, top5_methods.psid)
+top5_samples.psid <- create_top5_samples(list_psid, top5_methods.psid)
 
 # extract top5 objects 
 top5_objects.psid <- lapply(top5_methods.psid, function(m) list_psid[[m]])
@@ -407,7 +407,7 @@ top5_objects.psid <- lapply(top5_methods.psid, function(m) list_psid[[m]])
 
 ```{r, message=FALSE, warning=FALSE}
 # save samples into .RData files
-save_top5_datasets(list_psid, top5_methods.psid, prefix = "lcs_psid1")
+save_top5_samples(list_psid, top5_methods.psid, prefix = "lcs_psid1")
 ```
 
 ## Estimating
@@ -419,7 +419,7 @@ out2 <- estimate_all(lcs_psid, "re79", "treat", covar)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re79", "treat", covar))
+out.psid <- lapply(top5_samples.psid, function(d) estimate_all(d, "re79", "treat", covar))
 out.psid_trim <- lapply(all_trim.psid, function(d) estimate_all(d, "re79", "treat", covar))
 ```
 
@@ -531,7 +531,7 @@ save_csv(result_mat, "lcs_att_est")
 ```{r, warning=FALSE, message=FALSE}
 catt.lcs <- catt(lcs, Y, treat, covar)
 catt.psid <- catt(lcs_psid, Y, treat, covar)
-catt.top5_psid <- lapply(top5_datasets.psid, function(d) catt(d, Y, treat, covar))
+catt.top5_psid <- lapply(top5_samples.psid, function(d) catt(d, Y, treat, covar))
 catt.top5_psid_trim <- lapply(all_trim.psid, function(d) catt(d, Y, treat, covar))
 ```
 
@@ -620,7 +620,7 @@ save_plus_catt_panels(
 # estimate QTET
 qte.lcs <- est_qte(Y, treat, covar, data = lcs, cores = 4)
 qte.lcs_psid <- est_qte(Y, treat, covar, data = lcs_psid)
-qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_psid_trim <- lapply(all_trim.psid, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
@@ -632,7 +632,7 @@ qte.lcs_psid.trim <- est_qte(Y, treat, covar, data = lcs_psid_trim)
 ```{r, message=FALSE, warning=FALSE}
 qte.lcs0 <- est_qte(Y, treat, NULL, data = lcs)
 qte.lcs_psid0 <- est_qte(Y, treat, NULL, data = lcs_psid)
-qte.top5_psid_trim0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid_trim0 <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -669,11 +669,11 @@ save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_ti
 
 ### Assessing outcome weights (OW)
 ```{r, warning=FALSE, message=FALSE}
-# list all datasets
-all_datasets <- c(list(lcs, lcs_psid), top5_datasets.psid, list(lcs_trim_psid))
+# list all samples
+all_samples <- c(list(lcs, lcs_psid), top5_samples.psid, list(lcs_trim_psid))
 
 # estimate ATT 
-res_att <- get_res_att(all_datasets, Y, treat, covar)
+res_att <- get_res_att(all_samples, Y, treat, covar)
 
 # extract outcome weights
 ow_att <- derive_ow(res_att)
@@ -689,7 +689,7 @@ plot_ow(ow_att, all_plot_titles)
 
 ```{r, warning=FALSE, message=FALSE}
 # evaluate results
-res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
+res_ow <- eval_ow(ow_att, all_samples, all_plot_titles, treat, "AIPW-ATT")
 
 # print table output
 datatable(res_ow, caption = "Outcome Weights for Treated and Untreated",
@@ -719,7 +719,7 @@ out2_pl <- estimate_all(lcs_psid, Y, "treat", covar)
 
 ```{r, message=FALSE, warning=FALSE}
 # estimate placebo ATT on top ranked samples
-out.psid_pl <- lapply(top5_datasets.psid, function(d) estimate_all(d, Y, "treat", covar))
+out.psid_pl <- lapply(top5_samples.psid, function(d) estimate_all(d, Y, "treat", covar))
 out.psid_trim_pl <- lapply(all_trim.psid, function(d) estimate_all(d, Y, "treat", covar))
 ```
 
@@ -816,24 +816,24 @@ bm <- c("re75")
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-# check for valid datasets 
-filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
+# check for valid samples 
+filtered_samples_sens <- check_filter_samples(all_samples, Y, treat, covar, bm)
 ```
 
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGURED7. SubfigureA:LCS-Experimental. SubfigureB:LCS-PSID-1. SubfigureC-G:Top-LCS-PSID-1. SubfigureH:LCS-PSID-1-PLUS. Sensitivity Analyses LCS"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
-# loop over valid datasets and plot results
-for (i in seq_along(filtered_datasets_sens)) {
-    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
+# loop over valid samples and plot results
+for (i in seq_along(filtered_samples_sens)) {
+    sens_ana(filtered_samples_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = all_plot_titles[i])
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "lcs")
+save_sensitivity_plots(filtered_samples_sens, Y, treat, covar, bm, all_plot_titles, "lcs")
 ```
 
 The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Instead, the treatment effect estimates in the observational sample LCS-PSID-1 (B) are reasonable sensitive, whereas the top-ranked LCS-PSID-1 samples (C-F) as well as the trimmed and matched version of LCS-PSID-1-PLUS (H) produce treatment effects that are rather robust to increasing confounder strength, despite up to triple the correlation levels of the confounder with the treatment and outcome. 
