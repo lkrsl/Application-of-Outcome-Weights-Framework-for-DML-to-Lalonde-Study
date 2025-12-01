@@ -57,7 +57,7 @@ datatable(summary_stats_plus, caption = "Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-## Model B
+## LDW-Model B
 ```{r, message=FALSE, warning=FALSE}
 # define variables
 Y <- "re78" 
@@ -66,8 +66,13 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re75", "u74", "u75") #re74 excluded
 ```
 
-### Pre-assessing methods 
-#### Overlap
+```{r, message=FALSE, warning=FALSE}
+# set model formula
+model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
+```
+
+## Pre-assessing methods 
+### Overlap
 ```{r, fig.cap='FIGUREB1. SubfigureA:LDW. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.',out.width='100%', fig.asp=0.5}
 ldw.ps <- assess_overlap(data = ldw, treat = treat, cov = covar)
 ldw_cps.ps <- assess_overlap(data = ldw_cps, treat = treat, cov = covar) 
@@ -93,17 +98,12 @@ save_overlap_panels(
   prefix = "ldw_overlap_model_b_panels"
 )
 ```
-```{r, message=FALSE, warning=FALSE}
-# set model formula
-model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
-```
-
 ## Improving overlap
 ### Single methods
 #### Trimming 
 1) Propensity score threshold trimming 
 ```{r, message=FALSE, warning=FALSE}
-# apply trimming with a threshold 
+# apply trimming with a (maximum) threshold 
 ldw_cps.ps_trim <- ps_trim(ldw_cps.ps, threshold = 0.9)
 ldw_psid.ps_trim <- ps_trim(ldw_psid.ps, threshold = 0.9)
 
@@ -161,6 +161,7 @@ ldw_psid.ps_walker <- ps_estimate(data = ldw_psid.ps_walker, treat = treat, cov 
 ##### Extended datasets 
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
+# apply trimming with a (maximum) threshold 
 ldw_cps_trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
 ldw_psid_trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 
@@ -224,21 +225,21 @@ k3_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "
 
 4) Caliper matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
+# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score and replacement
 caliper_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
 caliper_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
 ```
 
 5) Common support restriction matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with exclusion of units outside common support
+# perform nearest neighbor matching with exclusion of units outside common support and replacement
 cs_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 cs_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 ```
 
 6) Mahalanobis distance matching (mahvars) with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching using mahalanobis distance
+# perform nearest neighbor matching using mahalanobis distance without replacement
 mahvars_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "mahalanobis", replace = FALSE)
 mahvars_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "mahalanobis", replace = FALSE)
 ```
@@ -499,7 +500,9 @@ save_top5_datasets(list_psid, top5_methods.psid, prefix = "ldw_model_a_psid1")
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
+```
 
+```{r, message=FALSE, warning=FALSE}
 out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
 out.cps_trim <- lapply(all_trim.cps, function(d) estimate_all(d, "re78", "treat", covar))
@@ -507,7 +510,6 @@ out.psid_trim <- lapply(all_trim.psid, function(d) estimate_all(d, "re78", "trea
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate ATT
 load("data/trimmed.RData")
 out4 <- estimate_all(ldw_trim_cps, "re78", "treat", covar)
 out5 <- estimate_all(ldw_trim_psid, "re78", "treat", covar)
@@ -518,7 +520,7 @@ out7 <- estimate_all(ldw_psid_trim, "re78", "treat", covar)
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREB2. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
 par(mfrow = c(4, 1), mar = c(4, 4, 2, 2))
 
-# experimental benchmarks
+# get experimental benchmark
 band.exp <- out1[1, 3:4]
 est.exp  <- out1[1, 1]
 
@@ -532,7 +534,7 @@ plot_coef(out2,  band = band.exp, line = est.exp,
 plot_coef(out3,  band = band.exp, line = est.exp,
           ylim = c(-15500, 5500), main = "(C) LDW-PSID-1")
 
-# get nonexperimtenal benchmarks
+# get benchmarks
 method_names_cps <- sapply(top5_methods.cps, function(m) {
     matches <- names(out.cps_trim)[sapply(names(out.cps_trim), function(n) grepl(n, m, fixed=TRUE))]
     if (length(matches) > 0) matches[which.max(nchar(matches))] else NA })
@@ -558,7 +560,7 @@ for (i in seq_along(out.psid)) {
             ylim = c(-15500, 5500), main = this_title)
 }
 
-# get nonexperimtenal benchmarks
+# get benchmarks
 band.cps_plus <- out4[1, 3:4]
 est.cps_plus <- out4[1, 1]
 band.psid_plus <- out5[1, 3:4]
@@ -573,18 +575,17 @@ plot_coef(out7, band = band.psid_plus, line = est.psid_plus,
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# get outputs
+# get all outputs
 all_outs <- c(list(out1, out2, out3), out.cps, out.psid, list(out6, out7))
 
-# get plot titles
+# get all plot titles
 all_plot_titles <- c("(A) LDW-Experimental", "(B) LDW-CPS-1", "(C) LDW-PSID-1",
                       paste0("(", LETTERS[4:8], ") Top CPS-1: ", top5_methods.cps),
                       paste0("(", LETTERS[9:13], ") Top PSID-1: ", top5_methods.psid),
                       "(N) Trimmed LDW-CPS-1-PLUS", "(O) Trimmed LDW-PSID-1-PLUS")
 
-# get confidence interval bounds
+# get all confidence interval bounds
 all_bands <- c(list(band.exp, band.exp, band.exp), band.cps, band.psid, list(band.cps_plus, band.psid_plus))
-
 all_ests <- c(list(est.exp, est.exp, est.exp), est.cps, est.psid, list(est.cps_plus, est.psid_plus))
 
 # save results
@@ -597,13 +598,12 @@ save_att_panels(
 )
 ```
 
-As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS-1, LDW-PSID-1, trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS samples (analogous to @imbens2024) and a series of top-ranked subsamples of both LDW-CPS-1 and LDW-PSID-1 based on various trimming and integrated trimming and matching criteria. 
+As in model A, the above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS-1, LDW-PSID-1, trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS samples (analogous to @imbens2024) and a series of top-ranked samples of both LDW-CPS-1 and LDW-PSID-1 based on various trimming and integrated trimming and matching criteria. 
+Again, figure (A) presents the benchmark, serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the LDW-CPS-1 and LDW-PSID-1, respectively. Figures (D) through (H) display results for LDW-CPS-1-based samples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding LDW-PSID-1-based samples under parallel rules. Figures (N) and (O) present results for the trimmed and matched versions, replicating the tutorial results of Imbens & Xu (2024). 
 
-Again, figure (A) presents the benchmark, serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the LDW-CPS-1 and LDW-PSID-1, respectively. Figures (D) through (H) display results for LDW-CPS-1-based subsamples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding LDW-PSID-1-based subsamples under parallel rules. Figures (N) and (O) present results for the trimmed and matched versions, replicating the tutorial results of Imbens & Xu (2024). 
+The LDW-CPS-1 sample produces ATT estimates that closely align with the experimental benchmark with an exception for one estimator similar as in model A. Across its top-ranked samples, `nn_crump` (G) and `caliper_crump` (H) and `genetic_crump` (F), all estimators produce ATT estimates that reasonably closely align with the benchmark. Some larger deviations from the benchmark occur for the `genetic_common_range` (E) and `genetic_ps_threshold` (D) samples. 
 
-The LDW-CPS-1 sample produces ATT estimates that closely align with the benchmark with an exception for one estimator similar as in model A. Across its `nn_crump` (G) and `caliper_crump` (H) and `genetic_crump` (F) subsamples all estimators produce ATT estimates that reasonably closely align with the benchmark. Some larger deviations from the benchmark occur for the `genetic_common_range` (E) and `genetic_ps_threshold` (D) subsamples. 
-
-As for LDW-CPS-1, the LDW-PSID-1 sample produces ATT estimates that reasonably closely align with the benchmark with an exception for only one estimator. Across its top-ranked subsamples, all estimators generally yield ATT estimates that exhibit greater dispersion from the benchmark and considerably larger standard errors. 
+As for the LDW-CPS-1 sample, the LDW-PSID-1 sample produces ATT estimates that reasonably closely align with the experimental benchmark with an exception for only one estimator. Across its top-ranked samples, all estimators generally yield ATT estimates that exhibit greater dispersion from the benchmark and considerably larger standard errors. 
 
 Further, the ATT estimates from the LDW-CPS1-PLUS sample align near the benchmark, while those from the LDW-PSID-PLUS remain reasonably close, though slightly more distant.
 
@@ -633,9 +633,9 @@ datatable(result_mat, caption = "ATT Estimates and SEs",
 
 As in model A, the tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS-1 sample, and column (C) for the LDW-PSID-1 sample. Columns (D)-(O) summarize the top-ranked sample results for both LDW-CPS-1 and LDW-PSID-1. Columns (N) and (O) present estimates for the trimmed and matched versions of the LDW-PSID-1-PLUS and LDW-PSID-1-PLUS samples.
 
-In model B, most LDW-CPS-1-based samples yield ATT estimates that are closer to the experimental benchmark than in model A, with still modest variance. By contrast, the LDW-PSID-1-based estimates, while somewhat closer to the experimental benchmark than in model A, continue to exhibit substantially larger standard errors compared to LDW-CPS-1 samples. This again reflects the greater challenge of obtaining reliable estimates from the observational dataset LDW-PSID-1.
+In model B, most LDW-CPS-1-based samples yield ATT estimates that are closer to the benchmark than in model A, with still modest variance. By contrast, the LDW-PSID-1-based produce estimates that, while somewhat closer to the benchmark than in model A, continue to exhibit substantially larger standard errors compared to LDW-CPS-1 samples. This again reflects the greater challenge of obtaining reliable estimates from the observational sample LDW-PSID-1.
 
-Overall, figures and table jointly demonstrate again that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain criteria can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
+Overall, figures and table jointly demonstrate again that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain criteria can bring observational estimates closer to the benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat, "ldw_att_est_model_b")
@@ -662,10 +662,10 @@ catt.psid_trim <- catt(ldw_psid_trim, Y, treat, covar)
 ```
 
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREB3. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. CATT Estimates Model B using LDW Data: Experimental vs. Nonexperimental"}
-# plot results
 par(mfrow = c(2,2)) 
 par(cex.main = 0.9)
 
+# plot results
 plot_catt(
   catt1 = catt.ldw$catt,
   catt2 = catt.cps$catt,
@@ -737,13 +737,13 @@ datatable(all_catt_eval, caption = "CATT Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-In model B, using LDW-CPS-1, CATT estimates range from $-3,316.41 to $7,047.93. This span is considerably narrower than in model A, but still performs worse when contrasted with the experimental benchmark, where CATT estimates range from $-195.61 to $3,809.38 with a mean of $1,744.41. Further, LDW-PSID-1 shows an increased CATT estimate range, from $-7,666.25 to	$4,739.52, and a reasonable lower mean of approximately $433.02 compared to LDW-CPS-1. These patterns mirror those observed in model A.
+In model B, using LDW-CPS-1 data, CATT estimates range from $-3,316.41 to $7,047.93. This span is considerably narrower than in model A, but still performs worse when contrasted with the experimental benchmark, where CATT estimates range from $-195.61 to $3,809.38 with a mean of $1,744.41. Further, the LDW-PSID-1 sample shows an increased CATT estimate range, from $-7,666.25 to	$4,739.52, and a reasonable lower mean of approximately $433.02 compared to LDW-CPS-1 sample. These patterns mirror those observed in model A.
 
-For the top-ranked subsamples of LDW-CPS-1, CATT ranges vary considerably, yet their mean estimates are generally closer to the experimental benchmark, as in model A. Their minimum CATT estimates are less negative, which reduces the spread between minimum and maximum estimates.
+For the top-ranked samples of LDW-CPS-1, CATT ranges vary considerably, yet their mean estimates are generally closer to the experimental benchmark, as in model A. Their minimum CATT estimates are less negative, which reduces the spread between minimum and maximum estimates.
 
-The top-ranked subsamples of LDW-PSID-1 by contrast, again yield decreased mean CATT estimates with varying CATT ranges compared to the LDW-CPS-1 sample, signaling persistent difficulties in generating reliable effect estimates. Still, compared to model A, the minimum CATT estimates are less strongly negative, though the mean CATTs do not improve marginally in their proximity to the experimental benchmark.
+The top-ranked samples of LDW-PSID-1 by contrast, again yield decreased mean CATT estimates with varying CATT ranges compared to the LDW-CPS-1 sample, signaling persistent difficulties in generating reliable effect estimates. Still, compared to model A, the minimum CATT estimates are less strongly negative, though the mean CATTs do not improve marginally in their proximity to the experimental benchmark.
 
-Hence, alike model A, these results show that there is considerable variation in ranges and means across methods and samples, reflecting substantial heterogeneity in treatment effect estimation. While certain criteria may improve consistency with the benchmark, they may also introduce notable discrepancies and variability in estimated effects. 
+Hence, alike model A, these results show that there is considerable variation in ranges and means across methods and samples, reflecting substantial heterogeneity in treatment effect estimation. While certain criteria may improve consistency with the experimental benchmark, they may also introduce notable discrepancies and variability in estimated effects. 
 ```{r, message=FALSE, warning=FALSE}
 # save results
 save_main_catt_panels(
@@ -779,6 +779,7 @@ save_plus_catt_panels(
 
 ### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}
+# estimate QTET
 qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
 qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
@@ -813,6 +814,7 @@ par(mfrow = c(2,2))
 par(cex.main = 0.9)
 ylim = c(-25000, 15000)
 
+# plot results
 plot_qte(qte.ldw_cps, qte.ldw_cps0, qte.ldw, main = "(B) LDW-CPS-1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
@@ -836,9 +838,9 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
 
 These figures display QTET estimates derived from both the experimental and various observational samples. 
 
-The QTETs estimated from LDW-Experimental (A), the LDW-CPS-1 sample (B), its top-ranked `nn_crump` (G), `caliper_crump` (H) and `genetic_ps_threshold` (D) subsamples as well as the trimmed and matched version of LDW-CPS-1-PLUS (N) continue to correspond well with the true QTET. 
+The QTETs estimated from LDW-Experimental (A), the LDW-CPS-1 sample (B), its top-ranked `nn_crump` (G), `caliper_crump` (H) and `genetic_ps_threshold` (D) samples as well as the trimmed and matched version of LDW-CPS-1-PLUS (N) continue to correspond well with the true QTET. 
 
-The QTET estimates from the LDW-PSID-1 sample (C), its top-ranked subsamples and the trimmed and matched version of LDW-PSID-1-PLUS (O) show clear biases and noticeably wider confidence bands when compared to the experimental benchmark, indicating greater estimation uncertainty. 
+The QTET estimates from the LDW-PSID-1 sample (C), its top-ranked samples and the trimmed and matched version of LDW-PSID-1-PLUS (O) show clear biases and noticeably wider confidence bands when compared to the experimental benchmark, indicating greater estimation uncertainty. 
 
 Overall, these patterns mirror those observed in model A.
 ```{r, message=FALSE, warning=FALSE}
@@ -929,7 +931,7 @@ out7_pl <- estimate_all(ldw_psid_trim_pl, Y, "treat", covar)
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREB6. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureC:LDW-PSID-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Placebo Test Model B: '75 Earnings as the Outcome"}
 par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
 
-# experimental benchmarks
+# get experimental benchmark
 band.exp_pl <- out1_pl[1, 3:4]
 est.exp_pl <- out1_pl[1, 1]
 
@@ -943,7 +945,7 @@ plot_coef(out2_pl,  band = band.exp_pl, line = est.exp_pl,
 plot_coef(out3_pl,  band = band.exp_pl, line = est.exp_pl,
           ylim = c(-15500, 5500), main = "(C) LDW-PSID-1")
 
-# get nonexperimtenal benchmarks
+# get benchmarks
 method_names_cps <- sapply(top5_methods.cps, function(m) {
     matches <- names(out.cps_trim_pl)[sapply(names(out.cps_trim_pl), function(n) grepl(n, m, fixed=TRUE))]
     if (length(matches) > 0) matches[which.max(nchar(matches))] else NA 
@@ -971,7 +973,7 @@ for (i in seq_along(out.psid_pl)) {
             ylim = c(-15500, 5500), main = this_title)
 }
 
-# nonexperimtenal benchmarks
+# get benchmarks
 band.cps_plus_pl <- out4_pl[1, 3:4]
 est.cps_plus_pl <- out4_pl[1, 1]
 band.psid_plus_pl <- out5_pl[1, 3:4]
@@ -986,7 +988,7 @@ plot_coef(out7_pl, band = band.psid_plus_pl, line = est.psid_plus_pl,
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# combine results
+# combine all results
 all_outs_pl <- c(list(out1_pl, out2_pl, out3_pl), out.cps_pl, out.psid_pl, list(out6_pl, out7_pl))
 all_bands_pl <- c(list(band.exp_pl, band.exp_pl, band.exp_pl), band.cps_pl, band.psid_pl, list(band.cps_plus_pl, band.psid_plus_pl))
 all_ests_pl <- c(list(est.exp_pl, est.exp_pl, est.exp_pl), est.cps_pl, est.psid_pl, list(est.cps_plus_pl, est.psid_plus_pl))
@@ -1002,11 +1004,13 @@ save_att_panels(
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# get placebo results
+# get all placebo results
 all_outs_pl <- c(list(out1_pl, out2_pl, out3_pl), out.cps_pl, out.psid_pl, list(out6_pl, out7_pl))
 out.cps_top_pl <- lapply(method_names_cps, function(j) out.cps_trim_pl[[j]])
 out.psid_top_pl <- lapply(method_names_psid, function(j) out.psid_trim_pl[[j]])
 all_out_mat_pl <- c(list(out1_pl), out.cps_top_pl, out.psid_top_pl, list(out4_pl, out5_pl))
+
+# create result matrix
 result_mat_pl <- create_matrix_results(all_outs_pl, all_out_mat_pl, all_plot_titles)
 
 # print table output
@@ -1014,9 +1018,9 @@ datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-The placebo analysis shows that the experimental benchmarks remain close to zero and statistically insignificant, closely mirroring the results in model A. The results for LDW-CPS-1 and LDW-PSID-1 are similar to those observed in model A.
+The placebo analysis shows that the experimental benchmark remains close to zero and statistically insignificant, closely mirroring the results in model A. The results for LDW-CPS-1 and LDW-PSID-1 are similar to those observed in model A.
 
-For LDW-CPS-1 subsamples (D-H), ATT estimates remain largely negative with only a few exceptions, with modest improvement toward the benchmark compared to LDW-CPS-1 (B) estimates and notably wider confidence intervals, revealing persistent bias and increased uncertainty. For LDW-PSID-1 subsamples (I-M), a similar pattern results compared to the LDW-PSID-1 sample. 
+For LDW-CPS-1 samples (D-H), ATT estimates remain largely negative with only a few exceptions, with modest improvement toward the benchmark compared to LDW-CPS-1 (B) estimates and notably wider confidence intervals, revealing persistent bias and increased uncertainty. For LDW-PSID-1 samples (I-M), a similar pattern results compared to the LDW-PSID-1 sample. 
 
 As in model A, the trimmed and matched versions of LDW-CPS-1-PLUS and LDW-PSID-1-PLUS exhibit even larger negative ATT estimates, continuing to reflect substantial bias and deviation from the true effect and highlighting the persistent challenges in adjusting for confounding using observational data.
 ```{r, message=FALSE, warning=FALSE}
@@ -1042,7 +1046,7 @@ filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, b
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
-# loop over valid datasets and assign index
+# loop over valid datasets and plot results
 for (i in seq_along(filtered_datasets_sens)) {
     sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = all_plot_titles[i])
@@ -1056,9 +1060,9 @@ save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_tit
 
 The sensitivity analysis demonstrates identical results for LDW-Experimental, LDW-CPS-1 and LDW-PSID-1 as in model A.
 
-Specifically, it shows that for the LDW-Experimental sample, as well as for the LDW-CPS-1 and its top-ranked subsamples `nn_crump`, `caliper_crump` and `genetic_crump` (F-H) the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder. For the trimmed and matched LDW-CPS1-PLUS and LDW-PSID1-PLUS samples the estimated treatment effects remain also fairly robust, indicating improved resistance to unmeasured confounding due to this integrated approach. 
+Specifically, it shows that for the LDW-Experimental sample, as well as for the LDW-CPS-1 and its top-ranked samples `nn_crump`, `caliper_crump` and `genetic_crump` (F-H) the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder. For the trimmed and matched LDW-CPS1-PLUS and LDW-PSID1-PLUS samples the estimated treatment effects remain also fairly robust, indicating improved resistance to unmeasured confounding due to this integrated approach. 
 
-For two top-ranked subsamples of LDW-CPS-1, including `genetic_common_range` (E) and `genetic_ps_threshold` (D) and three top-ranked subsamples of LDW-PSID-1, including `optimal_pair_stuermer` (M), `k3_walker` (K) and `mahvars_stuermer` (J) the estimated treatment effect are reasonably sensitive to unmeasured confounding. In contrast, the LDW-PSID-1 sample (C) and its top-ranked subsamples `cs_stuermer` (L) and `genetic_stuermer` (I) produce treatment effects estimates that are even more sensitive to unmeasured confounding. 
+For two top-ranked samples of LDW-CPS-1, including `genetic_common_range` (E) and `genetic_ps_threshold` (D) and three top-ranked samples of LDW-PSID-1, including `optimal_pair_stuermer` (M), `k3_walker` (K) and `mahvars_stuermer` (J), the estimated treatment effects are reasonably sensitive to unmeasured confounding. In contrast, the LDW-PSID-1 sample (C) and its top-ranked samples `cs_stuermer` (L) and `genetic_stuermer` (I) produce treatment effects estimates that are even more sensitive to unmeasured confounding. 
 
 Similar to model A, these results overall highlights sample-specific differences in robustness against potential unobserved confounding.
 
@@ -1076,7 +1080,7 @@ datatable(cor_table, caption = "Correlations of re74 with treatment and outcome 
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-The tabulated results demonstrate correlations patterns consistent with model A.
+The tabulated results demonstrate correlations patterns consistent with model A. This indicates that 1974 earnings does not add substantial information beyond 1975 earnings and may constitute a negligible confounder.
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(cor_table, "ldw_model_b_corr_results")
@@ -1115,13 +1119,13 @@ save_balance(all_datasets, all_plot_titles, balance_var = "re75", prefix = "ldw_
 save_balance(all_datasets, all_plot_titles, balance_var = "re74", prefix = "ldw_model_b_balance_panels_74")
 ```
 
-The density plots show that treated and control units do not substantially differ in `re74` across all samples, Although model B did not control for `re74`, this result suggests that any confounding bias from its omission is likely negligible and that exclusion of it in the set of covariates may be reasonable.
+The density plots show that treated and control units do not substantially differ in `re74` across all samples of model B, even though 1974 earnings was not included in the set of covariates. This result suggests that, in the LDW samples, any confounding bias from its omission is likely negligible. Taken together with the correlation and balance results of model A, as well as only modest changes in treatment effect estimates in model B, we may conclude that 1974 earnings does not appear to constitute a material confounder and that including only 1975 earnings in the set of covariates is a plausible and empirically supported model specification.
 
 ## Summary
-After reexamining model B, which uses the LaLonde-Dehejia-Wahba (LDW) data with a reduced set of covariates, we find that changing the covariate set leads to noticeable shifts in effect estimates. For LDW-CPS-1, estimates are generally more consistent and remain closer to the experimental benchmark, though standard errors are considerably large. In contrast, LDW-PSID-1 continues to show greater dispersion and substantially larger standard errors, highlighting persistent challenges with this observational sample.
+After reexamining model B, which uses the LaLonde-Dehejia-Wahba (LDW) data with a reduced set of covariates, we find that changing the covariate set leads to modest shifts in effect estimates. For LDW-CPS-1, estimates remain close to the experimental benchmark, though standard errors are considerably large. In contrast, LDW-PSID-1 continues to show greater dispersion and substantially larger standard errors, highlighting persistent challenges with this observational sample.
 
 Conditional and quantile treatment effect estimates confirm that, while some methods bring estimates closer to the experimental benchmark, considerable heterogeneity and estimator-dependent variability remain. Placebo tests using lagged earnings as the outcome reveal that, despite some improvements, bias and deviation from the true effect persist. Sensitivity analyses indicate that most treatment effect estimates are fairly sensitive to increasing confounder strength, but some upward shifts are observed compared to model A.
 
-Further, the balance results suggest that excluding re74 from the covariate set incurs negligible confounding risk, thereby validating model B's specification.
+Furthermore, considering the correlation and balance results alongside the modest and irregular shifts in ATT estimates between models A and B, the exclusion of re74 from the covariate set appears to incur negligible confounding risk, thereby supporting the plausibility of model B’s specification.
 
-Overall, these results reinforce the importance of overlap, covariate balance, and careful method selection, while underscoring the ongoing difficulty of recovering unbiased causal effects from observational data.
+Overall, these results reinforce the importance of overlap, covariate balance, and careful model selection, while underscoring the ongoing difficulty of recovering credible causal effects from observational data.

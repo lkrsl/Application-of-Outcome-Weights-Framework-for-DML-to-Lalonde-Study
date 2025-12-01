@@ -1,25 +1,24 @@
 # LaLonde-Dehejia-Wahba (LDW) Data
 LaLonde (1986) evaluated the effect of the National Supported Work Demonstration (NSW) program on both female and male participants. While the female participants were drawn from the Aid to Families with Dependent Children (AFDC) program, the male participants were drawn from three other groups: former drug addicts, ex-criminal offenders, and high-school dropouts. LaLonde relied on two main data sources:
 (1) CPS-SSA-1, based on Westat’s Matched Current Population Survey–Social Security Administration File for individuals under 55 matching specific criteria;
-(2) PSID-1, based on Panel Study of Income Dynamics for household heads under 55 from specific years who were not retired in 1975, adjusted for factors like employment status and poverty level;
+(2) PSID-1, based on Panel Study of Income Dynamics for household heads under 55 from specific years who were not retired in 1975, adjusted for factors like employment status and poverty level.
 
 Dehejia and Wahba (1999) constructed a subset of LaLonde's original data, retaining 62% of observations and restricting the focus to male participants based on their 1974 earnings. As the sample was formed entirely on pretreatment information like employment records or month of assignment, treatment allocation was effectively independent of all pretreatment variables. Thus, they concluded that this subset, known as the LaLonde-Dehejia-Wahba (LDW) data, constitutes a valid experimental sample.
 
 The analysis in section 2 and 3 builds on the LDW data and considers in total three samples: 
 (1) LDW-Experimental, consisting of 185 treated individuals and 280 controls from the experimental data;
 (2) LDW-CPS-1, which pairs the same treated units with 15,992 controls from CPS-SSA-1;
-(3) LDW-PSID-1, featuring the same treated units with 2,490 controls from PSID-1; 
+(3) LDW-PSID-1, featuring the same treated units with 2,490 controls from PSID-1. 
 In section 4 and 5, the analysis applies the same set of statistical tools to analyze a fourth and fifth sample as additional demonstrations:
-(4) LaLonde male samples (1986).
+(4) LaLonde male samples (1986);
 (5) LaLonde female samples (2017).
 
-This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (`black`, `hispanic`), marital status (`married`), high school dropouts (`nodegree`), 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To achieve adequate overlap between treated and control groups and covariate balance, various methods are applied and are structured into two parts (trimming and integrated methods). From these methods, the five most efficient methods are determined based on the  overlapping coefficient (OVL) and reranked by the mean absolute standardized mean difference (ASMD). The corresponding samples are used to estimate to inform subsequent analysis. Notably, the estimation of the average treatment effect on the treated (ATT) incorporates the recently introduced augmented inverse probability weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package (AIPW-OW). Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT. Placebo tests are then conducted using 1975 earnings (`re75`) as the outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
+This section (2) covers model A, which includes the outcome variable 1978 earnings (`re78`) and adjusts for a set of covariates: age, education, race (`black`, `hispanic`), marital status (`married`), high school dropouts (`nodegree`), 1974 and 1975 earnings (`re74`, `re75`), and unemployment status in 1974 and 1975 (`u74`, `u75`). The model is defined by a regression formula for treatment assignment using these covariates. To achieve adequate overlap between treated and control groups and covariate balance, various methods are applied and are structured into two parts (trimming and integrated methods). From these methods, the five most efficient methods are determined based on the overlapping coefficient and reranked by the mean absolute standardized mean difference. The corresponding samples are used to estimate to inform subsequent analysis. Notably, the estimation of the average treatment effect on the treated (ATT) incorporates the recently introduced augmented inverse probability weighting (AIPW) estimator, implemented via the `OutcomeWeights` R package (AIPW-OW). Subsequently, alternative estimands are considered, including the conditional average treatment effect for the treated (CATT) and the quantile treatment effect on the treated (QTET). After estimating these effects, outcome weights are analyzed to identify potential patterns in the contribution of individual observations to the ATT. Placebo tests are then conducted using 1975 earnings (`re75`) as the outcome to assess potential biases and the validity of unconfoundedness assumptions. Finally, sensitivity analyses are performed to evaluate the robustness of treatment effect estimates to violations of these assumptions. 
 
 ## Set up
 ### Source functions and load data
 ```{r, message=FALSE, warning=FALSE}
 # source functions
-# setwd("C:/Users/lkreisel/workspace/uni-projects/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study")
 source("https://github.com/xuyiqing/lalonde/blob/main/tutorial/functions.R?raw=TRUE")
 source("tutorial/functions.R")
 ```
@@ -49,7 +48,7 @@ datatable(summary_stats, caption = "Summary Statistics",
 
 ### Load and preprocess data
 
-Next, we augment the control groups in LDW-CPS-1 and LDW-PSID-1 by merging them with the experimental controls from LDW-Experimental. This approach follows the methodology laid out by @imbens2024. These expanded samples are used solely for comparative purposes, while all primary analyses rely on the original LDW‑CPS-1 and LDW‑PSID-1 data.
+Next, we augment the control groups in LDW-CPS-1 and LDW-PSID-1 by merging them with the experimental controls from LDW-Experimental. This approach follows the methodology laid out by @imbens2024. These expanded samples are used solely for comparative purposes, while all primary analyses rely on the original LDW‑CPS-1 and LDW‑PSID-1 samples.
 ```{r, message=FALSE, warning=FALSE}
 # assigns 1 to the experimental controls
 ldw_co$treat <- 1
@@ -74,7 +73,7 @@ datatable(summary_stats_plus, caption = "Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-## Model A
+## LDW-Model A
 
 Finally, we define model A as the baseline specification underlying the analysis before we proceed to analyze overlap.
 ```{r, message=FALSE, warning=FALSE}
@@ -85,10 +84,16 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re74", "re75", "u74", "u75") #re74 included
 ```
 
+The model formula is as following.
+```{r, message=FALSE, warning=FALSE}
+# set model formula
+model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
+```
+
 ## Pre-assessing methods 
 ### Overlap
 
-To identify the average causal effect under unconfoundedness (that asserts that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlap between the treated and untreated units (meaning that for every combination of covariates, there are both treated and untreated units in the sample) is required. To assess overlap in the propensity scores and visualize the results using histograms of their log-odds, we use the `assess_overlap()` function of @imbens2024.
+To identify the average causal effect under unconfoundedness (that asserts that the treatment assignment is independent of the potential outcomes), it must be ensured that one can estimate the average effect at every value for the covariates. Thus, overlap between the treated and untreated units (meaning that for every combination of covariates, there are both treated and untreated units in the sample) is required. To assess overlap in the propensity scores and visualize the results using histograms of their log-odds, we use the `assess_overlap()` function introduced by @imbens2024.
 
 <div class="callout-note">
 In a properly balanced experimental design, the distributions of the treatment group (red) and the control group (gray) would show considerable coverage.
@@ -123,14 +128,8 @@ save_overlap_panels(
 )
 ```
 
-For the following analysis, we set up a model formula.
-```{r, message=FALSE, warning=FALSE}
-# set model formula
-model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
-```
-
 <div class="callout-note">
-For the subsequent analysis aimed at achieving adequate overlap, only the two samples LDW-CPS-1 and LDW-PSID-1 are used. However, since covariate imbalance can induce bias even in the presence of overlap, it remains crucial to also ensure sufficient balance on observed covariates in these samples. The LDW-Experimental sample is excluded from these steps, as randomization already ensures adequate overlap. 
+For the subsequent analysis aimed at achieving adequate overlap, only the two samples LDW-CPS-1 and LDW-PSID-1 are considered. However, since covariate imbalance can induce bias even in the presence of overlap, it remains crucial to also ensure sufficient balance on observed covariates in these samples. The LDW-Experimental sample is excluded from these steps, as randomization already ensures adequate overlap. 
 </div>
 
 ## Improving overlap
@@ -141,7 +140,7 @@ The purpose of trimming is to remove units whose propensity scores are too dissi
 
 1) Propensity score threshold trimming 
 ```{r, message=FALSE, warning=FALSE}
-# apply trimming with a threshold 
+# apply trimming with a (maximum) threshold 
 ldw_cps.ps_trim <- ps_trim(ldw_cps.ps, threshold = 0.9)
 ldw_psid.ps_trim <- ps_trim(ldw_psid.ps, threshold = 0.9)
 
@@ -206,6 +205,7 @@ For comparison, an integrated method combining (maximum) threshold trimming and 
 ##### Extended samples 
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
+# apply trimming with a (maximum) threshold 
 ldw_cps_trim <- ps_trim(ldw_cps_plus.ps, threshold = 0.9)
 ldw_psid_trim <- ps_trim(ldw_psid_plus.ps, threshold = 0.8)
 
@@ -246,14 +246,14 @@ all_trim.psid  <- list(
 ###### Distance matching
 1) 1:1 Nearest neighbor matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with k=1, logistic propensity score and replacement
+# perform nearest neighbor matching with k=1, logistic propensity score and replacement 
 nn_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
 nn_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
 ```
 
 2) k:1 matching (k=2) with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with k=2, logistic propensity score and replacement
+# perform nearest neighbor matching with k=2, logistic propensity score and replacement 
 k<-2
 k2_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
 k2_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
@@ -269,21 +269,21 @@ k3_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "
 
 4) Caliper matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
+# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score and replacement 
 caliper_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
 caliper_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
 ```
 
 5) Common support restriction matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with exclusion of units outside common support
+# perform nearest neighbor matching with exclusion of units outside common support and replacement
 cs_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 cs_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 ```
 
 6) Mahalanobis distance matching (mahvars) with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching using mahalanobis distance
+# perform nearest neighbor matching using mahalanobis distance without replacement
 mahvars_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "mahalanobis", replace = FALSE)
 mahvars_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "mahalanobis", replace = FALSE)
 ```
@@ -354,7 +354,7 @@ profile_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method
 ```
 
 ## Post-assessing methods
-We now systematically reassess all methods described above by evaluating the overlap coefficient (OVL) and the absolute standardized mean differences (ASMD). Specifically, we compute the ASMD and OVL for each approach to determine the most efficient methods for the observational samples.
+We now systematically reassess all methods described above by evaluating the overlapping coefficient (OVL) and the absolute standardized mean differences (ASMD). Specifically, we compute the ASMD and OVL for each approach to determine the most efficient methods for the observational samples.
 
 ### Single methods
 #### Trimming
@@ -446,8 +446,7 @@ ovl_trim_match_comb.psid <- compute_ovl_matchit(trim_match_comb.psid, all_trim.p
 
 ## Identifying most efficient methods
 ### Ranking
-To identify the top five methods for each observational sample, we first combine for each sample all results of the mean 
-ASMD and OVL into a single data frame. This allows for a comprehensive comparison across all methods.
+To identify the top five methods for each observational sample, we first combine for each sample all results of the mean ASMD and OVL into a single data frame. This allows for a comprehensive comparison across all methods.
 
 <div class="callout-note">
 Only results based on the non-plus samples are included in the identification of the most efficient methods, as the objective is to identify the overall top-performing methods for the original observational samples.
@@ -464,7 +463,7 @@ save_csv(all_cps, "ldw_model_a_cps1_all_results")
 save_csv(all_psid, "ldw_model_a_psid1_all_results")
 ```
 
-Next, each method is evaluated according to its OVL and mean ASMD result. Specifically, the top five methods are selected based on the highest OVL value, as a higher OVL value indicates greater overlap between treated and control groups, before those are reranked based on the mean ASMD, where lower values indicate higher degrees of covariate balance.
+Next, each method is evaluated according to its OVL and mean ASMD result. Specifically, the top five methods are selected based on the highest OVL value, as higher values indicate greater overlap between treated and control groups, before those are reranked based on the mean ASMD, where lower values indicate higher degrees of covariate balance.
 ```{r, message=FALSE, warning=FALSE}
 # rank comparatively
 ranked_cps  <- assess_methods(all_cps)
@@ -494,7 +493,7 @@ save_csv(top5_methods.psid, "ldw_model_a_psid1_top5_methods")
 ```
 
 ### Sample construction
-For the subsequent estimation, we need to construct samples of the top‑ranked methods. Therefore, we match all method names back to their corresponding datasets, or objects and construct corresponding samples. 
+For the subsequent estimation, we need to construct samples based on the top‑ranked methods. Therefore, we match all method names back to their corresponding data, or objects and construct corresponding samples. 
 ```{r, message=FALSE, warning=FALSE}
 # create lookup lists
 match_lookup_cps <- c(
@@ -550,15 +549,15 @@ save_top5_datasets(list_psid, top5_methods.psid, prefix = "ldw_model_a_psid1")
 ## Estimating
 ### Average treatment effect on the treated (ATT)
 
-Next, we estimate the average treatment effect on the treated (ATT) using the LDW-Experimental sample, the top‑ranked observational samples (LDW‑CPS-1 and LDW‑PSID-1), and, for comparison, the plus‑samples. We employ a suite of estimators, including difference-in-means, regression adjustment, the Oaxaca-Blinder estimator, generalized random forests (GRF) as an outcome model, 1:5 nearest neighbor matching with bias correction, inverse probability weighting (IPW) with GRF-based propensity scores, covariate balancing propensity score (CBPS), entropy balancing, double/debiased machine learning using elastic net, and augmented inverse probability weighting (AIPW) via GRF. We also incorporate the recently introduced estimand-specific AIPW estimator implemented through an expansion of the `OutcomeWeights` R package by @OW_Package (AIPW-OW).
-
-We utilize the `estimate_all()` and `plot_coef()` functions as defined by @imbens2024.
+Next, we estimate the average treatment effect on the treated (ATT) using the LDW-Experimental sample, the top‑ranked observational samples (LDW‑CPS-1 and LDW‑PSID-1), and, for comparison, the plus‑samples. We employ a suite of estimators, including difference-in-means, regression adjustment, the Oaxaca-Blinder estimator, generalized random forests (GRF) as an outcome model, 1:5 nearest neighbor matching with bias correction, inverse probability weighting (IPW) with GRF-based propensity scores, covariate balancing propensity score (CBPS), entropy balancing, double/debiased machine learning using elastic net, and augmented inverse probability weighting via GRF (AIPW-GRF). We also incorporate the recently introduced estimand-specific AIPW estimator implemented through an expansion of the `OutcomeWeights` R package by @OW_Package (AIPW-OW). We utilize the `estimate_all()` and `plot_coef()` functions as defined by @imbens2024.
 ```{r, message=FALSE, warning=FALSE}
 # estimate ATT
 out1 <- estimate_all(ldw, "re78", "treat", covar)
 out2 <- estimate_all(ldw_cps, "re78", "treat", covar)
 out3 <- estimate_all(ldw_psid, "re78", "treat", covar)
+```
 
+```{r, message=FALSE, warning=FALSE}
 out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
 out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
 out.cps_trim <- lapply(all_trim.cps, function(d) estimate_all(d, "re78", "treat", covar))
@@ -566,7 +565,6 @@ out.psid_trim <- lapply(all_trim.psid, function(d) estimate_all(d, "re78", "trea
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate ATT
 load("data/trimmed.RData")
 out4 <- estimate_all(ldw_trim_cps, "re78", "treat", covar)
 out5 <- estimate_all(ldw_trim_psid, "re78", "treat", covar)
@@ -575,12 +573,12 @@ out7 <- estimate_all(ldw_psid_trim, "re78", "treat", covar)
 ```
 
 <div class="callout-note">
-In each plot the black dots represent the ATT point estimates. The red dashed line indicates the respective benchmark and the light red band the 95% confidence interval. 
+In each plot the black dots represent the ATT point estimates from the respective sample. The red dashed line indicates the respective benchmark and the light red band the 95% confidence interval. 
 </div>
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA2. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID1. SubfigureD-H:Top-LDW-CPS1. SubfigureI-M:Top-LDW-PSID1. SubfigureN:LDW-CPS1-PLUS. SubfigureO:LDW-PSID1-PLUS. ATT Estimates Model A Given Unconfoundedness using LDW Samples"}
 par(mfrow = c(4, 1), mar = c(4, 4, 2, 2))
 
-# experimental benchmarks
+# get experimental benchmark
 band.exp <- out1[1, 3:4]
 est.exp  <- out1[1, 1]
 
@@ -594,7 +592,7 @@ plot_coef(out2,  band = band.exp, line = est.exp,
 plot_coef(out3,  band = band.exp, line = est.exp,
           ylim = c(-15500, 5500), main = "(C) LDW-PSID-1")
 
-# get nonexperimtenal benchmarks
+# get benchmarks
 method_names_cps <- sapply(top5_methods.cps, function(m) {
     matches <- names(out.cps_trim)[sapply(names(out.cps_trim), function(n) grepl(n, m, fixed=TRUE))]
     if (length(matches) > 0) matches[which.max(nchar(matches))] else NA 
@@ -622,7 +620,7 @@ for (i in seq_along(out.psid)) {
             ylim = c(-15500, 5500), main = this_title)
 }
 
-# get nonexperimtenal benchmarks
+# get benchmarks
 band.cps_plus <- out4[1, 3:4]
 est.cps_plus <- out4[1, 1]
 band.psid_plus <- out5[1, 3:4]
@@ -637,18 +635,17 @@ plot_coef(out7, band = band.psid_plus, line = est.psid_plus,
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# get outputs
+# get all outputs
 all_outs <- c(list(out1, out2, out3), out.cps, out.psid, list(out6, out7))
 
-# get plot titles
+# get all plot titles
 all_plot_titles <- c("(A) LDW-Experimental", "(B) LDW-CPS-1", "(C) LDW-PSID-1",
                       paste0("(", LETTERS[4:8], ") Top CPS-1: ", top5_methods.cps),
                       paste0("(", LETTERS[9:13], ") Top PSID-1: ", top5_methods.psid),
                       "(N) Trimmed LDW-CPS-1-PLUS", "(O) Trimmed LDW-PSID-1-PLUS")
 
-# get confidence interval bounds
+# get all confidence interval bounds
 all_bands <- c(list(band.exp, band.exp, band.exp), band.cps, band.psid, list(band.cps_plus, band.psid_plus))
-
 all_ests <- c(list(est.exp, est.exp, est.exp), est.cps, est.psid, list(est.cps_plus, est.psid_plus))
 
 # save results
@@ -661,13 +658,13 @@ save_att_panels(
 )
 ```
 
-The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS-1, LDW-PSID-1, a series of top-ranked subsamples of both LDW-CPS-1 and LDW-PSID-1 based on various trimming and integrated trimming and matching criteria and trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS samples (similar to @imbens2024).
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: LDW-Experimental, LDW-CPS-1, LDW-PSID-1, a series of top-ranked samples of both LDW-CPS-1 and LDW-PSID-1 based on various trimming and integrated trimming and matching criteria and trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS samples (similar to @imbens2024).
 
-Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the original observational samples, LDW-CPS-1 and LDW-PSID-1, while figures (D) through (H) display results for LDW-CPS-1-based subsamples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding LDW-PSID-1-based subsamples under parallel rules. Figures (N) and (O) present results for the trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS, replicating the tutorial results of Imbens & Xu (2024). 
+Figure (A) presents the benchmark from the experimental sample (LDW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the original observational samples, LDW-CPS-1 and LDW-PSID-1, while figures (D) through (H) display results for LDW-CPS-1-based samples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding LDW-PSID-1-based samples under parallel rules. Figures (N) and (O) present results for the trimmed and matched versions of the LDW-CPS-1-PLUS and LDW-PSID-1-PLUS, replicating the tutorial results of Imbens & Xu (2024). 
 
-The LDW-CPS-1 sample produces ATT estimates that closely align with the benchmark with an exception for one estimator. Its top-ranked subsamples produce ATT estimates that are consistently positive and cluster reasonably close around the benchmark, except for the `cem_stuermer` (G) subsample that exhibits somewhat larger deviations from the benchmark and increased standard errors. 
+The LDW-CPS-1 sample produces ATT estimates that closely align with the experimental benchmark with an exception for one estimator. Its top-ranked samples produce ATT estimates that are consistently positive and cluster reasonably close around the benchmark, except for the `cem_stuermer` (G) sample that exhibits somewhat larger deviations from the benchmark and increased standard errors. 
 
-In contrast, the LDW-PSID-1 sample and its top-ranked subsamples frequently exhibit greater dispersion and substantially higher standard errors compared to the LDW-CPS-1 samples, while almost all its ATT estimates are negative.
+In contrast, the LDW-PSID-1 sample and its top-ranked samples frequently exhibit greater dispersion and substantially higher standard errors compared to the LDW-CPS-1 samples, while almost all its ATT estimates are negative.
 
 Further, while ATT estimates for LDW-CPS1-PLUS overly resemble those obtained from respective non-plus samples, the LDW-PSID-PLUS sample produces ATT estimates notably closer to the benchmark compared to all LDW-PSID-1-based samples, demonstrating that the trimmed and matched approach of the extended sample may improve the accuracy of the ATT estimates.
 ```{r, message=FALSE, warning=FALSE}
@@ -700,9 +697,9 @@ The first value in each cell represents the point estimate from the respective e
 
 The tabulated results confirm visual patterns: Column (A) reports the estimates for the LDW-Experimental sample, column (B) for the LDW-CPS-1 sample, and column (C) for the LDW-PSID-1 sample. Columns (D)-(O) summarize the top-ranked sample results for both LDW-CPS-1 and LDW-PSID-1. Columns (N) and (O) present estimates for the trimmed and matched versions of the LDW-PSID-1-PLUS and LDW-PSID-1-PLUS samples.
 
-For most LDW-CPS-1-based samples, estimates remain not only positive but also comparatively close to the experimental benchmark, with moderate variance inflation. In contrast, the LDW-PSID-1-based estimates exhibit greater variability, more frequently negative values, and larger standard errors, reflecting an increased challenge of achieving adequate estimates in this observational sample.
+For most LDW-CPS-1-based samples, estimates remain not only positive but also comparatively close to the experimental benchmark, with moderate variance inflation. In contrast, the LDW-PSID-1-based samples produce estimates that exhibit greater variability, more frequently negative values, and larger standard errors, reflecting an increased challenge of achieving adequate estimates in the LDW-PSID-1 sample.
 
-Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain criteria can bring observational estimates closer to the benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
+Overall, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental effect estimation, and that certain criteria can bring observational estimates closer to the benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat, "ldw_att_est_model_a")
@@ -716,7 +713,7 @@ Next, we explore alternative estimands such as heterogeneous treatment effects a
 
 ### Conditional average treatment effect on the treated (CATT)
 
-CATT enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. We estimate the CATT for the same samples previously considered in the ATT estimation by applying the Augmented Inverse Probability Weighting Generalized Random Forest (AIPW-GRF) method via the `catt()` function established by @imbens2024.
+CATT enables analysis of treatment effect heterogeneity across covariate-defined subpopulations. We estimate the CATT for the same samples previously considered in the ATT estimation by AIPW-GRF via the `catt()` function established by @imbens2024.
 ```{r, message=FALSE, warning=FALSE}
 # estimate CATT
 catt.ldw <- catt(ldw, Y, treat, covar)
@@ -736,16 +733,16 @@ catt.cps_trim <- catt(ldw_cps_trim, Y, treat, covar)
 catt.psid_trim <- catt(ldw_psid_trim, Y, treat, covar) 
 ```
 
-Then, we employ the function `plot_catt()` from @imbens2024 to visualize the results for the initial observational samples and plus-samples, as well as a modified version of the function for the remaining datasets. This approach plots the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding benchmarks. 
+Then, we employ the function `plot_catt()` from @imbens2024 to visualize the results for the initial observational samples and plus-samples, as well as a modified version of this function for the remaining samples. This approach plots the estimated CATTs for all samples at the covariate values of each treated unit against their corresponding benchmarks. 
 
 <div class="callout-note">
 In the CATT plots, the gray dots represent pairs of CATT estimates, while the red crosses indicate pairs of estimated ATTs.
 </div>
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA3. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. CATT Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
-# plot results
 par(mfrow = c(2,2)) 
 par(cex.main = 0.9)
 
+# plot results
 plot_catt(
   catt1 = catt.ldw$catt,
   catt2 = catt.cps$catt,
@@ -817,13 +814,13 @@ datatable(all_catt_eval, caption = "CATT Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-Specifically, with LDW-CPS-1, CATT estimates span from $-5,334.04 to $6,947.08, contrasting with the CATT estimated from experimental data which ranges from $-106.73 to $4009.54, with a mean CATT estimate of $1,748.62. The LDW-PSID-1 sample shows an even broader CATT estimate range, spanning from $-8,552.26 to $4,635.64, and a notably lower mean of approximately $766.50.
+Specifically, with the LDW-CPS-1 sample, CATT estimates span from $-5,334.04 to $6,947.08, contrasting with the CATT estimated from experimental data (LDW-Experimental) which ranges from $-106.73 to $4009.54, with a mean CATT estimate of $1,748.62. The LDW-PSID-1 sample shows an even broader CATT estimate range, spanning from $-8,552.26 to $4,635.64, and a notably lower mean of approximately $766.50.
 
-Among the top-ranked LDW-CPS-1 subsamples, CATT ranges vary substantially, yet their mean estimates are generally closer to the benchmark compared to the LDW-CPS-1 sample. The subsample `cs_crump` (E) produces the minimum CATT estimate among corresponding top-ranked subsamples, but still produces a positive mean CATT estimate. 
+Among the top-ranked LDW-CPS-1 samples, CATT ranges vary substantially, yet their mean estimates are generally closer to the experimental benchmark compared to the LDW-CPS-1 sample. The sample `cs_crump` (E) produces the minimum CATT estimate among corresponding top-ranked samples, but still produces a positive mean CATT estimate. 
 
-The CATT estimates for the LDW-PSID-1 top-ranked subsamples reveal substantially decreased mean CATT estimates compared to the LDW-CPS-1 top-ranked subsamples, reflecting greater difficulties in producing reliable treatment effect estimates.
+The CATT estimates for the LDW-PSID-1 top-ranked samples reveal substantially decreased mean CATT estimates compared to the LDW-CPS-1 top-ranked samples, reflecting greater difficulties in producing reliable treatment effect estimates.
 
-This variation in range and means across methods and samples reflects substantial heterogeneity in treatment effect estimation, indicating that while some criteria improve alignment with the benchmark, others introduce considerable discrepancies and variability in estimated heterogeneous effects.
+This variation in range and means across methods and samples reflects substantial heterogeneity in treatment effect estimation, indicating that while some criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and variability in estimated heterogeneous effects.
 ```{r, message=FALSE, warning=FALSE}
 # save results
 save_main_catt_panels(
@@ -859,20 +856,15 @@ save_plus_catt_panels(
 
 ### Quantile treatment effect on the treated (QTET)
 
-QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by @Firpo_2007, implemented through the `est_qte()` function from Imbens and Xu (2024). Visualization is conducted using their `plot_qte()` function and a modified version thereof.
+QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by @Firpo_2007, implemented through the `est_qte()` function established by @imbens2024. Visualization is conducted using their `plot_qte()` function and a modified version thereof.
 ```{r, message=FALSE, warning=FALSE}
+# estimate QTET
 qte.ldw <- est_qte(Y, treat, covar, data = ldw, cores = 4)
 qte.ldw_cps <- est_qte(Y, treat, covar, data = ldw_cps)
 qte.ldw_psid <- est_qte(Y, treat, covar, data = ldw_psid)
 qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
 qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
-```
-
-```{r, message=FALSE, warning=FALSE}
 qte.top5_cps_trim  <- lapply(all_trim.cps,  function(d) est_qte_safe(Y, treat, covar, data = d))
-```
-
-```{r, message=FALSE, warning=FALSE}
 qte.top5_psid_trim <- lapply(all_trim.psid, function(d) est_qte_safe(Y, treat, covar, data = d))
 ```
 
@@ -899,12 +891,12 @@ qte.ldw_psid.trim0 <- est_qte(Y, treat, NULL, data = ldw_psid_trim)
 <div class="callout-note">
 Each QTET plot displays three distinct series for every sample analyzed: (1) The blue line with diamond-shaped points represents QTET estimates derived from the experimental sample, serving as the benchmark. (2) The red line with triangles shows QTET estimates from the observational data before any adjustment. (3) The black line with circles presents QTET estimates for the observational data after applying covariate adjustment.
 </div>
-
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA4. SubfigureB:LDW-CPS1. SubfigureC:LDW-PSID-1. SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. QTET Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2))
 par(cex.main = 0.9)
 ylim = c(-25000, 15000)
 
+# plot results
 plot_qte(qte.ldw_cps, qte.ldw_cps0, qte.ldw, main = "(B) LDW-CPS-1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
@@ -928,9 +920,9 @@ legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
 
 These figures display QTET estimates derived from both the experimental and various observational samples. 
 
-The QTETs estimated from the LDW-CPS-1 sample (B) and their top-ranked subsamples (D, E and H), except for `k2_crump` (F) and `cem_stuermer` (G), corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the trimmed and matched version of LDW-CPS-1-PLUS (N) also correspond well with the true QTET. 
+The QTETs estimated from the LDW-CPS-1 sample (B) and their top-ranked samples (D, E and H), except for `k2_crump` (F) and `cem_stuermer` (G), corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the trimmed and matched version of LDW-CPS-1-PLUS (N) also correspond well with the true QTET. 
 
-The QTET estimates from the LDW-PSID-1 (C) and their top-ranked subsamples (I-M) show clear biases and noticeably wider confidence bands when compared to the experimental benchmark, which clusters near zero, indicating greater estimation uncertainty. Only the top-ranked subsamples `mahvars_walker` (L) and `k2_walker` (K) produce QTET estimates that are slightly closer to the true QTET. The QTET estimates from the trimmed and matched version of LDW-PSID-1-PLUS (N) also exhibit clear biases.
+The QTET estimates from the LDW-PSID-1 (C) and their top-ranked samples (I-M) show clear biases and noticeably wider confidence bands when compared to the experimental benchmark, which clusters near zero, indicating greater estimation uncertainty. Only the top-ranked samples `mahvars_walker` (L) and `k2_walker` (K) produce QTET estimates that are slightly closer to the true QTET. The QTET estimates from the trimmed and matched version of LDW-PSID-1-PLUS (N) also exhibit clear biases.
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_ldw <- list(
@@ -991,7 +983,7 @@ save_csv(res_ow, "ldw_model_a_ow")
 
 ## Validation through placebo analyses
 
-To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating 1975 earnings (`re75`) as the outcome variable and omitting both `re75` and `u75` from the set of covariates. The analysis uses all previously considered samples and recomputes the ATT via the function `estimate_all`, initially developed by @imbens2024 and adapted for specific purposes within this study, conditioning only on the remaining set of covariates.
+To further evaluate the credibility of the unconfoundedness assumption, a placebo analysis is performed by designating 1975 earnings (`re75`) as the (placebo) outcome variable and omitting both `re75` and `u75` from the set of covariates. The analysis uses all previously considered samples and recomputes the ATT via the function `estimate_all`, initially established by @imbens2024 and adapted for specific purposes within this study, conditioning only on the remaining set of covariates.
 ```{r, message=FALSE, warning=FALSE}
 # define variables
 Y <- "re75"
@@ -1026,7 +1018,7 @@ out7_pl <- estimate_all(ldw_psid_trim_pl, Y, "treat", covar)
 ```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA6. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Placebo Test Model A: '75 Earnings as the Outcome"}
 par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
 
-# experimental benchmarks
+# get experimental benchmark
 band.exp_pl <- out1_pl[1, 3:4]
 est.exp_pl <- out1_pl[1, 1]
 
@@ -1040,7 +1032,7 @@ plot_coef(out2_pl,  band = band.exp_pl, line = est.exp_pl,
 plot_coef(out3_pl,  band = band.exp_pl, line = est.exp_pl,
           ylim = c(-15500, 5500), main = "(C) LDW-PSID-1")
 
-# get nonexperimtenal benchmarks
+# get benchmarks
 method_names_cps <- sapply(top5_methods.cps, function(m) {
     matches <- names(out.cps_trim_pl)[sapply(names(out.cps_trim_pl), function(n) grepl(n, m, fixed=TRUE))]
     if (length(matches) > 0) matches[which.max(nchar(matches))] else NA 
@@ -1068,7 +1060,7 @@ for (i in seq_along(out.psid_pl)) {
             ylim = c(-15500, 5500), main = this_title)
 }
 
-# nonexperimtenal benchmarks
+# get benchmarks
 band.cps_plus_pl <- out4_pl[1, 3:4]
 est.cps_plus_pl <- out4_pl[1, 1]
 band.psid_plus_pl <- out5_pl[1, 3:4]
@@ -1083,7 +1075,7 @@ plot_coef(out7_pl, band = band.psid_plus_pl, line = est.psid_plus_pl,
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# combine results
+# combine all results
 all_outs_pl <- c(list(out1_pl, out2_pl, out3_pl), out.cps_pl, out.psid_pl, list(out6_pl, out7_pl))
 all_bands_pl <- c(list(band.exp_pl, band.exp_pl, band.exp_pl), band.cps_pl, band.psid_pl, list(band.cps_plus_pl, band.psid_plus_pl))
 all_ests_pl <- c(list(est.exp_pl, est.exp_pl, est.exp_pl), est.cps_pl, est.psid_pl, list(est.cps_plus_pl, est.psid_plus_pl))
@@ -1100,11 +1092,13 @@ save_att_panels(
 
 The placebo ATT results are presented in the table below.
 ```{r, message=FALSE, warning=FALSE}
-# get placebo results
+# get all placebo results
 all_outs_pl <- c(list(out1_pl, out2_pl, out3_pl), out.cps_pl, out.psid_pl, list(out6_pl, out7_pl))
 out.cps_top_pl <- lapply(method_names_cps, function(j) out.cps_trim_pl[[j]])
 out.psid_top_pl <- lapply(method_names_psid, function(j) out.psid_trim_pl[[j]])
 all_out_mat_pl <- c(list(out1_pl), out.cps_top_pl, out.psid_top_pl, list(out4_pl, out5_pl))
+
+# create result matrix
 result_mat_pl <- create_matrix_results(all_outs_pl, all_out_mat_pl, all_plot_titles)
 
 # print table output
@@ -1112,13 +1106,13 @@ datatable(result_mat_pl, caption = "Placebo ATT Estimates and SEs",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-The placebo analysis reveals that the experimental benchmarks are positive, near zero and statistically insignificant, while all estimators applied to the observational samples, LDW-CPS-1 and LDW-PSID-1, yield by majority large, negative ATT estimates.
+The placebo analysis reveals that the experimental benchmark is positive, near zero and statistically insignificant, while all benchmarks for the top-ranked samples negative and all estimators applied to the observational samples, LDW-CPS-1 and LDW-PSID-1, yield by majority large, negative ATT estimates.
 
-For LDW-CPS-1 (B), most ATT estimates are negative. For LDW-CPS-1 subsamples (D-H), ATT estimates remain largely negative with only a few exceptions but show reasonable improvement in ATT estimates towards the benchmark and overly decreased standard errors compared to the LDW-CPS-1 (B) sample, still indicating persistent bias. For LDW-PSID-1 subsamples (I-M) a similar pattern results compared to the LDW-PSID-1 sample. 
+For LDW-CPS-1 (B), most ATT estimates are negative. For LDW-CPS-1 top-ranked samples (D-H), ATT estimates remain largely negative with only a few exceptions but show reasonable improvement in ATT estimates towards the benchmark and overly decreased standard errors compared to the LDW-CPS-1 (B) sample, still indicating persistent bias. For LDW-PSID-1 top-ranked samples (I-M) a similar pattern results compared to the LDW-PSID-1 sample. 
 
 The trimmed and matched versions of LDW-CPS-1-PLUS and LDW-PSID-1-PLUS exhibit mainly even larger negative ATT estimates compared to the initial observational samples, reflecting substantial bias and deviation from the true effect.
 
-Overall, across most observational samples and estimators, the placebo test produces ATT estimates that are substantially biased and far from the experimental benchmark. This highlights the persistent challenge in recovering unbiased ATT estimates outside of experimental data.
+Overall, across most observational samples and estimators, the placebo test produces ATT estimates that are substantially biased and far from the benchmark. This highlights the persistent challenge in recovering unbiased ATT estimates outside of experimental data.
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat_pl, "ldw_att_estimates_pl_model_a")
@@ -1126,7 +1120,7 @@ save_csv(result_mat_pl, "ldw_att_estimates_pl_model_a")
 
 ## Validation through sensitivity analyses
 
-Finally, a sensitivity analyses using the LDW data is conducted and results are depicted in contour plots using the function `sens_ana` of Imbens & Xu (2024).
+Finally, a sensitivity analyses using the LDW data is conducted and results are depicted in contour plots using the function `sens_ana` introduced by @imbens2024.
 ```{r, message=FALSE, warning=FALSE}
 # define variables
 Y <- "re78"
@@ -1144,7 +1138,7 @@ filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, b
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
 
-# loop over valid datasets and assign index
+# loop over valid datasets and plot results 
 for (i in seq_along(filtered_datasets_sens)) {
     sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
     title(main = all_plot_titles[i])
@@ -1156,11 +1150,11 @@ for (i in seq_along(filtered_datasets_sens)) {
 save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "ldw_model_a")
 ```
 
-The sensitivity analysis shows that for the LDW-Experimental sample, as well as for the LDW-CPS-1 (B) and its top-ranked subsamples `nn_crump`, `cs_crump`,`k2_crump` and `genetic_crump` (D-F and H) the estimated treatment effects are fairly robust to increasing confounder strength,  as indicated by relatively stable values despite up to triple the correlation levels of the confounder.
+The sensitivity analysis shows that for the LDW-Experimental sample, as well as for the LDW-CPS-1 (B) and its top-ranked samples `nn_crump`, `cs_crump`,`k2_crump` and `genetic_crump` (D-F and H) the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder.
 
 For the trimmed and matched LDW-CPS1-PLUS and LDW-PSID-1-PLUS samples (N-O) the estimated treatment effects remain also consistently robust, indicating improved resistance to unmeasured confounding. 
 
-For the top-ranked subsample `cem_stuermer` (G) of the LDW-CPS-1 sample as well as for the LDW-PSID-1 sample (C) and all its top-ranked subsamples (I-M) the estimated treatment effects are sensitive to unmeasured confounding with more pronounced swings, as evidenced by sizable shifts in the estimates.
+For the top-ranked sample `cem_stuermer` (G) of the LDW-CPS-1 sample as well as for the LDW-PSID-1 sample (C) and all its top-ranked samples (I-M) the estimated treatment effects are sensitive to unmeasured confounding with more pronounced swings, as evidenced by sizable shifts in the estimates.
 
 Overall, these results highlight sample-specific differences in robustness against potential unobserved confounding.
 
@@ -1170,7 +1164,7 @@ The analyses suggest that some samples maintain stable treatment effect estimate
 
 ## Inspection of re74 and re75
 ### Correlation 
-To evaluate potential collinearity between `re74` and `re75`, we compute their correlation. To determine whether `re74` may act as a confounder in treatment effect estimation, we report its correlation with both the treatment assignment variable (`treat`) and the outcome (`re78`).
+To evaluate potential collinearity between `re74` and `re75`, we compute their correlation. To determine whether `re74` may act as a confounder in the treatment effect estimation, we report its correlation with both the treatment assignment (`treat`) and the outcome (`re78`).
 ```{r, message=FALSE, warning=FALSE}
 # compute correlations
 cor_treat <- sapply(all_datasets, function(d) cor(d$re74, d$treat, use = "complete.obs"))
@@ -1182,7 +1176,7 @@ cor_table <- data.frame(Method = all_plot_titles, Cor_re74_treat = cor_treat, Co
 datatable(cor_table, caption = "Correlations of re74 with treatment and outcome across samples",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
-The tabulated results demonstrate that while 1974 earnings (`re74`) are only weakly correlated with treatment assignment across all samples, ranging from approximately −0.32 to 0.18, they exhibit moderately strong positive correlations with the outcome variable, ranging from approximately −0.03 to 0.70, suggesting that this pretreatment covariate constitutes a meaningful confounder of post-program earnings, but not a driver of treatment assignment. Further, 1974 earnings exhibits substantial correlation with 1975 earnings, implying considerable collinearity between these two lagged covariates and suggesting that the informational gain from including both may be limited.
+The tabulated results indicate that 1974 earnings (`re74`) is effectively independent of treatment assignment across all samples, with correlations ranging from approximately −0.32 to 0.18. In contrast, 1974 earnings exhibits moderately strong positive correlations with the outcome, ranging from approximately −0.03 to 0.70, suggesting that this pretreatment characteristic constitutes a meaningful confounder of post-program earnings, but not a driver of treatment assignment. Further, 1974 earnings exhibits substantial correlation with 1975 earnings, implying considerable collinearity between these two lagged covariates and suggesting that the informational gain from including both may be limited.
 
 Overall, these results do not provide clear guidance on whether to include 1974 earnings in the set of covariates, but suggest that one should weigh the trade-off between potential omitted variable bias and increased collinearity when making covariate selection decisions.
 ```{r, message=FALSE, warning=FALSE}
@@ -1192,8 +1186,7 @@ save_csv(cor_table, "ldw_model_a_corr_results")
 
 ### Distributional balance
 
-To further assess the risk of confounding,
-we examine the distributional balance of `re74` and, for comparison, of `re75` by plotting their density distributions for treated and control units. As model B intentionally omits `re74`, the analysis directly informs whether any covariate imbalance may induce bias in estimated treatment effects.
+To further assess the risk of confounding, we examine the distributional balance of `re74` and, for comparison, of `re75` by plotting their density distributions for treated and control units. As model B intentionally omits `re74`, the analysis directly informs whether any covariate imbalance may induce bias in estimated treatment effects.
 ```{r, message=FALSE, warning=FALSE, fig.width=12, fig.height=3, out.width='100%', fig.cap="FIGUREA8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. SubfigureC:LDW-PSID-1.  SubfigureD-H:Top-LDW-CPS-1. SubfigureI-M:Top-LDW-PSID-1. SubfigureN:LDW-CPS-1-PLUS. SubfigureO:LDW-PSID-1-PLUS. Balance Model A of re75"}
 # re75
 for (i in seq_along(all_datasets)) {
@@ -1228,16 +1221,15 @@ save_balance(all_datasets, all_plot_titles, balance_var = "re74", prefix = "ldw_
 
 The density plots show that treated and control units do not substantially differ in `re74` across all samples. This suggests that the potential for confounding is low, and the risk of bias from omitting `re74` from the set of covariates is rather negligible. Conversely, `re75` exhibits pronounced distributional differences between treated and control units across all samples, suggesting material confounding risk and necessitating its inclusion as a covariate to mitigate bias. 
 
-Thus, considering the pronounced collinearity with 1975 earnings, the moderate correlation with the outcome, and the negligible balance concerns, 1974 earnings may be excluded from the covariate set. However, whether its inclusion or exclusion materially affects the treatment effect estimates warrants validation. Accordingly, model B is specified without 1974 earnings and the complete analysis redone. 
+Thus, considering the pronounced collinearity with 1975 earnings, the moderate correlation with the outcome, and the negligible balance concerns, 1974 earnings may be excluded from the covariate set. However, whether its inclusion or exclusion materially affects the treatment effect estimates warrants validation. Accordingly, model B is specified without 1974 earnings and the complete analysis is redone. 
 
 ## Summary
-After reexamining model A, that is based on the LDW sample, several insights into causal inference challenges emerge. 
-First, we confirm that ensuring overlap between treated and control groups remains crucial for credible causal estimation. The LDW-Experimental data exhibit almost perfect overlap, while the observational datasets show poorer overlap, with many treated units outside the control range. 
+After reexamining model A, that is based on the LDW sample, several insights emerge. First, we confirm that ensuring overlap between treated and control groups remains crucial for credible causal estimation. The LDW-Experimental sample exhibits almost perfect overlap, while the observational samples show poorer overlap, with many treated units outside the control range. 
 
-Second, controlling for covariates such as age, education, race, and prior earnings, and using various methods including trimming, and combined approaches, largely yields consistent effect estimates. Thereby, the propensity score plays an important role in constructing samples and assessing overlap between groups.
+Second, controlling for covariates such as age, education, race, and prior earnings, and using various methods including trimming, and integrated approaches, largely yields consistent effect estimates. Thereby, the propensity score plays an important role in constructing samples and assessing overlap between groups.
 
 Further, placebo tests and sensitivity analyses reveal lingering concerns about the unconfoundedness assumption and robustness of some estimators.
 
-The balance analysis reveals that its important to control for 1975 earnings, while for 194 earnings its rather negligible.
+The correlation and balance analysis reveals that its important to control for 1975 earnings, while for 1974 earnings its rather negligible, although this warrants further investigation.
 
-Overall, this section highlights the importance of overlap, the utility of propensity scores, and the need for rigorous validation of the unconfoundedness assumption to produce credible causal estimates. 
+Overall, this section highlights the importance of overlap, the utility of propensity scores, and the need for rigorous validation of the unconfoundedness assumption to produce credible effect estimates. 
