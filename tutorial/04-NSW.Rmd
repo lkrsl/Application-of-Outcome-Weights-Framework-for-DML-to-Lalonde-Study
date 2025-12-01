@@ -1,5 +1,5 @@
 # LaLonde (NSW) Data 
-This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde dataset (loaded as `nsw`, similar to @imbens2024). 
+This section (4) examines the effect of the treatment (participation in the job training program) on the participants’ earnings in 1978 (`re78`) in the original LaLonde data (loaded as `nsw`, similar to @imbens2024). 
 
 For detailed explanations of the analysis steps and notes, please refer to section 2. Here, we only explain the NSW–specific results.
 
@@ -14,6 +14,7 @@ source("tutorial/functions.R")
 ```{r, message=FALSE, warning=FALSE}
 # load data
 load("data/lalonde.RData")
+load("data/trimmed.RData")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -26,23 +27,23 @@ set.seed(42)
 treat <- "treat"
 nsw_co$treat <- 1
 
-# drop re74, u74, tau from CPS1 and PSID1 and merge data
+# drop re74, u74, tau from CPS-1 and PSID-1 and merge data
 cps1a <- subset(cps1, select =  -c(re74, u74))
 nsw_cps <- rbind.data.frame(nsw_tr, cps1a)
 
 psid1a <- subset(psid1, select =  -c(re74, u74))
 nsw_psid <- rbind.data.frame(nsw_tr, psid1a)
 
-nsw_cps_plus <- rbind.data.frame(nsw_cps, nsw_co)
-nsw_psid_plus <- rbind.data.frame(nsw_psid, nsw_co)
+nsw_cps.plus <- rbind.data.frame(nsw_cps, nsw_co)
+nsw_psid.plus <- rbind.data.frame(nsw_psid, nsw_co)
 ```
 
 ### Inspect data
 ```{r, message=FALSE, warning=FALSE}
-# collect datasets in a list
-data <- list(nsw = nsw, nsw_cps = nsw_cps, nsw_psid = nsw_psid, nsw_cps_plus = nsw_cps_plus, nsw_psid_plus = nsw_psid_plus)
+# collect samples in a list
+data <- list(nsw = nsw, nsw_cps = nsw_cps, nsw_psid = nsw_psid, nsw_cps.plus = nsw_cps.plus, nsw_psid.plus = nsw_psid.plus)
 
-# inspect key metrics of each dataset
+# print and inspect key metrics of each sample
 summary_stats <- inspect_data(data)
 datatable(summary_stats, caption = "Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
@@ -57,289 +58,117 @@ covar <- c("age", "education", "black", "hispanic", "married",
            "nodegree", "re75", "u75")
 ```
 
-### Assessing overlap and covariate balance
-#### Overlap
-```{r, fig.cap='FIGUREC1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
-nsw.ps <- assess_overlap(data = nsw, treat = treat, cov = covar)
-nsw_cps.ps <- assess_overlap(data = nsw_cps, treat = treat, cov = covar) 
-nsw_psid.ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar) 
-```
-
-As anticipated, the NSW-Experimental data exhibit an almost perfect overlap. In contrast, the observational datasets NSW-CPS1 and NSW-PSID1 display weak overlap. 
-```{r, fig.cap='FIGUREC1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
-nsw_cps_plus.ps <- assess_overlap(data = nsw_cps_plus, treat = treat, cov = covar)  
-nsw_psid_plus.ps <- assess_overlap(data = nsw_psid_plus, treat = treat, cov = covar)
-```
-
-With the expanded datasets NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater coverage of log-odds densities across both samples.
 ```{r}
 # set model formula
 model <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
 ```
 
-#### Covariate balance
-```{r, fig.cap='FIGUREC2. SubfigureA:NSW-CPS1. SubfigureB:NSW-CPS1-PLUS. SubfigureC:NSW-PSID1. SubfigureD:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
-love.plot(nsw, nsw_cps, treat, covar = covar, title = "NSW-CPS1")
-love.plot(nsw, nsw_psid, treat, covar = covar, title = "NSW-PSID1")
-love.plot(nsw, nsw_cps_plus, treat, covar = covar, title = "NSW-CPS1-PLUS")
-love.plot(nsw, nsw_psid_plus, treat, covar = covar, title = "NSW-PSID1-PLUS")
+## Pre-assessing methods 
+### Overlap
+```{r, fig.cap='FIGUREC1. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1.',out.width='100%', fig.asp=0.5}
+nsw_ps <- assess_overlap(data = nsw, treat = treat, cov = covar, xlim = c(-2, 1.5))
+nsw_cps_ps <- assess_overlap(data = nsw_cps, treat = treat, cov = covar, xlim = c(-15, 5))
+nsw_psid_ps <- assess_overlap(data = nsw_psid, treat = treat, cov = covar, xlim = c(-15, 5))
 ```
 
-Neither NSW-CPS1-PLUS nor NSW-PSID1-PLUS shows consistently improved covariate balance compared with their non-plus counterparts based on raw standardized differences. Although some specific covariates improve slightly, most show the same or increased imbalance.
+As anticipated, the NSW-Experimental data exhibits an almost perfect overlap. In contrast, the observational samples NSW-CPS1 and NSW-PSID1 show poor overlap. 
+```{r, fig.cap='FIGUREC1. SubfigureD:NSW-CPS1-PLUS. SubfigureE:NSW-PSID1-PLUS.', out.width='80%', fig.asp=1, fig.align='center'}
+nsw_cps.plus_ps <- assess_overlap(data = nsw_cps.plus, treat = treat, cov = covar, xlim = c(-15, 5))
+nsw_psid.plus_ps <- assess_overlap(data = nsw_psid.plus, treat = treat, cov = covar, xlim = c(-15, 5))
+```
+
+With the expanded samples NSW-CPS1-PLUS and NSW-PSID1-PLUS, it is evident that the degree of overlap between treated and control groups has improved, as seen by a greater coverage of log-odds densities across both samples.
+```{r, message=FALSE, warning=FALSE}
+# combine results
+data_list <- list(nsw, nsw_cps, nsw_psid, nsw_cps.plus, nsw_psid.plus)
+plot_titles <- c("(A) NSW-Experimental","(B) NSW-CPS-1", "(C) NSW-PSID-1", "(D) NSW-CPS-1-PLUS", "(E) NSW-PSID-1-PLUS")
+
+# save results
+save_overlap_panels(
+  data_list = data_list,
+  treat     = treat,
+  covar     = covar,
+  plot_titles = plot_titles,
+  prefix = "nsw_overlap_panels"
+)
+```
 
 <div class="callout-note">
-In the subsequent analysis, that is focused on improving covariate balance and overlap, only the original datasets NSW-CPS1 and NSW-PSID1 are considered. The NSW-CPS1-PLUS and NSW-PSID1-PLUS datasets are included exclusively for comparison and replication purposes. The NSW-Experimental data is excluded from these steps, as randomization already ensures adequate covariate balance and overlap. 
+In the subsequent analysis, the primary focus is on improving overlap between treated and control groups. However, covariate imbalance is also addressed, as it may induce bias in estimated treatment effects. Only the original observational samples NSW-CPS-1 and NSW-PSID-1 are considered. The NSW-CPS-1-PLUS and NSW-PSID1-PLUS samples are included exclusively for comparison and replication purposes. The NSW-Experimental data is only consulted as benchmark, as randomization already ensures adequate overlap. 
 </div>
 
-## Improving primarily covariate balance
-### Matching 
-#### Distance Matching
-##### 1:1 Nearest neighbor matching
+## Improving overlap
+### Single methods
+#### Trimming 
+1) Propensity score threshold trimming 
 ```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with k=1, logistic propensity score and replacement
-m.out.cps.nearest <- matchit(model, data = nsw_cps, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
-m.out.psid.nearest <- matchit(model, data = nsw_psid, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
-```
-
-##### k:1 matching (k=2)
-```{r, message=FALSE, warning=FALSE}
-k<-2
-# perform nearest neighbor matching with k=2, logistic propensity score and replacement
-m.out.cps.k2 <- matchit(model, data = nsw_cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
-m.out.psid.k2 <- matchit(model, data = nsw_psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
-```
-
-##### k:1 matching (k=3)
-```{r, message=FALSE, warning=FALSE}
-k<-3
-# perform nearest neighbor matching with k=3, logistic propensity score and replacement
-m.out.cps.k3 <- matchit(model, data = nsw_cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
-m.out.psid.k3 <- matchit(model, data = nsw_psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
-```
-
-##### Caliper matching
-```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score 
-m.out.cps.caliper <- matchit(model, data = nsw_cps, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
-m.out.psid.caliper <- matchit(model, data = nsw_psid, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
-```
-
-##### Common support restriction matching
-```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching with exclusion of units outside common support
-m.out.cps.cs <- matchit(model, data = nsw_cps, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
-m.out.psid.cs <- matchit(model, data = nsw_psid, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
-```
-
-##### Mahalanobis distance matching (mahvars) 
-```{r, message=FALSE, warning=FALSE}
-# perform nearest neighbor matching using mahalanobis distance
-m.out.cps.mahvars <- matchit(model, data = nsw_cps, method = "nearest", distance = "mahalanobis", replace = FALSE)
-m.out.psid.mahvars <- matchit(model, data = nsw_psid, method = "nearest", distance = "mahalanobis", replace = FALSE)
-```
-
-##### Optimal pair matching
-```{r, message=FALSE, warning=FALSE}
-# perform optimal pair matching that minimizes total within-pair distance on propensity scores
-m.out.cps.optimal_pair <- matchit(model, data = nsw_cps, method = "optimal", distance = "glm", link = "logit")
-m.out.psid.optimal_pair <- matchit(model, data = nsw_psid, method = "optimal", distance = "glm", link = "logit")
-```
-
-##### Optimal full matching
-```{r, message=FALSE, warning=FALSE}
-# perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
-m.out.cps.optimal_full <- matchit(model, data = nsw_cps, method = "full", distance = "glm", link = "logit")
-m.out.psid.optimal_full <- matchit(model, data = nsw_psid, method = "full", distance = "glm", link = "logit")
-```
-
-##### Generalized full matching
-```{r, message=FALSE, warning=FALSE}
-# perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
-m.out.cps.general_full <- matchit(model, data = nsw_cps, method = "quick", distance = "glm", link = "logit")
-m.out.psid.general_full <- matchit(model, data = nsw_psid, method = "quick", distance = "glm", link = "logit")
-```
-
-##### Genetic matching
-```{r, message=FALSE, warning=FALSE}
-# perform genetic matching 
-m.out.cps.genetic <- matchit(model, data = nsw_cps, method = "genetic", distance = "glm", link = "logit", replace = TRUE, pop.size = 100)
-m.out.psid.genetic <- matchit(model, data = nsw_psid, method = "genetic", distance = "glm", link = "logit", replace = TRUE, pop.size = 100)
-```
-
-#### Stratum matching
-##### Exact matching (exact)
-Strata = unique covariate profiles (raw covariates)
-```{r, message=FALSE, warning=FALSE}
-# match units exactly by raw covariate profiles 
-m.out.cps.exact <- matchit(model, data = nsw_cps, method = "exact")
-m.out.psid.exact <- matchit(model, data = nsw_psid, method = "exact")
-```
-
-##### Coarsened matching (cem)
-Strata = coarsened versions of covariates
-```{r, message=FALSE, warning=FALSE}
-# match units exactly within coarse strata 
-m.out.cps.cem <- matchit(model, data = nsw_cps, method = "cem")
-m.out.psid.cem <- matchit(model, data = nsw_psid, method = "cem")
-```
-
-##### Subclassification 
-Strata = bins of the propensity score
-```{r, message=FALSE, warning=FALSE}
-# partition sample into fixed number of bins based on propensity score 
-m.out.cps.subcl <- matchit(model, data = nsw_cps, method = "subclass", subclass = 5)
-m.out.psid.subcl <- matchit(model, data = nsw_psid, method = "subclass", subclass = 5)
-```
-
-#### Pure subset selection
-##### Cardinality profile matching
-```{r, message=FALSE, warning=FALSE}
-# select largest balanced subsample meeting covariate balance tolerances and a fixed ratio of controls to treated units
-m.out.cps.card <- matchit(model, data = nsw_cps, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
-m.out.psid.card <- matchit(model, data = nsw_psid, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
-```
-
-##### Profile matching
-```{r, message=FALSE, warning=FALSE}
-# select the largest control group subset balanced to the treated group (for ATT), leaving the treated group intact
-m.out.cps.profile <- matchit(model, data = nsw_cps, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, time = 1200)
-m.out.psid.profile <- matchit(model, data = nsw_psid, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, time = 1200)
-```
-
-### Weighting
-#### Inverse probability weights (IPW)
-```{r, message=FALSE, warning=FALSE}
-# estimates propensity scores (PS) with a parametric generalized linear model and converts them into weights
-w.out.cps.ipw <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "glm")
-nsw_cps.ps$ipw_weight <- w.out.cps.ipw$weights
-w.out.psid.ipw <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "glm")
-nsw_psid.ps$ipw_weight <- w.out.psid.ipw$weights
-```
-
-#### Covariate balance propensity score weights
-```{r, message=FALSE, warning=FALSE}
-# estimates PS using generalized method of moments and then converts them into weights
-w.out.cps.cbps <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "cbps")
-nsw_cps.ps$cbps_weight <- w.out.cps.cbps$weights
-w.out.psid.cbps <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "cbps")
-nsw_psid.ps$cbps_weight <- w.out.psid.cbps$weights
-```
-
-#### Stable balancing weights 
-```{r, message=FALSE, warning=FALSE}
-# estimates weights by minimizing the variance of the weights
-w.out.cps.opt <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "optweight")
-nsw_cps.ps$opt_weight <- w.out.cps.opt$weights
-w.out.psid.opt <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "optweight")
-nsw_psid.ps$opt_weight <- w.out.psid.opt$weights
-```
-
-#### Entropy balancing weights
-```{r, message=FALSE, warning=FALSE}
-# estimates weights by minimizing the negative entropy of the weights subject to exact moment balancing constraints
-w.out.cps.ebal <- WeightIt::weightit(model, data = nsw_cps, estimand = "ATT", method = "ebal")
-nsw_cps.ps$ebal_weight <- w.out.cps.ebal$weights
-w.out.psid.ebal <- WeightIt::weightit(model, data = nsw_psid, estimand = "ATT", method = "ebal")
-nsw_psid.ps$ebal_weight <- w.out.psid.ebal$weights
-```
-
-
-## Improving primarily overlap
-### Truncation
-#### Fixed value truncation
-```{r, message=FALSE, warning=FALSE}
-# truncate weights by imposing a minimum and maximum 
-nsw_cps.ps_fixed <- truncate_ps_fixed(nsw_cps.ps, treat = "treat", ps = "ps_assoverlap", lower = 0.05, upper = 0.95)
-nsw_psid.ps_fixed <- truncate_ps_fixed(nsw_psid.ps, treat = "treat", ps = "ps_assoverlap", lower = 0.05, upper = 0.95)
-```
-
-#### At percentile truncation
-```{r, message=FALSE, warning=FALSE}
-# truncate weights such that values below the 5th percentile and above the 95th percentile are capped
-nsw_cps.ps_percent <- truncate_ps_percentile(nsw_cps.ps, ps = "ps_assoverlap", lower_percentile = 5, upper_percentile = 95)
-nsw_psid.ps_percent <- truncate_ps_percentile(nsw_psid.ps, ps = "ps_assoverlap", lower_percentile = 5, upper_percentile = 95)
-```
-
-#### Adaptive weight truncation
-```{r, message=FALSE, warning=FALSE}
-# truncate weights using data-driven quantile selection
-nsw_cps.ps_adapt <- truncate_ps_adaptive(nsw_cps.ps, treat = "treat", ps = "ps_assoverlap", folds = 5, 
-                                         lower_grid = seq(0.01, 0.10, by = 0.01), 
-                                         upper_grid = seq(0.90, 0.99, by = 0.01))
-nsw_psid.ps_adapt <- truncate_ps_adaptive(nsw_psid.ps, treat = "treat", ps = "ps_assoverlap", folds = 5,
-                                         lower_grid = seq(0.01, 0.10, by = 0.01),
-                                         upper_grid = seq(0.90, 0.99, by = 0.01))
-```
-
-### Trimming 
-#### Propensity score threshold trimming 
-```{r, message=FALSE, warning=FALSE}
-# apply trimming with threshold 0.9
-nsw_cps.ps_trim <- ps_trim(nsw_cps.ps, threshold = 0.9)
-nsw_psid.ps_trim <- ps_trim(nsw_psid.ps, threshold = 0.9)
+# apply trimming with a (maximum) threshold 
+nsw_cps.ps_trim <- ps_trim(nsw_cps_ps, threshold = 0.9)
+nsw_psid.ps_trim <- ps_trim(nsw_psid_ps, threshold = 0.9)
 
 # re-estimate propensity scores on trimmed data 
-nsw_cps.ps_trim <- ps_estimate(data = nsw_cps.ps_trim, treat = treat, cov = covar)
-nsw_psid.ps_trim <- ps_estimate(data = nsw_psid.ps_trim, treat = treat, cov = covar)
+nsw_cps.ps_trim <- ps_estimate(data = nsw_cps.ps_trim, treat = "treat", cov = covar)
+nsw_psid.ps_trim <- ps_estimate(data = nsw_psid.ps_trim, treat = "treat", cov = covar)
 ```
 
-#### Common range trimming
+2) Common range trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations outside the common support region of propensity scores
-nsw_cps.ps_common   <- common_range_trim(nsw_cps.ps)
-nsw_psid.ps_common  <- common_range_trim(nsw_psid.ps)
+nsw_cps.ps_common   <- common_range_trim(nsw_cps_ps)
+nsw_psid.ps_common  <- common_range_trim(nsw_psid_ps)
 
 # re-estimate propensity scores on trimmed data 
-nsw_cps.ps_common <- ps_estimate(data = nsw_cps.ps_common, treat = treat, cov = covar)
-nsw_psid.ps_common <- ps_estimate(data = nsw_psid.ps_common, treat = treat, cov = covar)
+nsw_cps.ps_common <- ps_estimate(data = nsw_cps.ps_common, treat = "treat", cov = covar)
+nsw_psid.ps_common <- ps_estimate(data = nsw_psid.ps_common, treat = "treat", cov = covar)
 ```
 
-#### Crump trimming 
+3) Crump trimming 
 ```{r, message=FALSE, warning=FALSE}
-# trim observations with propensity scores outside [0.1, 0.9] interval
-nsw_cps.ps_crump  <- crump_trim(nsw_cps.ps, lower = 0.1, upper = 0.9)
-nsw_psid.ps_crump <- crump_trim(nsw_psid.ps, lower = 0.1, upper = 0.9)
+# trim observations with propensity scores outside an interval
+nsw_cps.ps_crump  <- crump_trim(nsw_cps_ps, lower = 0.1, upper = 0.9)
+nsw_psid.ps_crump <- crump_trim(nsw_psid_ps, lower = 0.1, upper = 0.9)
 
 # re-estimate propensity scores on trimmed data 
-nsw_cps.ps_crump <- ps_estimate(data = nsw_cps.ps_crump, treat = treat, cov = covar)
-nsw_psid.ps_crump <- ps_estimate(data = nsw_psid.ps_crump, treat = treat, cov = covar)
+nsw_cps.ps_crump <- ps_estimate(data = nsw_cps.ps_crump, treat = "treat", cov = covar)
+nsw_psid.ps_crump <- ps_estimate(data = nsw_psid.ps_crump, treat = "treat", cov = covar)
 ```
 
-#### Stuermer trimming
+4) Stuermer trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations based on propensity score quantiles separately for treated and control
-nsw_cps.ps_stuermer  <- stuermer_trim(nsw_cps.ps)
-nsw_psid.ps_stuermer <- stuermer_trim(nsw_psid.ps)
+nsw_cps.ps_stuermer  <- stuermer_trim(nsw_cps_ps, lower_percentile = 0.05, upper_percentile = 0.95)
+nsw_psid.ps_stuermer <- stuermer_trim(nsw_psid_ps, lower_percentile = 0.05, upper_percentile = 0.95)
 
 # re-estimate propensity scores on trimmed data 
-nsw_cps.ps_stuermer <- ps_estimate(data = nsw_cps.ps_stuermer, treat = treat, cov = covar)
-nsw_psid.ps_stuermer <- ps_estimate(data = nsw_psid.ps_stuermer, treat = treat, cov = covar)
+nsw_cps.ps_stuermer <- ps_estimate(data = nsw_cps.ps_stuermer, treat = "treat", cov = covar)
+nsw_psid.ps_stuermer <- ps_estimate(data = nsw_psid.ps_stuermer, treat = "treat", cov = covar)
 ```
 
-#### Walker trimming
+5) Walker trimming
 ```{r, message=FALSE, warning=FALSE}
 # trim observations based on preference scores that adjust for treatment prevalence using logit transformations
-nsw_cps.ps_walker  <- walker_trim(nsw_cps.ps)
-nsw_psid.ps_walker <- walker_trim(nsw_psid.ps)
+nsw_cps.ps_walker   <- walker_trim(nsw_cps_ps)
+nsw_psid.ps_walker  <- walker_trim(nsw_psid_ps)
 
 # re-estimate propensity scores on trimmed data 
-nsw_cps.ps_walker <- ps_estimate(data = nsw_cps.ps_walker, treat = treat, cov = covar)
-nsw_psid.ps_walker <- ps_estimate(data = nsw_psid.ps_walker, treat = treat, cov = covar)
+nsw_cps.ps_walker <- ps_estimate(data = nsw_cps.ps_walker, treat = "treat", cov = covar)
+nsw_psid.ps_walker <- ps_estimate(data = nsw_psid.ps_walker, treat = "treat", cov = covar)
 ```
 
 ### Integrated methods
-### Trimming and matching
-#### Propensity score threshold trimming 
+#### Trimming and matching 
+##### Extended samples 
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
-nsw_cps_trim <- ps_trim(nsw_cps_plus.ps, threshold = 0.85)   
-nsw_psid_trim <- ps_trim(nsw_psid_plus.ps, threshold = 0.85)
+# apply trimming with a (maximum) threshold 
+nsw_cps_trim <- ps_trim(nsw_cps.plus_ps, threshold = 0.85)
+nsw_psid_trim <- ps_trim(nsw_psid.plus_ps, threshold = 0.85)
 
 # excluding the experimental controls
 nsw_cps_trim_match <- subset(nsw_cps_trim, sample %in% c(0,3) & ps_assoverlap)
 nsw_psid_trim_match <- subset(nsw_psid_trim, sample %in% c(0,4) & ps_assoverlap)
 
-# re-estimate propensity scores and employ 1:1 matching
+# re-estimate propensity scores on trimmed data 
 nsw_cps_trim_match <- psmatch(data = nsw_cps_trim_match, Y = "re78", treat = "treat", cov = covar)
 nsw_psid_trim_match <- psmatch(data = nsw_psid_trim_match, Y = "re78", treat = "treat", cov = covar)
 
@@ -351,619 +180,334 @@ nsw_trim_psid <- subset(nsw_psid_trim, sample %in% c(0,0.5))
 nsw_trim_psid$treat[which(nsw_trim_psid$sample == 0.5)] <- 0
 ```
 
-### Trimming and weighting
+##### Initial samples
 ```{r, message=FALSE, warning=FALSE}
-# list trimming methods
-all_trim.cps  <- list(ps_threshold = nsw_cps.ps_trim, 
-                     common_range = nsw_cps.ps_common, 
-                     stuermer = nsw_cps.ps_stuermer, 
-                     walker = nsw_cps.ps_walker, 
-                     crump = nsw_cps.ps_crump)
-all_trim.psid  <- list(ps_threshold = nsw_psid.ps_trim, 
-                     common_range = nsw_psid.ps_common, 
-                     stuermer = nsw_psid.ps_stuermer, 
-                     walker = nsw_psid.ps_walker, 
-                     crump = nsw_psid.ps_crump)
+# combine trimmed samples
+all_trim.cps  <- list(
+  ps_threshold = nsw_cps.ps_trim, 
+  common_range = nsw_cps.ps_common, 
+  stuermer = nsw_cps.ps_stuermer, 
+  walker = nsw_cps.ps_walker, 
+  crump = nsw_cps.ps_crump)
+
+all_trim.psid  <- list(
+  ps_threshold = nsw_psid.ps_trim, 
+  common_range = nsw_psid.ps_common, 
+  stuermer = nsw_psid.ps_stuermer, 
+  walker = nsw_psid.ps_walker, 
+  crump = nsw_psid.ps_crump)
 ```
 
-#### IPW with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+###### Distance matching
+1) 1:1 Nearest neighbor matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# apply inverse probability weighting (IPW) with trimming and attach IPW weights
-ipw_comb.cps <- attach_weights(all_trim.cps, model, "ipw_weight")
-ipw_comb.psid <- attach_weights(all_trim.psid, model, "ipw_weight")
+# perform nearest neighbor matching with k=1, logistic propensity score and replacement
+nn_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
+nn_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", replace = TRUE)
 ```
 
-#### Stable balancing weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+2) k:1 matching (k=2) with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# apply stable balancing with trimming and attach stable balance weights
-opt_comb.cps <- attach_weights(all_trim.cps, model, "opt_weight")
-opt_comb.psid <- attach_weights(all_trim.psid, model, "opt_weight")
+# perform nearest neighbor matching with k=2, logistic propensity score and replacement
+k<-2
+k2_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
+k2_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
 ```
 
-#### Propensity score weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+3) k:1 matching (k=3) with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# apply propensity score weighting with trimming and attach propensity score weights
-cbps_comb.cps <- attach_weights(all_trim.cps, model, "cbps_weight")
-cbps_comb.psid <- attach_weights(all_trim.psid, model, "cbps_weight")
+# perform nearest neighbor matching with k=3, logistic propensity score and replacement
+k<-3
+k3_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
+k3_trim_comb.psid <- attach_matchit(model, data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", ratio = k, replace = TRUE)
 ```
 
-#### Entropy balancing weights with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump
+4) Caliper matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# apply entropy balancing weights with trimming and attach entropy weights
-ebal_comb.cps <- attach_weights(all_trim.cps, model, "ebal_weight")
-ebal_comb.psid <- attach_weights(all_trim.psid, model, "ebal_weight")
+# perform nearest neighbor matching with a caliper of 0.1 on the logistic propensity score and replacement 
+caliper_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
+caliper_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", caliper = 0.1, replace = TRUE)
 ```
 
-### Truncation and weighting
+5) Common support restriction matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# list weight columns to apply truncation 
-weight_columns <- c("ipw_weight", "opt_weight", "cbps_weight", "ebal_weight")
+# perform nearest neighbor matching with exclusion of units outside common support and replacement
+cs_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
+cs_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "glm", link = "logit", discard = "both", reestimate = TRUE, replace = TRUE)
 ```
 
-#### IPW, stable balancing, propensity score and entropy weights with 1) fixed maximum value truncation
+6) Mahalanobis distance matching (mahvars) with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# truncate weights by imposing a minimum and maximum threshold
-fixed_comb.cps <- nsw_cps.ps
-for (wcol in weight_columns) {
-  if (wcol %in% names(fixed_comb.cps)) {
-    fixed_comb.cps <- truncate_weights_fixed(fixed_comb.cps, weight_col = wcol, lower = 0.025, upper = 0.975)
-  }
-}
-
-fixed_comb.psid <- nsw_psid.ps
-for (wcol in weight_columns) {
-  if (wcol %in% names(fixed_comb.psid)) {
-    fixed_comb.psid <- truncate_weights_fixed(fixed_comb.psid, weight_col = wcol, lower = 0.025, upper = 0.975)
-  }
-}
+# perform nearest neighbor matching using mahalanobis distance without replacement
+mahvars_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "nearest", distance = "mahalanobis", replace = FALSE)
+mahvars_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "nearest", distance = "mahalanobis", replace = FALSE)
 ```
 
-#### IPW, stable balancing, propensity score and entropy weights with 2) at percentile truncation
+7) Optimal pair matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# truncate weights such that values below the 5th percentile and above the 95th percentile are capped
-percent_comb.cps <- nsw_cps.ps
-for (wcol in weight_columns) {
-  if (wcol %in% names(percent_comb.cps)) {
-    percent_comb.cps <- truncate_weights_percentile(percent_comb.cps, weight_col = wcol, lower = 0.05, upper = 0.95)
-  }
-}
-
-percent_comb.psid <- nsw_psid.ps
-for (wcol in weight_columns) {
-  if (wcol %in% names(percent_comb.psid)) {
-    percent_comb.psid <- truncate_weights_percentile(percent_comb.psid, weight_col = wcol, lower = 0.05, upper = 0.95)
-  }
-}
+# perform optimal pair matching that minimizes total within-pair distance on propensity scores
+optimal_pair_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "optimal", distance = "glm", link = "logit")
+optimal_pair_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "optimal", distance = "glm", link = "logit")
 ```
 
-#### IPW, stable balancing, propensity score and entropy weights with 3) adaptive weight truncation
+8) Optimal full matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# truncate weights using data-driven quantile selection
-adapt_comb.cps <- nsw_cps.ps
-for (wcol in weight_columns) {
-  if (wcol %in% names(adapt_comb.cps)) {
-    adapt_comb.cps <- truncate_weights_adaptive(adapt_comb.cps, weight_col = wcol)
-  }
-}
-
-adapt_comb.psid <- nsw_cps.ps
-for (wcol in weight_columns) {
-  if (wcol %in% names(adapt_comb.psid)) {
-    adapt_comb.psid <- truncate_weights_adaptive(adapt_comb.psid, weight_col = wcol)
-  }
-}
+# perform optimal full matching allowing sets with varying ratios of treated to controls and minimizing a global distance criterion
+optimal_full_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "full", distance = "glm", link = "logit")
+optimal_full_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "full", distance = "glm", link = "logit")
 ```
 
-## Reassessing methods
-### Matching
+9) Generalized full matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# list all matching objects
-all_match.cps <- list(
-  nn = m.out.cps.nearest,
-  k2 = m.out.cps.k2,
-  k3 = m.out.cps.k3,
-  caliper = m.out.cps.caliper,
-  cS = m.out.cps.cs,
-  mahvars = m.out.cps.mahvars,
-  optimal_pair = m.out.cps.optimal_pair,
-  optimal_full = m.out.cps.optimal_full,
-  gen_full = m.out.cps.general_full,
-  genetic = m.out.cps.genetic,
-  exact = m.out.cps.exact,
-  cem = m.out.cps.cem,
-  card = m.out.cps.card,
-  profile = m.out.cps.profile,
-  subcl = m.out.cps.subcl
-)
-
-all_match.psid <- list(
-  nn = m.out.psid.nearest,
-  k2 = m.out.psid.k2,
-  k3 = m.out.psid.k3,
-  caliper = m.out.psid.caliper,
-  cs = m.out.psid.cs,
-  mahvars = m.out.psid.mahvars,
-  optimal_pair = m.out.psid.optimal_pair,
-  optimal_full = m.out.psid.optimal_full,
-  gen_full = m.out.psid.general_full,
-  genetic = m.out.psid.genetic,
-  exact = m.out.psid.exact,
-  cem = m.out.psid.cem,
-  card = m.out.psid.card,
-  profile = m.out.psid.profile,
-  subcl = m.out.psid.subcl
-)
+# perform generalized full matching using fast approximation and producing matched sets with flexible treated/control ratios 
+general_full_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "quick", distance = "glm", link = "logit")
+general_full_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "quick", distance = "glm", link = "logit")
 ```
 
-#### SMD
+10) Genetic matching with 1) propensity threshold 2) common range 3) stuermer 4) walker 5) crump trimming
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
-smd_matchit.cps <- compute_abs_smd_matchit(all_match.cps)
-smd_matchit.psid <- compute_abs_smd_matchit(all_match.psid)
+# perform genetic matching 
+genetic_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "genetic", distance = "glm", link = "logit", replace = TRUE, pop.size = 100)
+genetic_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "genetic", distance = "glm", link = "logit", replace = TRUE, pop.size = 100)
 ```
 
-#### OVL
+###### Stratum matching
+11) Exact matching (exact)
 ```{r, message=FALSE, warning=FALSE}
-# calculate overlap coefficient
-ovl_matchit.cps <- compute_ovl_matchit(all_match.cps, ps_col = "distance", treat_col = "treat", covar = covar)
-ovl_matchit.psid <- compute_ovl_matchit(all_match.psid, ps_col = "distance", treat_col = "treat", covar = covar)
+# match units exactly by raw covariate profiles 
+exact_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "exact")
+exact_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "exact")
 ```
 
-### Weighting
+12) Coarsened matching (cem)
 ```{r, message=FALSE, warning=FALSE}
-# list all weights
-all_weight.cps <- list(
-  ipw_weight = nsw_cps.ps$ipw_weight,
-  opt_weight = nsw_cps.ps$opt_weight,
-  cbps_weight = nsw_cps.ps$cbps_weight,
-  ebal_weight = nsw_cps.ps$ebal_weight
-)
-
-all_weight.psid <- list(
-  ipw_weight = nsw_psid.ps$ipw_weight,
-  opt_weight = nsw_psid.ps$opt_weight,
-  cbps_weight = nsw_psid.ps$cbps_weight,
-  ebal_weight = nsw_psid.ps$ebal_weight
-)
+# match units exactly within coarse strata 
+cem_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "cem")
+cem_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "cem")
 ```
 
-#### SMD
+13) Subclassification 
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
-smd_weight.cps <- compute_abs_smd_weight(nsw_cps.ps, treat, covar, all_weight.cps)
-smd_weight.psid <- compute_abs_smd_weight(nsw_psid.ps, treat, covar, all_weight.psid)
+# partition sample into fixed number of bins based on propensity score 
+subcl_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "subclass", subclass = 3)
+subcl_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "subclass", subclass = 3)
 ```
 
-#### OVL 
-```{r message=FALSE, warning=FALSE}
-# compute overlap coefficients
-ovl_weight.cps <- compute_ovl_weight(data = nsw_cps.ps, treat_col = "treat", ps_col = "ps_assoverlap",  weights_list = all_weight.cps, covar = covar, n_points = 512)
-ovl_weight.psid <- compute_ovl_weight(data = nsw_psid.ps, treat_col = "treat", ps_col = "ps_assoverlap", weights_list = all_weight.psid, covar = covar, n_points = 512)
+###### Pure subset selection
+14) Cardinality profile matching
+```{r, message=FALSE, warning=FALSE}
+# select largest balanced subsample meeting covariate balance tolerances and a fixed ratio of controls to treated units
+card_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
+card_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
 ```
 
-### Truncation
+15) Profile matching
 ```{r, message=FALSE, warning=FALSE}
-# list truncation methods
-all_trunc.cps <- list(
-  fix_value = nsw_cps.ps_fixed,
-  at_perc = nsw_cps.ps_percent,
-  adapt = nsw_cps.ps_adapt
-)
-
-all_trunc.psid <- list(
-  fix_value = nsw_psid.ps_fixed,
-  at_perc = nsw_psid.ps_percent,
-  adapt = nsw_psid.ps_adapt
-)
+# select the largest control group subset balanced to the treated group (for ATT), leaving the treated group intact
+profile_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, time = 1200)
+profile_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "cardinality", estimand = "ATT", tols = 0.1, ratio = NA, time = 1200)
 ```
 
-#### SMD
+## Post-assessing methods
+### Single methods
+#### Trimming
+##### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
-smd_trunc.cps <- compute_abs_smd_trunc(all_trunc.cps, "treat", covar, weight_columns)
-smd_trunc.psid <- compute_abs_smd_trunc(all_trunc.psid, "treat", covar, weight_columns)
-```
-
-#### OVL
-```{r, message=FALSE, warning=FALSE}
-# compute overlap coefficients
-ovl_trunc.cps <- compute_ovl_trunc(all_trunc.cps, "ps_assoverlap", "treat")
-ovl_trunc.psid <- compute_ovl_trunc(all_trunc.psid, "ps_assoverlap", "treat")
-```
-
-### Trimming
-```{r, message=FALSE, warning=FALSE}
-# list trimming objects plus original
-all_trim.cps <- list(
-  original = nsw_cps.ps,
-  ps_threshold = nsw_cps.ps_trim,
-  common_range = nsw_cps.ps_common,
-  crump = nsw_cps.ps_crump,
-  stuermer = nsw_cps.ps_stuermer,
-  walker = nsw_cps.ps_walker
-)
-
-all_trim.psid <- list(
-  original = nsw_psid.ps,
-  ps_threshold = nsw_psid.ps_trim,
-  common_range = nsw_psid.ps_common,
-  crump = nsw_psid.ps_crump,
-  stuermer = nsw_psid.ps_stuermer,
-  walker = nsw_psid.ps_walker
-)
-```
-
-#### SMD
-```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
+# compute absolute standardized mean differences
 smd_trim.cps <- compute_abs_smd_trim(all_trim.cps, "treat", covar)
 smd_trim.psid <- compute_abs_smd_trim(all_trim.psid, "treat", covar)
 ```
 
-#### OVL
+##### OVL
 ```{r, message=FALSE, warning=FALSE}
 # compute overlap coefficients
 ovl_trim.cps <- compute_ovl_trim(all_trim.cps, "ps_assoverlap", "treat")
 ovl_trim.psid <- compute_ovl_trim(all_trim.psid, "ps_assoverlap", "treat")
 ```
 
-## Integrated methods
-### Trimming and matching
+### Integrated methods
+#### Trimming and matching
+##### Extended samples
 (Similar to tutorial by @imbens2024)
 ```{r, message=FALSE, warning=FALSE}
 # list all trimmed and matched samples
+trim_match_comb.cps_plus <- list(ps_threshold_match = nsw_cps_trim_match)
+trim_match_comb.psid_plus <- list(ps_threshold_match = nsw_psid_trim_match)
+```
+
+###### SMD
+```{r, message=FALSE, warning=FALSE}
+# compute absolute standardized mean differences
+smd_trim_match_comb.cps_plus <- compute_abs_smd_trim(trim_match_comb.cps_plus, "treat", covar)
+smd_trim_match_comb.psid_plus <- compute_abs_smd_trim(trim_match_comb.psid_plus, "treat", covar)
+```
+
+###### OVL
+```{r, message=FALSE, warning=FALSE}
+# compute overlap coefficients
+ovl_trim_match_comb.cps_plus <- compute_ovl_trim(trim_match_comb.cps_plus, "ps_assoverlap", "treat")
+ovl_trim_match_comb.psid_plus <- compute_ovl_trim(trim_match_comb.psid_plus, "ps_assoverlap", "treat")
+```
+
+##### Initial samples
+```{r, message=FALSE, warning=FALSE}
+# list all trimmed and matched samples
 trim_match_comb.cps <- list(
-  ps_threshold_match = nsw_cps_trim_match
+  nn = nn_trim_comb.cps, 
+  k2 = k2_trim_comb.cps,
+  k3 = k3_trim_comb.cps, 
+  caliper = caliper_trim_comb.cps,
+  cs = cs_trim_comb.cps, 
+  mahvars = mahvars_trim_comb.cps,
+  optimal_pair = optimal_pair_trim_comb.cps,
+  optimal_full = optimal_full_trim_comb.cps, 
+  genetic = genetic_trim_comb.cps, 
+  exact = exact_trim_comb.cps,
+  cem = cem_trim_comb.cps,
+  subcl = subcl_trim_comb.cps 
 )
 
 trim_match_comb.psid <- list(
-  ps_threshold_match = nsw_psid_trim_match
+  nn = nn_trim_comb.psid,
+  k2 = k2_trim_comb.psid, 
+  k3 = k3_trim_comb.psid, 
+  caliper = caliper_trim_comb.psid, 
+  cs = cs_trim_comb.psid,
+  mahvars = mahvars_trim_comb.psid,
+  optimal_pair = optimal_pair_trim_comb.psid, 
+  optimal_full = optimal_full_trim_comb.psid, 
+  genetic = genetic_trim_comb.psid,
+  exact = exact_trim_comb.psid,
+  cem = cem_trim_comb.psid,
+  subcl = subcl_trim_comb.psid 
 )
 ```
 
-#### SMD
+###### SMD
 ```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
-smd_trim_match_comb.cps <- compute_abs_smd_trim(trim_match_comb.cps, "treat", covar)
-smd_trim_match_comb.psid <- compute_abs_smd_trim(trim_match_comb.psid, "treat", covar)
+# compute absolute standardized mean differences
+smd_trim_match_comb.cps <- compute_abs_smd_matchit(trim_match_comb.cps, all_trim.cps) 
+smd_trim_match_comb.psid <- compute_abs_smd_matchit(trim_match_comb.psid, all_trim.psid)
 ```
 
-#### OVL
+###### OVL
 ```{r, message=FALSE, warning=FALSE}
 # compute overlap coefficients
-ovl_trim_match_comb.cps <- compute_ovl_trim_match(trim_match_comb.cps, ps_col = "distance", treat_col = "treat", covar = covar)
-ovl_trim_match_comb.psid <- compute_ovl_trim_match(trim_match_comb.psid, ps_col = "distance", treat_col = "treat", covar = covar)
+ovl_trim_match_comb.cps <- compute_ovl_matchit(trim_match_comb.cps, all_trim.cps, ps = "ps_assoverlap", treat = "treat", covar = covar)
+ovl_trim_match_comb.psid <- compute_ovl_matchit(trim_match_comb.psid, all_trim.psid, ps = "ps_assoverlap", treat = "treat", covar = covar)
 ```
 
-
-### Trimming and weighting
-```{r, message=FALSE, warning=FALSE}
-# list all combined results
-trim_weight_comb.cps <- list(
-  ipw = ipw_comb.cps,
-  opt = opt_comb.cps,
-  cbps = cbps_comb.cps,
-  ebal = ebal_comb.cps
-)
-
-trim_weight_comb.psid <- list(
-  ipw = ipw_comb.psid,
-  opt = opt_comb.psid,
-  cbps = cbps_comb.psid,
-  ebal = ebal_comb.psid
-)
-```
-
-#### SMD
-```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
-smd_trim_weight_comb.cps <- compute_abs_smd_trim_weight(trim_weight_comb.cps, "treat", covar)
-smd_trim_weight_comb.psid <- compute_abs_smd_trim_weight(trim_weight_comb.psid, "treat", covar)
-```
-
-#### OVL
-```{r, message=FALSE, warning=FALSE}
-# compute overlap coefficients
-ovl_trim_weight_comb.cps <- compute_ovl_trim_weight(trim_weight_comb.cps, treat_col = "treat", ps_col = "ps_assoverlap")
-ovl_trim_weight_comb.psid <- compute_ovl_trim_weight(trim_weight_comb.psid, treat_col = "treat", ps_col = "ps_assoverlap")
-```
-
-
-### Truncation and weighting
-```{r, message=FALSE, warning=FALSE}
-# list all combined results
-trunc_weight_comb.cps <- list(
-  fix_value = fixed_comb.cps,
-  at_perc = percent_comb.cps,
-  adapt = adapt_comb.cps
-)
-
-trunc_weight_comb.psid <- list(
-  fix_value = fixed_comb.psid,
-  at_perc = percent_comb.psid,
-  adapt = adapt_comb.psid
-)
-```
-
-#### SMD
-```{r, message=FALSE, warning=FALSE}
-# compute absolute SMD
-smd_trunc_weight_comb.cps <- compute_abs_smd_trunc_weight(trunc_weight_comb.cps, "treat", covar, weight_columns)
-smd_trunc_weight_comb.psid <- compute_abs_smd_trunc_weight(trunc_weight_comb.psid, "treat", covar, weight_columns)
-```
-
-#### OVL
-```{r, message=FALSE, warning=FALSE}
-# compute overlap coefficients
-ovl_trunc_weight_comb.cps <- compute_ovl_trunc_weight(trunc_weight_comb.cps, treat_col = "treat", ps_col = "ps_assoverlap")
-ovl_trunc_weight_comb.psid <- compute_ovl_trunc_weight(trunc_weight_comb.psid, treat_col = "treat", ps_col = "ps_assoverlap")
-```
-
-## Identifying best methods
+## Identifying most efficient methods
 ### Ranking
-#### Initial datasets
 ```{r, message=FALSE, warning=FALSE}
 # combine all results
 all_cps <- combine_results("cps")
 all_psid <- combine_results("psid") 
+```
 
+```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(all_cps, "nsw_cps1_all_results")
 save_csv(all_psid, "nsw_psid1_all_results")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# rank methods 
+# rank comparatively
 ranked_cps  <- assess_methods(all_cps)
 ranked_psid <- assess_methods(all_psid)
 
-# get top 5 methods 
+# get top 5 methods
 top5_methods.cps <- get_top_methods(ranked_cps, top_n = 5)
 top5_methods.psid <- get_top_methods(ranked_psid, top_n = 5)
 
+# rerank top 5 methods
+top5_methods_df.cps <- ranked_cps %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
+top5_methods_df.psid <- ranked_psid %>% arrange(desc(OVL)) %>% head(5) %>% arrange(Mean_Abs_SMD)
+
+# get results 
+top5_methods.cps <- top5_methods_df.cps$Method
+top5_methods.psid <- top5_methods_df.psid$Method
+
+# print table output
+datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
+datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID-1", options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
+```
+
+```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(top5_methods.cps, "nsw_cps1_top5_methods")
 save_csv(top5_methods.psid, "nsw_psid1_top5_methods")
 ```
 
+The table shows that NSW-CPS-1 and NSW-PSID-1 share only one top method, all others are based on various trimming and matching methods. 
+
+### Sample construction
 ```{r, message=FALSE, warning=FALSE}
-# print results
-top5_methods_df.cps <- ranked_cps %>% arrange(desc(Score)) %>% head(5)
-top5_methods_df.psid <- ranked_psid %>% arrange(desc(Score)) %>% head(5)
+# create lookup lists
+trim_only_cps <- list(
+        ps_threshold = nsw_cps.ps_trim,
+        common_range = nsw_cps.ps_common,
+        stuermer = nsw_cps.ps_stuermer,
+        walker = nsw_cps.ps_walker,
+        crump = nsw_cps.ps_crump
+)
 
-datatable(top5_methods_df.cps, caption = "Top 5 Methods for CPS1",
-          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-datatable(top5_methods_df.psid, caption = "Top 5 Methods for PSID1",
-          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-```
+match_lookup_cps <- c(
+        wrap_match_entries(nn_trim_comb.cps, all_trim.cps, "nn"),
+        wrap_match_entries(k2_trim_comb.cps, all_trim.cps, "k2"),
+        wrap_match_entries(k3_trim_comb.cps, all_trim.cps, "k3"),
+        wrap_match_entries(caliper_trim_comb.cps, all_trim.cps, "caliper"),
+        wrap_match_entries(cs_trim_comb.cps, all_trim.cps, "cs"),
+        wrap_match_entries(mahvars_trim_comb.cps, all_trim.cps, "mahvars"),
+        wrap_match_entries(optimal_pair_trim_comb.cps, all_trim.cps, "optimal_pair"),
+        wrap_match_entries(optimal_full_trim_comb.cps, all_trim.cps, "optimal_full"),
+        wrap_match_entries(genetic_trim_comb.cps, all_trim.cps, "genetic"),
+        wrap_match_entries(exact_trim_comb.cps, all_trim.cps, "exact"),
+        wrap_match_entries(cem_trim_comb.cps, all_trim.cps, "cem"),
+        wrap_match_entries(subcl_trim_comb.cps, all_trim.cps, "subcl")
+)
 
-#### Extended datasets
-```{r, message=FALSE, warning=FALSE}
-# combine results
-all_cps_plus  <- combine_results_plus("cps")
-all_psid_plus <- combine_results_plus("psid")
+trim_only_psid <- list(
+        ps_threshold = nsw_psid.ps_trim,
+        common_range = nsw_psid.ps_common,
+        stuermer = nsw_psid.ps_stuermer,
+        walker = nsw_psid.ps_walker,
+        crump = nsw_psid.ps_crump
+)
 
-# save results 
-save_csv(all_cps_plus, "ldw_model_a_cps1_plus_all_results")
-save_csv(all_psid_plus, "ldw_model_a_psid1_plus_all_results")
-```
+match_lookup_psid <- c(
+        wrap_match_entries(nn_trim_comb.psid, all_trim.psid, "nn"),
+        wrap_match_entries(k2_trim_comb.psid, all_trim.psid, "k2"),
+        wrap_match_entries(k3_trim_comb.psid, all_trim.psid, "k3"),
+        wrap_match_entries(caliper_trim_comb.psid, all_trim.psid, "caliper"),
+        wrap_match_entries(cs_trim_comb.psid, all_trim.psid, "cs"),
+        wrap_match_entries(mahvars_trim_comb.psid, all_trim.psid, "mahvars"),
+        wrap_match_entries(optimal_pair_trim_comb.psid, all_trim.psid, "optimal_pair"),
+        wrap_match_entries(optimal_full_trim_comb.psid, all_trim.psid, "optimal_full"),
+        wrap_match_entries(genetic_trim_comb.psid, all_trim.psid, "genetic"),
+        wrap_match_entries(exact_trim_comb.psid, all_trim.psid, "exact"),
+        wrap_match_entries(cem_trim_comb.psid, all_trim.psid, "cem"),
+        wrap_match_entries(subcl_trim_comb.psid, all_trim.psid, "subcl")
+)
 
-```{r, message=FALSE, warning=FALSE}
-# assess composite scores
-ranked_cps_plus  <- assess_methods(all_cps_plus)
-ranked_psid_plus <- assess_methods(all_psid_plus)
-
-# get top 5 methods 
-top5_methods.cps_plus <- get_top_methods(ranked_cps_plus, top_n = 5)
-top5_methods.psid_plus <- get_top_methods(ranked_psid_plus, top_n = 5)
-
-# save results 
-save_csv(top5_methods.cps_plus, "nsw_cps1_plus_top5_methods")
-save_csv(top5_methods.psid_plus, "nsw_psid1_plus_top5_methods")
-```
-
-```{r, message=FALSE, warning=FALSE}
-# print results
-top5_methods_df.cps_plus <- ranked_cps_plus %>% arrange(desc(Score)) %>% head(5)
-top5_methods_df.psid_plus <- ranked_psid_plus %>% arrange(desc(Score)) %>% head(5)
-
-datatable(top5_methods_df.cps_plus, caption = "Top 5 Methods for CPS1 and CPS1-PLUS",
-          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-datatable(top5_methods_df.psid_plus, caption = "Top 5 Methods for PSID1 and PSID1-PLUS",
-          options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
-```
-
-The table shows that CPS1 and PSID1 share xx the same top five methods, with the exception of one differing method and a variation in their ordering for PSID1.
-
-### Dataset construction
-```{r, message=FALSE, warning=FALSE}
-list_cps <- list(
-  "All" = nsw_cps,
-  "original" = nsw_cps.ps,
-  "nn" = m.out.cps.nearest, 
-  "caliper" = m.out.cps.caliper,
-  "card" = m.out.cps.card,
-  "cem" = m.out.cps.cem,
-  "cS" = m.out.cps.cs,
-  "k2"  = m.out.cps.k2,
-  "k3" = m.out.cps.k3,
-  "mahvars" = m.out.cps.mahvars,
-  "optimal_full" = m.out.cps.optimal_full,
-  "optimal_pair" = m.out.cps.optimal_pair,
-  "gen_full" = m.out.cps.general_full,
-  "genetic" = m.out.cps.genetic,
-  "exact" = m.out.cps.exact,
-  "subcl" = m.out.cps.subcl,
-  "profile"  = m.out.cps.profile,
-  "ipw_weight" = nsw_cps.ps$ipw_weight, 
-  "opt_weight" = nsw_cps.ps$opt_weight,
-  "cbps_weight" = nsw_cps.ps$cbps_weight,
-  "ebal_weight" = nsw_cps.ps$ebal_weight,
-  "fix_value_ipw_weight" = fixed_comb.cps$ipw_weight,
-  "fix_value_opt_weight" = fixed_comb.cps$opt_weight,
-  "fix_value_cbps_weight" = fixed_comb.cps$cbps_weight,
-  "fix_value_ebal_weight" = fixed_comb.cps$ebal_weight,
-  "at_perc_ipw_weight" = percent_comb.cps$ipw_weight,
-  "at_perc_opt_weight" = percent_comb.cps$opt_weight,
-  "at_perc_cbps_weight" = percent_comb.cps$cbps_weight,
-  "at_perc_ebal_weight" = percent_comb.cps$ebal_weight,
-  "adapt_ipw_weight" = adapt_comb.cps$ipw_weight,
-  "adapt_opt_weight" = adapt_comb.cps$opt_weight,
-  "adapt_cbps_weight" = adapt_comb.cps$cbps_weight,
-  "adapt_ebal_weight" = adapt_comb.cps$ebal_weight,
-  "ps_threshold" = nsw_cps.ps_trim,
-  "common_range" = nsw_cps.ps_common,
-  "stuermer" = nsw_cps.ps_stuermer,
-  "walker" = nsw_cps.ps_walker,
-  "crump" = nsw_cps.ps_crump,
-  "ipw_ps_threshold"= ipw_comb.cps[[1]],
-  "ipw_common_range" = ipw_comb.cps[[2]],
-  "ipw_stuermer"= ipw_comb.cps[[3]],
-  "ipw_walker" = ipw_comb.cps[[4]],
-  "ipw_crump"= ipw_comb.cps[[5]],
-  "opt_ps_threshold" = opt_comb.cps[[1]],
-  "opt_common_range" = opt_comb.cps[[2]],
-  "opt_stuermer" = opt_comb.cps[[3]],
-  "opt_walker" = opt_comb.cps[[4]],
-  "opt_crump" = opt_comb.cps[[5]],
-  "cbps_ps_threshold"  = cbps_comb.cps[[1]],
-  "cbps_common_range" = cbps_comb.cps[[2]],
-  "cbps_stuermer" = cbps_comb.cps[[3]],
-  "cbps_walker"= cbps_comb.cps[[4]],
-  "cbps_crump" = cbps_comb.cps[[5]],
-  "ebal_ps_threshold" = ebal_comb.cps[[1]],
-  "ebal_common_range" = ebal_comb.cps[[2]],
-  "ebal_stuermer" = ebal_comb.cps[[3]],
-  "ebal_walker" = ebal_comb.cps[[4]],
-  "ebal_crump" = ebal_comb.cps[[5]],
-  "ps_threshold_match" = nsw_cps_trim_match)
-
-
-list_psid <- list(
-  "All" = nsw_psid,
-  "original" = nsw_psid.ps,
-  "nn" = m.out.psid.nearest, 
-  "caliper" = m.out.psid.caliper,
-  "card" = m.out.psid.card,
-  "cem" = m.out.psid.cem,
-  "cS" = m.out.psid.cs,
-  "k2"  = m.out.psid.k2,
-  "k3" = m.out.psid.k3,
-  "mahvars" = m.out.psid.mahvars,
-  "optimal_full" = m.out.psid.optimal_full,
-  "optimal_pair" = m.out.psid.optimal_pair,
-  "gen_full" = m.out.psid.general_full,
-  "genetic" = m.out.psid.genetic,
-  "exact" = m.out.psid.exact,
-  "subcl" = m.out.psid.subcl,
-  "profile"  = m.out.psid.profile,
-  "ipw_weight" = nsw_psid.ps$ipw_weight, 
-  "opt_weight" = nsw_psid.ps$opt_weight,
-  "cbps_weight" = nsw_psid.ps$cbps_weight,
-  "ebal_weight" = nsw_psid.ps$ebal_weight,
-  "fix_value_ipw_weight" = fixed_comb.psid$ipw_weight,
-  "fix_value_opt_weight" = fixed_comb.psid$opt_weight,
-  "fix_value_cbps_weight" = fixed_comb.psid$cbps_weight,
-  "fix_value_ebal_weight" = fixed_comb.psid$ebal_weight,
-  "at_perc_ipw_weight" = percent_comb.psid$ipw_weight,
-  "at_perc_opt_weight" = percent_comb.psid$opt_weight,
-  "at_perc_cbps_weight" = percent_comb.psid$cbps_weight,
-  "at_perc_ebal_weight" = percent_comb.psid$ebal_weight,
-  "adapt_ipw_weight" = adapt_comb.psid$ipw_weight,
-  "adapt_opt_weight" = adapt_comb.psid$opt_weight,
-  "adapt_cbps_weight" = adapt_comb.psid$cbps_weight,
-  "adapt_ebal_weight" = adapt_comb.psid$ebal_weight,
-  "ps_threshold" = nsw_psid.ps_trim,
-  "common_range" = nsw_psid.ps_common,
-  "stuermer" = nsw_psid.ps_stuermer,
-  "walker" = nsw_psid.ps_walker,
-  "crump" = nsw_psid.ps_crump,
-  "ipw_ps_threshold"= ipw_comb.psid[[1]],
-  "ipw_common_range" = ipw_comb.psid[[2]],
-  "ipw_stuermer"= ipw_comb.psid[[3]],
-  "ipw_walker" = ipw_comb.psid[[4]],
-  "ipw_crump"= ipw_comb.psid[[5]],
-  "opt_ps_threshold" = opt_comb.psid[[1]],
-  "opt_common_range" = opt_comb.psid[[2]],
-  "opt_stuermer" = opt_comb.psid[[3]],
-  "opt_walker" = opt_comb.psid[[4]],
-  "opt_crump" = opt_comb.psid[[5]],
-  "cbps_ps_threshold"  = cbps_comb.psid[[1]],
-  "cbps_common_range" = cbps_comb.psid[[2]],
-  "cbps_stuermer" = cbps_comb.psid[[3]],
-  "cbps_walker"= cbps_comb.psid[[4]],
-  "cbps_crump" = cbps_comb.psid[[5]],
-  "ebal_ps_threshold" = ebal_comb.psid[[1]],
-  "ebal_stuermer" = ebal_comb.psid[[2]],
-  "ebal_walker" = ebal_comb.psid[[3]],
-  "ebal_common_range" = ebal_comb.psid[[4]],
-  "ebal_crump" = ebal_comb.psid[[5]],
-  "ps_threshold_match" = nsw_psid_trim_match)
+list_cps <- c(trim_only_cps, match_lookup_cps)
+list_psid <- c(trim_only_psid, match_lookup_psid)
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# create datasets corresponding to the top 5 methods for each dataset
-top5_datasets.cps <- create_top5_datasets(list_cps, top5_methods.cps)
-top5_datasets.psid <- create_top5_datasets(list_psid, top5_methods.psid)
+# create samples corresponding to the top 5 methods for each sample
+top5_samples.cps <- create_top5_samples(list_cps, top5_methods.cps)
+top5_samples.psid <- create_top5_samples(list_psid, top5_methods.psid)
+
+# extract top5 objects
+top5_objects.cps <- lapply(top5_methods.cps, function(m) list_cps[[m]])
+top5_objects.psid <- lapply(top5_methods.psid, function(m) list_psid[[m]])
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# save datasets into .RData files
-save_top5_datasets(list_cps, top5_methods.cps, prefix = "nsw_cps1")
-save_top5_datasets(list_psid, top5_methods.psid, prefix = "nsw_psid1")
-```
-
-### Visuals
-
-```{r, message=FALSE, warning=FALSE}
-# visualize results
-top5_objects.cps <- list_cps[top5_methods.cps]
-top5_objects.psid <- list_psid[top5_methods.psid]
-
-# covariate balance
-plot_matchit_balance(top5_objects.cps, title = "CPS1 Top 5 Methods")
-plot_matchit_balance(top5_objects.psid, title = "PSID1 Top 5 Methods")
-
-# overlap
-plot_matchit_overlap(top5_objects.cps, treat_col = "treat", covar = covar, prefix = "CPS1", ylim = c(-1, 1))
-plot_matchit_overlap(top5_objects.psid, treat_col = "treat", covar = covar, prefix = "PSID1", ylim = c(-1, 1))
-```
-
-```{r, message=FALSE, warning=FALSE}
-# save results
-```
-
-```{r, message=FALSE, warning=FALSE}
-# visualize covariate balance of specific results (sort for type)
-top5_objects.cps_plus <- list_cps[top5_methods.cps_plus]
-top5_objects.psid_plus <- list_psid[top5_methods.psid_plus]
-
-
-top5_objects.cps_plus
-top5_objects.psid_plus
-
-#top5_matchit_objects.cps_plus <- top5_objects.cps_plus[c(1,2,4,5)]
-#top5_data_objects.cps_plus <- top5_objects.cps_plus[[3]]
-
-#top5_matchit_objects.psid_plus <- top5_objects.psid_plus[c(2,3,4,5)]
-#top5_data_objects.psid_plus <- top5_objects.psid_plus[[1]]
-
-# covariate balance
-#plot_matchit_balance(top5_matchit_objects.cps_plus, title = "CPS1 Top 5 Methods")
-#plot_balance(ldw_cps_plus.ps, top5_data_objects.cps_plus, treat_col = "treat", covar = covar, title = "CPS1 Top 5 Methods")
-
-#plot_matchit_balance(top5_matchit_objects.psid_plus, title = "PSID1 Top 5 Methods")
-#plot_balance(ldw_psid_plus.ps, top5_data_objects.psid_plus, treat_col = "treat", covar = covar, title = "PSID1 Top 5 Methods", name = "ps_threshold_match")
-
-# overlap
-#plot_matchit_overlap(top5_matchit_objects.cps_plus, treat_col = "treat", covar = covar, prefix = "CPS1")
-#plot_overlap(top5_data_objects.cps_plus, treat_col = "treat", covar = covar, prefix = "CPS1", name = "ps_threshold_match")
-#plot_matchit_overlap(top5_matchit_objects.psid_plus, treat_col = "treat", covar = covar, prefix = "PSID1")
-#plot_overlap(top5_data_objects.psid_plus, treat_col = "treat", covar = covar, prefix = "PSID1", name = "ps_threshold_match")
-```
-
-```{r, message=FALSE, warning=FALSE}
-# save results 
+# save samples into .RData files
+save_top5_samples(list_cps, top5_methods.cps, prefix = "nsw_cps1")
+save_top5_samples(list_psid, top5_methods.psid, prefix = "nsw_psid1")
 ```
 
 ## Estimating
@@ -973,37 +517,26 @@ top5_objects.psid_plus
 out1 <- estimate_all(nsw, "re78", "treat", covar)
 out2 <- estimate_all(nsw_cps, "re78", "treat", covar)
 out3 <- estimate_all(nsw_psid, "re78", "treat", covar)
-
-out.cps <- lapply(top5_datasets.cps, function(d) estimate_all(d, "re78", "treat", covar))
-out.psid <- lapply(top5_datasets.psid, function(d) estimate_all(d, "re78", "treat", covar))
-
-out4 <- out.cps[[1]]
-out5 <- out.cps[[2]]
-out6 <- out.cps[[3]]
-out7 <- out.cps[[4]]
-out8 <- out.cps[[5]]
-
-out9 <- out.psid[[1]]
-out10 <- out.psid[[2]]
-out11 <- out.psid[[3]]
-out12 <- out.psid[[4]]
-out13 <- out.psid[[5]]
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# estimate ATT
-load("data/trimmed.RData")
-out14 <- estimate_all(nsw_trim_cps, "re78", "treat", covar)
-out15 <- estimate_all(nsw_trim_psid, "re78", "treat", covar)
-out16 <- estimate_all(nsw_cps_trim_match, "re78", "treat", covar)
-out17 <- estimate_all(nsw_psid_trim_match, "re78", "treat", covar)
+out.cps <- lapply(top5_samples.cps, function(d) estimate_all(d, "re78", "treat", covar))
+out.psid <- lapply(top5_samples.psid, function(d) estimate_all(d, "re78", "treat", covar))
+out.cps_trim <- lapply(all_trim.cps, function(d) estimate_all(d, "re78", "treat", covar))
+out.psid_trim <- lapply(all_trim.psid, function(d) estimate_all(d, "re78", "treat", covar))
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC10. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. ATT Estimates Given Unconfoundedness using NSW Samples"}
-par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
+```{r, message=FALSE, warning=FALSE}
+out4 <- estimate_all(nsw_trim_cps, "re78", "treat", covar)
+out5 <- estimate_all(nsw_trim_psid, "re78", "treat", covar)
+out6 <- estimate_all(nsw_cps_trim_match, "re78", "treat", covar)
+out7 <- estimate_all(nsw_psid_trim_match, "re78", "treat", covar)
+```
+
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC2. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. ATT Estimates Given Unconfoundedness using NSW Samples"}
 par(mfrow = c(4, 1), mar = c(4, 4, 2, 1))
 
-# experimental benchmarks
+# get experimental benchmark
 band.exp <- out1[1, 3:4]
 est.exp  <- out1[1, 1]
 
@@ -1012,116 +545,118 @@ plot_coef(out1,  band = band.exp, line = est.exp,
           ylim = c(-15500, 5500), main = "(A) NSW-Experimental")
 
 plot_coef(out2,  band = band.exp, line = est.exp, 
-          ylim = c(-15500, 5500), main = "(B) NSW-CPS1")
+          ylim = c(-15500, 5500), main = "(B) NSW-CPS-1")
 
 plot_coef(out3,  band = band.exp, line = est.exp,
-          ylim = c(-15500, 5500), main = "(C) NSW-PSID1")
+          ylim = c(-15500, 5500), main = "(C) NSW-PSID-1")
 
+# get benchmarks
+method_names_cps <- sapply(top5_methods.cps, function(m) {
+    matches <- names(out.cps_trim)[sapply(names(out.cps_trim), function(n) grepl(n, m, fixed=TRUE))]
+    if (length(matches) > 0) matches[which.max(nchar(matches))] else NA 
+})
+method_names_psid <- sapply(top5_methods.psid, function(m) {
+    matches <- names(out.cps_trim)[sapply(names(out.cps_trim), function(n) grepl(n, m, fixed=TRUE))]
+    if (length(matches) > 0) matches[which.max(nchar(matches))] else NA 
+})
+
+band.cps <- lapply(method_names_cps, function(j) out.cps_trim[[j]][1, 3:4])
+est.cps  <- lapply(method_names_cps, function(j) out.cps_trim[[j]][1, 1])
+band.psid <- lapply(method_names_psid, function(j) out.psid_trim[[j]][1, 3:4])
+est.psid  <- lapply(method_names_psid, function(j) out.psid_trim[[j]][1, 1])
+
+# plot results
 for (i in seq_along(out.cps)) {
-  this_title <- paste0("(", LETTERS[i+2], ") Top CPS1: ", top5_methods.cps[i])
-  plot_coef(out.cps[[i]], band = band.exp, line = est.exp,
+  this_title <- paste0("(", LETTERS[i+3], ") Top CPS-1: ", top5_methods.cps[i])
+  plot_coef(out.cps[[i]], band = band.cps[[i]], line = est.cps[[i]],
             ylim = c(-15500, 5500), main = this_title)
 }
 
 for (i in seq_along(out.psid)) {
-  this_title <- paste0("(", LETTERS[i+7], ") Top PSID1: ", top5_methods.psid[i])
-  plot_coef(out.psid[[i]], band = band.exp, line = est.exp,
+  this_title <- paste0("(", LETTERS[i+8], ") Top PSID-1: ", top5_methods.psid[i])
+  plot_coef(out.psid[[i]], band = band.psid[[i]], line = est.psid[[i]],
             ylim = c(-15500, 5500), main = this_title)
 }
 
-# nonexperimtenal benchmarks
-band.cps_plus <- out14[1, 3:4]
-est.cps_plus <- out14[1, 1]
-band.psid_plus <- out15[1, 3:4]
-est.psid_plus <- out15[1, 1]
+# get benchmarks
+band.cps_plus <- out4[1, 3:4]
+est.cps_plus <- out4[1, 1]
+band.psid_plus <- out5[1, 3:4]
+est.psid_plus <- out5[1, 1]
 
 # plot results
-plot_coef(out16, band = band.cps_plus, line = est.cps_plus, 
-          ylim = c(-15500, 5500), main = "(N) Trimmed LDW-CPS1-PLUS")
+plot_coef(out6, band = band.cps_plus, line = est.cps_plus, 
+          ylim = c(-15500, 5500), main = "(N) Trimmed NSW-CPS-1-PLUS")
 
 
-plot_coef(out17, band = band.psid_plus, line = est.psid_plus, 
-          ylim = c(-15500, 5500), main = "(O) Trimmed LDW-PSID1-PLUS")
+plot_coef(out7, band = band.psid_plus, line = est.psid_plus, 
+          ylim = c(-15500, 5500), main = "(O) Trimmed NSW-PSID-1-PLUS")
+
 ```
 
-```{r, message=FALSE, warning=FALSE}
-# save results
-save_att_panels(
-  out_list = list(out1, out2, out3),
-  plot_titles = c("(A) NSW-Experimental", "(B) NSW-CPS1", "(C) NSW-PSID1"),
-  band_list = list(band.exp, band.exp, band.exp),
-  est_list  = list(est.exp, est.exp, est.exp),
-  prefix = "nsw_est_exp"
-)
-
-save_att_panels(
-  out_list = out.cps,
-  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps),
-  band_list = replicate(length(out.cps), band.exp, simplify = FALSE),
-  est_list  = replicate(length(out.cps), est.exp, simplify = FALSE),
-  prefix = "nsw_est_top_cps"
-)
-
-save_att_panels(
-  out_list = out.psid,
-  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid),
-  band_list = replicate(length(out.psid), band.exp, simplify = FALSE),
-  est_list  = replicate(length(out.psid), est.exp, simplify = FALSE),
-  prefix = "nsw_est_top_psid"
-)
-
-save_att_panels(
-  out_list = list(out16, out17),
-  plot_titles = c("(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS"),
-  band_list = list(band.cps_plus, band.psid_plus),
-  est_list  = list(est.cps_plus, est.psid_plus),
-  prefix = "nsw_est_plus"
-)
-```
-
-The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS1, NSW-PSID1, trimmed versions of the NSW-CPS1 and NSW-PSID1 samples (analogous to Imbens & Xu (2024)) and a series of top-ranked subsamples of both NSW-CPS1 and NSW-PSID1 based on various matching, weighting, truncation and trimming criteria.
-
-Figure (A) presents the benchmark from the experimental sample (NSW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, NSW-CPS1 and NSW-PSID1, while figures (D) and (E) present those for the trimmed versions, replicating the tutorial results of Imbens & Xu (2024). Figures (F) through (J) display results for CPS1-based subsamples constructed with the top-ranked methods. Analogously, figures (K) through (O) summarize results for the corresponding PSID1-based subsamples under parallel rules.
-
-Across the NSW-CPS1 and its top-ranked subsamples, all estimators produce ATT estimates that closely align with the experimental benchmark, though all estimates are negative. Some larger deviations occur for the `Diff-in-Means` estimator within the `overlap_crump` and `adapt_weight_trunc_ipw_weight` subsamples. Nevertheless, these ATT estimates deviate more from the benchmark than those obtained under models A and B in previous sections using LDW data. 
-
-In comparison, PSID1-based subsamples frequently exhibit greater dispersion and substantially higher standard errors than NSW-CPS1 samples, consistent with previous observations from LDW data. All ATT estimates remain negatively aligned, reflecting heightened methodological uncertainty within these samples.
 ```{r, message=FALSE, warning=FALSE}
 # get all outputs
-all_outs <- c(list(out1, out2, out3), 
-              out.cps, out.psid, 
-              list(out16, out17))
+all_outs <- c(list(out1, out2, out3), out.cps, out.psid, list(out6, out7))
 
-# get plot titles
+# get all plot titles
 all_plot_titles <- c("(A) NSW-Experimental", "(B) NSW-CPS1", "(C) NSW-PSID1",
-                      paste0("(", LETTERS[6:10], ") Top CPS1: ", top5_methods.cps),
-                      paste0("(", LETTERS[11:15], ") Top PSID1: ", top5_methods.psid),
+                      paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps),
+                      paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid),
                       "(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS")
 
+# get all confidence interval bounds
+all_bands <- c(list(band.exp, band.exp, band.exp), band.cps, band.psid, list(band.cps_plus, band.psid_plus))
+all_ests <- c(list(est.exp, est.exp, est.exp), est.cps, est.psid, list(est.cps_plus, est.psid_plus))
+
+# save results
+save_att_panels(
+    out_list    = all_outs,
+    plot_titles = all_plot_titles,
+    band_list   = all_bands,
+    est_list    = all_ests,
+    prefix      = "nsw_est_comb"
+)
+```
+
+The above figures show the ATT estimates and their 95% confidence intervals for fifteen samples: NSW-Experimental, NSW-CPS-1, NSW-PSID-1, trimmed and matched versions of the NSW-CPS-1-PLUS and NSW-PSID1-PLUS samples (analogous to Imbens & Xu (2024)) and a series of top-ranked samples of both NSW-CPS-1 and NSW-PSID-1 based on various trimming and integrated trimming and matching criteria.
+
+Figure (A) presents the benchmark from the experimental sample (NSW-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) and (C) show results for the observational samples, NSW-CPS-1 and NSW-PSID-1, while figures (N) and (O) present those for the trimmed and matched versions of NSW-CPS-1-PLUS and NSW-PSID-1-PLUS, respectively, replicating the tutorial results of Imbens & Xu (2024). Figures (D) through (H) display results for NSW-CPS1-based samples constructed with the top-ranked methods. Analogously, figures (I) through (M) summarize results for the corresponding NSW-PSID-1-based samples under parallel rules.
+
+The NSW-CPS-1 sample and NSW-PSID-1 sample produce ATT estimates that closely align with the experimental benchmark with an exception for one estimator.
+
+Across the top-ranked samples of NSW-CPS-1, specifically the `genetic_crump` (E) and `cem_crump` (D) samples, all estimators produce ATT estimates that closely align with the benchmark, though some estimates are negative. Some larger deviations from the benchmark occur for the `optimal_pair_walker` (H), `nn_walker` (G) and `k3_walker` (F) samples. Nevertheless, these ATT estimates deviate considerably stronger from the benchmark than those obtained under parallel rules within models A and B given LDW data.
+
+In comparison, NSW-PSID-1-based samples exhibit significantly greater deviation and substantially larger standard errors than the NSW-CPS-1-based samples, consistent with previous observations from LDW data. All their ATT estimates remain negatively aligned, reflecting persistent difficulties in improving ATT estimates for the NSW-PSID-1 sample.
+
+Overall, the ATT estimates across all NSW samples follow similar patterns as observed in model A and B given LDW data, yet show a noticeable negative shift.
+```{r, message=FALSE, warning=FALSE}
 # evaluate results
 all_summaries <- lapply(all_outs, eval_att)
 att_summary <- do.call(rbind, all_summaries)
 rownames(att_summary) <- all_plot_titles
 
-# print results
+# print table output
 datatable(att_summary, caption = "ATT Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # create result matrix
-result_mat <- create_matrix_results(all_outs, all_plot_titles)
+out.cps_top <- lapply(method_names_cps, function(j) out.cps_trim[[j]])
+out.psid_top <- lapply(method_names_psid, function(j) out.psid_trim[[j]])
+all_out_mat <- c(list(out1), out.cps_top, out.psid_top, list(out4, out5))
+result_mat <- create_matrix_results(all_outs, all_out_mat, all_plot_titles)
 
-# render formatted table output
+# print table output
 datatable(result_mat, caption = "ATT Estimates and SEs",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS1 sample, and column (C) for the NSW-PSID1 sample. Columns (D)-(O) summarize results for the trimmed and top-ranked samples for both NSW-CPS1 and NSW-PSID1.
+The tabulated results confirm visual patterns: Column (A) reports the estimates for the NSW-Experimental sample, column (B) for the NSW-CPS-1 sample, and column (C) for the NSW-PSID-1 sample. Columns (D)-(M) summarize results for the top-ranked samples for both NSW-CPS-1 and NSW-PSID1. Columns (N) and (O) report results for the trimmed and matched versions of NSW-CPS-1-PLUS and NSW-PSID-1-PLUS sample, respectively.
 
-For all CPS1-based samples, ATT estimates remain negative, but are relatively close to the experimental benchmark. In contrast, the PSID1-based estimates exhibit larger negative magnitudes, and increased standard errors, underscoring the heightened difficulty of achieving covariate balance and overlap in this observational dataset. 
+Specifically, for most NSW-CPS-1-based samples, ATT estimates remain negative. The sample `genetic_crump` (E) and `cem_crump` (D) exhibit frequently positive estimates and are relatively close to the benchmark. In contrast, the for the NSW-PSID-1-based samples, the ATT estimates exhibit larger negative magnitudes, and increased standard errors, underscoring the heightened difficulty of achieving consistent ATT effect estimates in this observational sample. 
 
-Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain methods can bring observational estimates closer to the experimental benchmark. Nevertheless, significant estimator-dependent variability and sensitivity to sample construction persist.
+Overall, consistent with findings from models A and B, figures and table jointly demonstrate that ATT estimates from observational samples tend to have larger standard errors compared to the experimental sample, reflecting greater statistical uncertainty in non-experimental causal effect estimation, and that certain methods can bring observational estimates closer to the benchmark. 
 ```{r, message=FALSE, warning=FALSE}
 # save results 
 save_csv(result_mat, "nsw_att_estimates")
@@ -1133,31 +668,32 @@ save_csv(result_mat, "nsw_att_estimates")
 catt.nsw <- catt(nsw, Y, treat, covar)
 catt.cps <- catt(nsw_cps, Y, treat, covar)
 catt.psid <- catt(nsw_psid, Y, treat, covar)
-catt.top5_cps <- lapply(top5_datasets.cps, function(d) catt(d, Y, treat, covar))
-catt.top5_psid <- lapply(top5_datasets.psid, function(d) catt(d, Y, treat, covar))
+catt.top5_cps <- lapply(top5_samples.cps, function(d) catt(d, Y, treat, covar))
+catt.top5_psid <- lapply(top5_samples.psid, function(d) catt(d, Y, treat, covar))
+catt.top5_cps_trim <- lapply(all_trim.cps, function(d) catt(d, Y, treat, covar))
+catt.top5_psid_trim <- lapply(all_trim.psid, function(d) catt(d, Y, treat, covar))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# similar to Imbens & Xu (2024) 
-load("data/trimmed.RData")
 catt.cps.trim <- catt(nsw_cps_trim_match, Y, treat, covar)
 catt.psid.trim <- catt(nsw_psid_trim_match, Y, treat, covar)
 catt.nsw.cps <- catt(nsw_trim_cps, Y, treat, covar)
 catt.nsw.psid <- catt(nsw_trim_psid, Y, treat, covar)
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC11. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. CATT Estimates using NSW Data: Experimental vs. Nonexperimental"}
-# plot results
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC3. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. CATT Estimates using NSW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2)) 
 par(cex.main = 0.9)
+
+# plot results
 plot_catt(
   catt1 = catt.nsw$catt,
   catt2 = catt.cps$catt,
   att1  = catt.nsw$att[1],
   att2  = catt.cps$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (CPS1)",
-  main  = "(B) NSW-CPS1", 
+  ylab  = "CATT (CPS-1)",
+  main  = "(B) NSW-CPS-1", 
   axes.range = c(-8000, 8000)
 )
 
@@ -1167,42 +703,31 @@ plot_catt(
   att1  = catt.nsw$att[1],
   att2  = catt.psid$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (PSID1)",
-  main  = "(C) NSW-PSID1",
+  ylab  = "CATT (PSID-1)",
+  main  = "(C) NSW-PSID-1",
   axes.range = c(-8000, 8000)
 )
-```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREA11. SubfigureN:LDW-CPS1-PLUS. SubfigureO:LDW-PSID1-PLUS. CATT Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
-# plot results
-par(mfrow = c(2,2)) 
-par(cex.main = 0.9)
 plot_catt_panels(
-  exp_catt = catt.nsw,
+  exp_catt = catt.top5_cps_trim,
   catt_list  = catt.top5_cps,
-  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps)
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS-1: ", top5_methods.cps)
 )
 
 plot_catt_panels(
-  exp_catt = catt.nsw,
+  exp_catt = catt.top5_psid_trim,
   catt_list  = catt.top5_psid,
-  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid)
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID-1: ", top5_methods.psid)
 )
 
-```
-
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC11. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. CATT Estimates Model A using LDW Data: Experimental vs. Nonexperimental"}
-# plot results
-par(mfrow = c(2,2)) 
-par(cex.main = 0.9)
 plot_catt(
   catt1 <- catt.nsw.cps$catt,
   catt2 <- catt.cps.trim$catt,
   att1 <- catt.nsw.cps$att[1],
   att2 <- catt.cps.trim$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (CPS1-PLUS-Trimmed)",
-  main  = "(N) Trimmed NSW-CPS1-PLUS", 
+  ylab  = "CATT (CPS-1-PLUS-Trimmed)",
+  main  = "(N) Trimmed NSW-CPS-1-PLUS", 
   axes.range = c(-8000, 8000)
 )
 
@@ -1212,71 +737,77 @@ plot_catt(
   att1 <- catt.nsw.psid$att[1],
   att2 <- catt.psid.trim$att[1],
   xlab  = "CATT (Experimental)",
-  ylab  = "CATT (PSID1-PLUS-Trimmed)",
-  main  = "(O) Trimmed NSW-PSID1-PLUS",
+  ylab  = "CATT (PSID-1-PLUS-Trimmed)",
+  main  = "(O) Trimmed NSW-PSID-1-PLUS",
   axes.range = c(-8000, 8000)
 )
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC12. CATT Estimates using NSW Data"}
+```{r, out.width='100%', fig.asp=1.}
 # combine all catt objects 
 all_catt <- c(list(catt.nsw, catt.cps, catt.psid), 
-                   catt.top5_cps, catt.top5_psid, 
+              catt.top5_cps, catt.top5_psid, 
               list(catt.cps.trim, catt.psid.trim))
 
+# evaluate results
 all_catt_eval <- eval_catt(all_catt, all_plot_titles)
+
+# print table output
 datatable(all_catt_eval, caption = "CATT Summary Statistics",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
 
-With NSW-CPS1, the CATT estimates range from $-8,652.64 to $6,452.97, contrasting with the benchmark where CATT estimates span from $-1,179.03 to $3,339.96, with a mean CATT estimate of $812.17. Alike in the previous sections, the NSW-PSID1 data exhibits a narrower CATT estimates range compared to NSW-CPS1, spanning from $-8,591.86 to $1,170.55. Yet its mean CATT estimate remains substantially negative, at approximately $-2,321.86, contrary to the positive mean CATT estimates observed in models A and B.
+With NSW-CPS-1, the CATT estimates range from $-8,994.51 to $6,328.35, contrasting with the experimental benchmark where CATT estimates span from $-1,146.76 to $3,347.6, with a mean CATT estimate of $814.53. Unlike in the previous sections, the NSW-PSID-1 sample exhibits a narrower CATT estimates range compared to the NSW-CPS-1 sample, with a range spanning from $-8,179.54 to $867,51. Yet its mean CATT estimate remains substantially negative, at approximately $-2,364.14, contrary to the positive mean CATT estimates observed in models A and B given LDW data.
 
-Among the trimmed and top-ranked NSW-CPS1 subsamples, CATT estimates exhibit substantial variability. Subsamples such as `overlap_crump` or `adap_weight_trunc_ipw_weight` yield notably negative minimum CATT values alongside moderately negative mean CATT estimates. Similarly, `card` and `mahvars` subsamples produce consistently negative mean CATT estimates, although weaker alignment with the experimental benchmark. The `ps_threshold` subsample yields improved estimates with highest min CATT and mean CATTs estimates closest to the experimental benchmark, while still negative.
+Among the top-ranked NSW-CPS-1 samples, CATT estimates exhibit substantial variability. Samples such as `optimal_pair_walker` (H), `nn_walker` (G) or `k3_walker` (F) yield notably negative minimum CATT values alongside substantial negative mean CATT estimates. Similarly, the `genetic_crump` (E) and `cem_crump` (D) samples produce consistently negative CATT estimates, whereas their mean CATT estimates are positive and closer to the benchmark.
 
-The NSW-PSID1 trimmed and top-ranked subsamples deliver substantially decreased mean CATT estimates and wider extremes compared to their NSW-CPS1 counterparts, reflecting greater difficulties in producing reliable effect estimates.
+The NSW-PSID-1 top-ranked samples deliver substantially decreased mean CATT estimates, reflecting greater difficulties in producing reliable effect estimates, while producing narrower extremes compared to the NSW-CPS-1 top-ranked samples.
 
-This variation in range and means across samples, as observed in previous sections, reflects substantial heterogeneity in treatment effect estimation but also indicates that while certain criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and spread in estimated heterogeneous effects.
+Overall, this variation in range and means of CATT estimates across all observational samples indicates substantial heterogeneity in treatment effect estimation and substantiates that certain criteria improve alignment with the experimental benchmark, while others introduce considerable discrepancies.
 ```{r, message=FALSE, warning=FALSE}
 # save results
 save_main_catt_panels(
   catt_refs = list(catt.nsw),
   catt_comps = list(catt.cps, catt.psid),
-  ylabels = c("CATT (CPS1)", "CATT (PSID1)"),
+  ylabels = c("CATT (CPS-1)", "CATT (PSID-1)"),
   prefix = "nsw_catt_main_panels",
-  main_titles = c("(B) NSW-CPS1", "(C) NSW-PSID1")
+  main_titles = c("(B) NSW-CPS-1", "(C) NSW-PSID-1")
 )
 
 save_catt_panels(
-  exp_catt = catt.nsw,
+  exp_catt = catt.top5_cps_trim,
   catt_list  = catt.top5_cps,
-  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS1: ", top5_methods.cps),
+  plot_titles = paste0("(", LETTERS[4:8], ") Top CPS-1: ", top5_methods.cps),
   prefix = "nsw_catt_top5_cps"
 )
 
 save_catt_panels(
-  exp_catt = catt.nsw,
+  exp_catt = catt.top5_psid_trim,
   catt_list  = catt.top5_psid,
-  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID1: ", top5_methods.psid),
+  plot_titles = paste0("(", LETTERS[9:13], ") Top PSID-1: ", top5_methods.psid),
   prefix = "nsw_catt_top5_psid"
 )
 
 save_plus_catt_panels(
   catt1_list = list(catt.nsw.cps, catt.nsw.psid),
   catt2_list = list(catt.cps.trim, catt.psid.trim),
-  ylabels = c("CATT (CPS1-PLUS-Trimmed)", "CATT (PSID1-PLUS-Trimmed)"),
+  ylabels = c("CATT (CPS-1-PLUS-Trimmed)", "CATT (PSID-1-PLUS-Trimmed)"),
   prefix = "nsw_catt_plus_panels",
-  main_titles = c("(N) Trimmed NSW-CPS1-PLUS", "(O) Trimmed NSW-PSID1-PLUS"),
+  main_titles = c("(N) Trimmed NSW-CPS-1-PLUS", "(O) Trimmed NSW-PSID-1-PLUS"),
   folder = "graphs/lalonde"
 )
 ```
 
 ### Quantile treatment effect on the treated (QTET)
 ```{r, message=FALSE, warning=FALSE}
+# estimate QTET
 qte.nsw <- est_qte(Y, treat, covar, data = nsw, cores = 4)
 qte.nsw_cps <- est_qte(Y, treat, covar, data = nsw_cps)
 qte.nsw_psid <- est_qte(Y, treat, covar, data = nsw_psid)
-qte.top5_cps  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, covar, data = d))
-qte.top5_psid <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps  <- lapply(top5_samples.cps,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_cps_trim  <- lapply(all_trim.cps,  function(d) est_qte(Y, treat, covar, data = d))
+qte.top5_psid_trim <- lapply(all_trim.psid, function(d) est_qte(Y, treat, covar, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1290,8 +821,8 @@ qte.nsw_psid.trim <- est_qte(Y, treat, covar, data = nsw_psid_trim_match)
 qte.nsw0 <- est_qte(Y, treat, NULL, data = nsw)
 qte.nsw_cps0 <- est_qte(Y, treat, NULL, data = nsw_cps)
 qte.nsw_psid0 <- est_qte(Y, treat, NULL, data = nsw_psid)
-qte.top5_cps0  <- lapply(top5_datasets.cps,  function(d) est_qte(Y, treat, NULL, data = d))
-qte.top5_psid0 <- lapply(top5_datasets.psid, function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_cps_trim0  <- lapply(top5_samples.cps,  function(d) est_qte(Y, treat, NULL, data = d))
+qte.top5_psid_trim0 <- lapply(top5_samples.psid, function(d) est_qte(Y, treat, NULL, data = d))
 ```
 
 ```{r, message=FALSE, warning=FALSE}
@@ -1299,84 +830,80 @@ qte.nsw_cps.trim0 <- est_qte(Y, treat, NULL, data = nsw_cps_trim_match)
 qte.nsw_psid.trim0 <- est_qte(Y, treat, NULL, data = nsw_psid_trim_match) 
 ```
 
-```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC13. SubfigureB:NSW-CPS1. SubfigureC:NSW-PSID1. SubfigureD-H:Top-NSW-CPS1. SubfigureI-M:Top-NSW-PSID1. SubfigureN:NSW-CPS1-PLUS. SubfigureO:NSW-PSID1-PLUS. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
+```{r, message=FALSE, warning=FALSE, out.width='100%', fig.asp=1, fig.cap="FIGUREC4. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. QTET Estimates using NSW Data: Experimental vs. Nonexperimental"}
 par(mfrow = c(2,2))
 par(cex.main = 0.9)
 ylim = c(-25000, 15000)
-# CPS1
-plot_qte(qte.nsw_cps, qte.nsw_cps0, qte.nsw, main = "(B) NSW-CPS1", ylim)
+
+# plot results
+plot_qte(qte.nsw_cps, qte.nsw_cps0, qte.nsw, main = "(B) NSW-CPS-1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# PSID1
-plot_qte(qte.nsw_psid, qte.nsw_psid0, qte.nsw, main = "(C) NSW-PSID1", ylim)
+plot_qte(qte.nsw_psid, qte.nsw_psid0, qte.nsw, main = "(C) NSW-PSID-1", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# CPS1 top methods
-plot_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw, all_plot_titles, main_start = 4)
+plot_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_titles, main_start = 4)
 
-# PSID1 top methods
-plot_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw, all_plot_titles, main_start = 9)
+plot_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9)
 
-# CPS1-PLUS trimmed
-plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) NSW-CPS1-PLUS (Trimmed)", ylim)
+plot_qte(qte.nsw_cps.trim, qte.nsw_cps.trim0, qte.nsw.cps, main = "(N) Trimmed NSW-CPS-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
        lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 
-# PSID1-PLUS trimmed
-plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) NSW-PSID1-PLUS (Trimmed)", ylim)
+plot_qte(qte.nsw_psid.trim, qte.nsw_psid.trim0, qte.nsw.psid, main = "(O) Trimmed NSW-PSID-1-PLUS", ylim)
 legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"), 
     lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
 ```
 
-These figures display QTET estimates derived from both the NSW experimental and various observational samples. The QTETs estimated from trimmed NSW-CPS1 sample (D) corresponds well with the true QTET, although the estimates are often underpowered. The QTET estimates from the original NSW-CPS1, the original NSW-PSID1 and its trimmed subsample (B, C and E) show clear biases when compared to the experimental benchmark, which clusters near zero. Among the top-ranked subsamples, CPS1-based QTETs (F–J) consistently track the true QTET closely. In contrast, PSID1-based QTETs (K–O) generally perform well, aligning closely with the true QTET, except for subsamples `mahvars` and `card`, which exhibit increased bias and noticeably wider confidence intervals, reflecting greater estimation uncertainty.
+These figures display QTET estimates derived from both the NSW experimental and various observational samples. 
+
+The QTET estimates from the NSW-CPS-1 sample (B) correspond well with the true QTET, although they are often underpowered. The QTET estimates from top-ranked samples show clear biases when compared to the experimental benchmark (E, G and H), except for `k3_walker` and `cem_crump` (F and D), where the QTET estimates align reasonably well with the true QTET. 
+
+The QTETs estimated from the NSW-PSID-1 sample (C) show notable biases in contrast to the experimental benchmark. Among its top-ranked samples (I-M) the QTET estimates exhibit substantial bias and are highly underpowered, reflecting great estimation uncertainty.
+
+For the trimmed and matched NSW-CPS-1-PLUS sample (N), the QTET estimates align reasonably well with the experimental benchmark, whereas for the trimmed and matched NSW-PSID-1-PLUS sample (O), the QTET estimates shows notable biases.
 ```{r, message=FALSE, warning=FALSE}
 # list results
 plots_nsw <- list(
-  list(mod = qte.nsw_cps, mod0 = qte.nsw_cps0, bm = qte.nsw, 
-       main = "(B) NSW CPS1"),
-  list(mod = qte.nsw_psid, mod0 = qte.nsw_psid0, bm = qte.nsw, 
-       main = "(C) NSW PSID1"),
-  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw.cps, 
-       main = "(N) NSW CPS1-PLUS (Trimmed)"),
-  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw.psid, 
-       main = "(O) NSW PSID1-PLUS (Trimmed)")
+  list(mod = qte.nsw_cps, mod0 = qte.nsw_cps0, bm = qte.nsw, main = "(B) NSW-CPS-1"),
+  list(mod = qte.nsw_psid, mod0 = qte.nsw_psid0, bm = qte.nsw, main = "(C) NSW-PSID-1"),
+  list(mod = qte.nsw_cps.trim, mod0 = qte.nsw_cps.trim0, bm = qte.nsw.cps, main = "(N) Trimmed NSW-CPS-1-PLUS "),
+  list(mod = qte.nsw_psid.trim, mod0 = qte.nsw_psid.trim0, bm = qte.nsw.psid, main = "(O) Trimmed NSW-PSID-1-PLUS")
 )
 
 # save results
 save_qtet(plots_nsw, prefix = "nsw")
-save_qte_top(qte.top5_cps, qte.top5_cps0, qte.nsw, all_plot_titles, 
-             main_start = 8, prefix = "nsw_top")
-save_qte_top(qte.top5_psid, qte.top5_psid0, qte.nsw, all_plot_titles, 
-             main_start = 13, prefix = "nsw_top")
+save_qte_top(qte.top5_cps_trim, qte.top5_cps_trim0, qte.top5_cps, all_plot_titles, main_start = 4, prefix = "nsw_top")
+save_qte_top(qte.top5_psid_trim, qte.top5_psid_trim0, qte.top5_psid, all_plot_titles, main_start = 9, prefix = "nsw_top")
 ```
 
 ### Assessing outcome weights (OW)
 ```{r, message=FALSE, warning=FALSE}
-# list all datasets
-all_datasets <- c(list(nsw, nsw_cps, nsw_psid), 
-                  top5_datasets.cps, top5_datasets.psid, 
-                  list(nsw_cps_trim_match, nsw_psid_trim_match))
-```
+# list all samples
+all_samples <- c(list(nsw, nsw_cps, nsw_psid), top5_samples.cps, top5_samples.psid, list(nsw_cps_trim_match, nsw_psid_trim_match))
 
-```{r, message=FALSE, warning=FALSE}
 # estimate ATT 
-res_att <- get_res_att(all_datasets, Y, treat, covar)
+res_att <- get_res_att(all_samples, Y, treat, covar)
+
 # extract outcome weights
 ow_att <- derive_ow(res_att)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC14. Outcome Weights using NSW Data"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC5. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. Outcome Weights using NSW Data"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
+
 # plot outcome weights distribution
 plot_ow(ow_att, all_plot_titles) 
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # evaluate results
-res_ow <- eval_ow(ow_att, all_datasets, all_plot_titles, treat, "AIPW-ATT")
+res_ow <- eval_ow(ow_att, all_samples, all_plot_titles, treat, "AIPW-ATT")
+
+# print table output
 datatable(res_ow, caption = "Outcome Weights for Treated and Untreated",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
@@ -1384,12 +911,13 @@ datatable(res_ow, caption = "Outcome Weights for Treated and Untreated",
 ```{r, message=FALSE, warning=FALSE}
 #save results
 save_ow(ow_att, all_plot_titles, prefix = "nsw")
+save_csv(res_ow, "nsw_ow")
 ```
 
-Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero.
+Consistent with the preceding sections, the evaluation shows that, across each sample, the estimated outcome weights sum to one within the treated group and to minus one within the untreated group, yielding an overall total of zero. Note, that minor deviations from exact values are attributable to floating-point rounding error in numerical summation.
 
 <div class="callout-tip">
-A placebo test is not performed as the NSW data comes from a randomized controlled trial (RCT), which ensures internal validity and unbiased treatment effect estimates, without confounding.
+A placebo test is not performed as the NSW data arises from a randomized controlled trial, where random assignment provides internal validity and guards against systematic confounding.
 </div>
 
 ## Validation through sensitivity analyses
@@ -1402,29 +930,31 @@ bm <- c("re75")
 ```
 
 ```{r, message=FALSE, warning=FALSE}
-# check for valid datasets 
-filtered_datasets_sens <- check_filter_datasets(all_datasets, Y, treat, covar, bm)
+# check for valid samples 
+filtered_samples_sens <- check_filter_samples(all_samples, Y, treat, covar, bm)
 ```
 
-```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC15. Sensitivity Analyses NSW"}
+```{r, out.width='100%', fig.asp=1, fig.cap="FIGUREC6. SubfigureA:NSW-Experimental. SubfigureB:NSW-CPS-1. SubfigureC:NSW-PSID-1. SubfigureD-H:Top-NSW-CPS-1. SubfigureI-M:Top-NSW-PSID-1. SubfigureN:NSW-CPS-1-PLUS. SubfigureO:NSW-PSID-1-PLUS. Sensitivity Analyses NSW"}
 par(mfrow = c(2,2))
 par(cex.main = 0.8)
-# loop over valid datasets and assign index
-for (i in seq_along(filtered_datasets_sens)) {
-    idx <- which(sapply(all_datasets, identical, filtered_datasets_sens[[i]]))
-    sens_ana(filtered_datasets_sens[[i]], Y, treat, covar, bm, kd = 1:3)
-    title(main = all_plot_titles[idx])
+
+# loop over valid samples and plot results
+for (i in seq_along(filtered_samples_sens)) {
+    sens_ana(filtered_samples_sens[[i]], Y, treat, covar, bm, kd = 1:3)
+    title(main = all_plot_titles[i])
 }
 ```
 
 ```{r, message=FALSE, warning=FALSE}
 # save results
-save_sensitivity_plots(filtered_datasets_sens, Y, treat, covar, bm, all_plot_titles, "nsw")
+save_sensitivity_plots(filtered_samples_sens, Y, treat, covar, bm, all_plot_titles, "nsw")
 ```
 
-The sensitivity analysis shows that for most samples, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of `re78`. 
+The sensitivity analysis shows that for the NSW-Experimental sample, the estimated treatment effects are fairly robust to increasing confounder strength, as indicated by relatively stable values despite up to triple the correlation levels of the confounder. 
+
+For the NSW-CPS-1 (B) and NSW-PSID-1 (C) sample, as well as the top-ranked samples (I), (J), (K) and (M) of NSW-PSID-1 the treatment effect estimates are highly sensitive to unmeasured confounding. For the sample (M) and all top-ranked samples of NSW-CPS-1 (D-H) the treatment effect estimates are reasonably sensitive. Whereas, for the NSW-CPS-1-PLUS sample (N) the estimates are fairly robust to unmeasured confounding. 
 
 ## Summary
-After reexamining the original LaLonde (NSW) dataset, the results confirm that the NSW-Experimental data shows nearly perfect overlap between treated and control groups, while the observational datasets (NSW-CPS1 and NSW-PSID1) display weak overlap, with many treated units outside the control range. Expanding these datasets with experimental controls improves overlap but does not consistently enhance covariate balance. 
+After reexamining the original LaLonde (NSW) data, the results confirm that the NSW-Experimental data shows nearly perfect overlap between treated and control groups, while the observational samples (NSW-CPS-1 and NSW-PSID-1) display weak overlap, with many treated units outside the control range. Expanding these samples with experimental controls and applying the exact approach as defined by @imbens2024 improves effect estimates considerably.
 
-These findings reinforce the lessons from previous LDW analyses: even with improved overlap and some gains in covariate balance, achieving consistent and reliable effect estimation remains difficult, especially with non-experimental data. The results highlight the persistent limitations of observational samples in replicating experimental benchmarks.
+These findings reinforce the lessons from previous LDW analyses: even with improved overlap and some gains in covariate balance, achieving consistent and reliable effect estimates with observational data remains difficult. 

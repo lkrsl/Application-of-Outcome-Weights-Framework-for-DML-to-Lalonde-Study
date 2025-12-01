@@ -2,7 +2,7 @@
 # 1.1 Installation
 packages <- c("CBPS", "cobalt", "data.table", "dplyr", "DT", "DoubleML", "ebal", "estimatr", "ggplot2", "gridExtra", "grf", "hbal", "highr", "highs", 
               "kableExtra", "MatchIt", "Matching", "mlr3", "mlr3learners", "OutcomeWeights", "optmatch", "optweight", "quickmatch", 
-              "readr", "rgenoud", "tidyr", "tidyverse", "ppcor", "WeightIt"
+              "readr", "rgenoud", "tidyr", "tidyverse", "ppcor", "patchwork", "WeightIt"
 )
 
 #### install_all()
@@ -44,6 +44,7 @@ library(rgenoud)
 library(tidyr)
 library(tidyverse)
 library(ppcor)
+library(patchwork)
 library(WeightIt)
 library(OutcomeWeights)
 
@@ -51,10 +52,10 @@ library(OutcomeWeights)
 #### inspect_datasets()
 inspect_data <- function(data, treat = "treat") {
   if (is.data.frame(data)) {
-    data <- list(dataset = data)
+    data <- list(sample = data)
   }
   data.frame(
-    dataset = names(data),
+    sample = names(data),
     num_obs = sapply(data, nrow),
     num_treated = sapply(data, function(df) sum(df[[treat]] == 1, na.rm = TRUE)),
     num_controls = sapply(data, function(df) sum(df[[treat]] == 0, na.rm = TRUE)),
@@ -64,17 +65,48 @@ inspect_data <- function(data, treat = "treat") {
   )
 }
 
+#### save_overlap_panels()
+save_overlap_panels <- function(
+    data_list,
+    treat,
+    covar,
+    plot_titles = NULL,
+    prefix = "overlap_panels",
+    folder = "graphs/lalonde",
+    plots_per_page = 1
+) {
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  n <- length(data_list)
+  pages <- ceiling(n / plots_per_page)
+  for (p in seq_len(pages)) {
+    start <- (p - 1) * plots_per_page + 1
+    end   <- min(p * plots_per_page, n)
+    file_name <- file.path(folder, paste0(prefix, "_", p, ".pdf"))
+    pdf(file_name, width = 8, height = 2.75 * (end - start + 1))
+    par(mfrow = c(end - start + 1, 1), mar = c(4, 5, 3, 2))
+    for (i in start:end) {
+      assess_overlap(data = data_list[[i]], treat = treat, cov = covar)
+      if (!is.null(plot_titles) && length(plot_titles) >= i) {
+        title(main = plot_titles[i])
+      } else {
+        title(main = paste("Panel", i))
+      }
+    }
+    dev.off()
+  }
+}
+
 # 2. Improving covariate balance and overlap
 ## 2.3 Trimming
 ### 2.3.1 Propensity score threshold trimming (similar to tutorial of Imbens & Xu (2024))
-# ps_trim() *** 
+# ps_trim()*** 
 ps_trim <- function(data, ps = "ps_assoverlap", threshold = 0.9) { 
   sub <- data[which(data[, ps] < threshold), ]
   return(sub)
 }
 
 ### 2.3.2 Common range trimming
-#### common_range_trim ()
+#### common_range_trim()
 common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
   lower_cut <- min(data[[ps]][data[[treat]] == 1], na.rm = TRUE)
   upper_cut <- max(data[[ps]][data[[treat]] == 0], na.rm = TRUE)
@@ -83,16 +115,16 @@ common_range_trim <- function(data, ps = "ps_assoverlap", treat = "treat") {
 }
 
 ### 2.3.3 Crump trimming
-#### crump_trim ()
+#### crump_trim()
 crump_trim <- function(data, ps = "ps_assoverlap", lower = 0.1, upper = 0.9) {
   sub <- data[data[[ps]] >= lower & data[[ps]] <= upper, ]
   return(sub)
 }
 
 ### 2.3.4 Stuermer trimming
-#### stuermer_trim ()
+#### stuermer_trim()
 stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
-                          lower_percentile = 0.05, upper_percentile = 0.95) {
+                          lower_percentile = 0.01, upper_percentile = 0.99) {
   treated_ps   <- data[[ps]][data[[treat]] == 1]
   untreated_ps <- data[[ps]][data[[treat]] == 0]
   lower_cutoff <- quantile(treated_ps, probs = lower_percentile, na.rm = TRUE)
@@ -102,9 +134,9 @@ stuermer_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
 }
 
 ### 2.3.5 Walker trimming
-#### walker_trim ()
+#### walker_trim()
 walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap", 
-                        lower_cutoff = 0.3, upper_cutoff = 0.7) {
+                        lower_cutoff = 0.1, upper_cutoff = 0.9) {
   treat_prevalence  <- mean(data[[treat]], na.rm = TRUE)
   logit_ps          <- log(data[[ps]] / (1 - data[[ps]]))
   logit_prevalence  <- log(treat_prevalence / (1 - treat_prevalence))
@@ -113,15 +145,17 @@ walker_trim <- function(data, treat = "treat", ps = "ps_assoverlap",
   return(sub)
 }
 
-### 2.3.6 Reestimate propensity scores
 #### ps_estimate()***
-ps_estimate <- function(data, treat, cov, odds = TRUE, num.trees = NULL, seed = 1234, breaks = 50, xlim = NULL, ylim = NULL) {
-  if(is.null(num.trees))
-  {p.forest1 <- probability_forest(X = data[, cov],
-                                    Y = as.factor(data[,treat]), seed = seed)}
-  else
-  {p.forest1 <- probability_forest(X = data[, cov],
-                                    Y = as.factor(data[,treat]), seed = seed, num.trees = num.trees)}
+ps_estimate <- function(data, treat, cov, num.trees = NULL, seed = 42) {
+  if(is.null(num.trees)){
+    p.forest1 <- probability_forest(
+      X = data[, cov],
+      Y = as.factor(data[,treat]), seed = seed)
+  } else {
+    p.forest1 <- probability_forest(
+      X = data[, cov],
+      Y = as.factor(data[,treat]), seed = seed, num.trees = num.trees)
+  }
   data$ps_assoverlap <- p.forest1$predictions[,2]
   data$ps_assoverlap[which(abs(data$ps_assoverlap) <= 1e-7)] <- 1e-7
   return(data)
@@ -131,21 +165,51 @@ ps_estimate <- function(data, treat, cov, odds = TRUE, num.trees = NULL, seed = 
 ### 2.5.1 Trimming and matching
 #### attach_matchit()
 attach_matchit <- function(model, data_list, ..., verbose = FALSE) {
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("attach_matchit(): 'data_list' must be a non-empty list", call. = FALSE)
+  }
   matchit_results <- vector("list", length(data_list))
   names(matchit_results) <- names(data_list)
+  dims_report <- character(length(data_list))
   for (i in seq_along(data_list)) {
+    data_i <- data_list[[i]]
+    label_i <- if (length(names(matchit_results))) names(matchit_results)[i] else i
     res <- tryCatch(
-      matchit(model, data = data_list[[i]], ...),
+      {
+        obj <- matchit(model, data = data_i, ...)
+        attr(obj, "match_source") <- data_i
+        obj
+      },
       error = function(e) {
-        return(NULL)
+        warning(sprintf("attach_matchit(): '%s' failed: %s", label_i, e$message), call. = FALSE)
+        NULL
       }
     )
     matchit_results[[i]] <- res
+    source_rows <- tryCatch(nrow(data_i), error = function(e) NA_integer_)
+    matched_rows <- if (inherits(res, "matchit")) {
+      tryCatch(nrow(match.data(res, data = data_i)), error = function(e) NA_integer_)
+    } else {
+      NA_integer_
+    }
+    dims_report[[i]] <- sprintf("%s: source=%s matched=%s", label_i, source_rows, matched_rows)
+  }
+  if (isTRUE(verbose)) {
+    message("attach_matchit(): ", paste(dims_report, collapse = "; "))
+  }
+  attr(matchit_results, "match_dims") <- dims_report
+  # report summary
+  null_count <- sum(sapply(matchit_results, is.null))
+  success_count <- length(matchit_results) - null_count
+  if (null_count > 0) {
+    failed_names <- names(matchit_results)[sapply(matchit_results, is.null)]
+    cat(sprintf("MATCHING SUMMARY: %d succeeded, %d failed. Failed: %s\n", 
+                success_count, null_count, paste(failed_names, collapse = ", ")))
   }
   return(matchit_results)
 }
 
-# 3. Reassessing methods
+# 3. Assessing methods
 ## 3.1 Trimming 
 ### 3.1.1 SMD
 #### compute_abs_smd_trim()
@@ -155,17 +219,18 @@ compute_abs_smd_trim <- function(data_list, treat = "treat", covar) {
     bal_obj <- cobalt::bal.tab(
       as.formula(paste(treat, "~", paste(covar, collapse = " + "))),
       data = data,
-      un = TRUE, 
+      un = TRUE,
+      stats = "mean.diffs",
       s.d.denom = "treated"
     )
-    smds <- bal$Balance$Diff.Adj
+    smds <- bal_obj$Balance$Diff.Un   
     smd_vals <- abs(smds)
     mean_smd <- mean(smd_vals, na.rm = TRUE)
     max_smd  <- max(smd_vals, na.rm = TRUE)
     return(data.frame(
       Method   = name,
       Mean_Abs_SMD = mean_smd,
-      Max_Abs_SMD  = max_smd 
+      Max_Abs_SMD  = max_smd
     ))
   })
   smd_summary <- do.call(rbind, smd_list)
@@ -198,39 +263,61 @@ compute_ovl_trim <- function(data_list, ps = "ps_assoverlap", treat = "treat", n
   return(res)
 }
 
-## 3.3 Trimming and matching
-### 3.3.1 SMD
+## 3.2 Trimming and matching
+### 3.2.1 SMD
 #### compute_abs_smd_matchit()
 compute_abs_smd_matchit <- function(match_list, data_list) {
-  match_sizes <- vapply(match_list, length, integer(1))
+  if (!is.list(match_list) || length(match_list) == 0) {
+    stop("compute_abs_smd_matchit(): 'match_list' must be a non-empty list", call. = FALSE)
+  }
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("compute_abs_smd_matchit(): 'data_list' must be a non-empty list", call. = FALSE)
+  }
+  data_len <- length(data_list)
+  data_labels <- if (length(names(data_list))) names(data_list) else seq_len(data_len)
   smd_results <- list()
   for (method_name in names(match_list)) {
     method_sublist <- match_list[[method_name]]
-    n_match <- length(method_sublist)
-    for (i in seq_len(n_match)) {
+    if (!is.list(method_sublist)) {
+      warning(sprintf("compute_abs_smd_matchit(): '%s' is not a list of matchit objects; skipping", method_name), call. = FALSE)
+      next
+    }
+    method_len <- length(method_sublist)
+    if (method_len != data_len) {
+      warning(sprintf(
+        "compute_abs_smd_matchit(): '%s' match list length (%d) differs from data_list length (%d); only the first %d elements are considered.",
+        method_name,
+        method_len,
+        data_len,
+        min(method_len, data_len)
+      ), call. = FALSE)
+    }
+    max_idx <- min(method_len, data_len)
+    for (i in seq_len(max_idx)) {
       match_obj <- method_sublist[[i]]
-      data <- data_list[[i]] 
+      data_i <- data_list[[i]]
+      label_i <- if (i <= length(data_labels)) data_labels[[i]] else i
       if (is.null(match_obj)) {
         warning(sprintf(
-          "compute_abs_smd_matchit(): skipping '%s' match object %d because it is NULL; check attach_matchit() failures. match_list lengths: %s",
+          "compute_abs_smd_matchit(): skipping '%s' match object %d (%s) because it is NULL; check attach_matchit() failures.",
           method_name,
           i,
-          paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+          label_i
         ), call. = FALSE)
         next
       }
-      if (is.null(data)) {
+      if (is.null(data_i)) {
         warning(sprintf(
-          "compute_abs_smd_matchit(): skipping '%s' source data %d because it is NULL; verify trimming outputs. match_list lengths: %s",
+          "compute_abs_smd_matchit(): skipping '%s' source data %d (%s) because it is NULL; verify trimming outputs.",
           method_name,
           i,
-          paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
+          label_i
         ), call. = FALSE)
         next
       }
       bal <- bal.tab(
         match_obj,
-        data = data,
+        data = data_i,
         stats = "mean.diffs",
         un = TRUE,
         s.d.denom = "treated"
@@ -239,9 +326,9 @@ compute_abs_smd_matchit <- function(match_list, data_list) {
       smd_vals <- abs(smds)
       mean_smd <- mean(smd_vals, na.rm = TRUE)
       max_smd <- max(smd_vals, na.rm = TRUE)
-      smd_results[[paste(method_name, i, sep = "_")]] <- data.frame(
+      smd_results[[paste(method_name, label_i, sep = "_")]] <- data.frame(
         Method = method_name,
-        MatchIndex = i,
+        MatchIndex = label_i,
         Mean_Abs_SMD = mean_smd,
         Max_Abs_SMD = max_smd
       )
@@ -260,77 +347,81 @@ compute_abs_smd_matchit <- function(match_list, data_list) {
   return(smd_summary)
 }
 
-### 3.3.2 OVL
+### 3.2.2 OVL
 #### compute_ovl_matchit()
-compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", treat = "treat", 
+compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", treat = "treat",
                                 covar = NULL, num.trees = NULL, seed = 42, n_points = 512) {
-  if (!is.list(match_list) || !length(match_list)) {
-    stop("compute_ovl_matchit(): 'match_list' must be a non-empty list of MatchIt outputs")
+  if (!is.list(match_list) || length(match_list) == 0) {
+    stop("compute_ovl_matchit(): 'match_list' must be a non-empty list", call. = FALSE)
   }
-  if (!is.list(data_list) || !length(data_list)) {
-    stop("compute_ovl_matchit(): 'data_list' must be a non-empty list of trimming datasets")
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("compute_ovl_matchit(): 'data_list' must be a non-empty list", call. = FALSE)
   }
-
-  match_sizes <- vapply(match_list, length, integer(1))
-  data_count <- length(data_list)
-  if (!all(match_sizes == data_count)) {
-    warning(sprintf(
-      "compute_ovl_matchit(): not all match method lists align with data_list length (%d). sizes: %s",
-      data_count,
-      paste(sprintf("%s=%d", names(match_sizes), match_sizes), collapse = ", ")
-    ), call. = FALSE)
-  }
-
+  data_len <- length(data_list)
+  data_labels <- if (length(names(data_list))) names(data_list) else seq_len(data_len)
   ovl_results <- list()
-
   for (method_name in names(match_list)) {
     method_sublist <- match_list[[method_name]]
     if (!is.list(method_sublist)) {
-      warning(sprintf("compute_ovl_matchit(): skipping method '%s' because entry is not a list", method_name), call. = FALSE)
+      warning(sprintf("compute_ovl_matchit(): '%s' is not a list of matchit objects; skipping", method_name), call. = FALSE)
       next
     }
-    for (i in seq_along(method_sublist)) {
+    method_len <- length(method_sublist)
+    if (method_len != data_len) {
+      warning(sprintf(
+        "compute_ovl_matchit(): '%s' match list length (%d) differs from data_list length (%d); only the first %d elements are considered.",
+        method_name,
+        method_len,
+        data_len,
+        min(method_len, data_len)
+      ), call. = FALSE)
+    }
+    max_idx <- min(method_len, data_len)
+    for (i in seq_len(max_idx)) {
       match_obj <- method_sublist[[i]]
-
+      data_i <- data_list[[i]]
+      label_i <- if (i <= length(data_labels)) data_labels[[i]] else i
       if (is.null(match_obj)) {
         warning(sprintf(
-          "compute_ovl_matchit(): skipping '%s' match object %d because it is NULL; check attach_matchit() failures",
+          "compute_ovl_matchit(): skipping '%s' match object %d (%s) because it is NULL; check attach_matchit() failures.",
           method_name,
-          i
+          i,
+          label_i
         ), call. = FALSE)
         next
       }
-
       if (!inherits(match_obj, "matchit")) {
         warning(sprintf(
-          "compute_ovl_matchit(): skipping '%s' match object %d because it is class '%s' not 'matchit'",
+          "compute_ovl_matchit(): skipping '%s' match object %d (%s) because it is class '%s' not 'matchit'",
           method_name,
           i,
+          label_i,
           paste(class(match_obj), collapse = "/")
         ), call. = FALSE)
         next
       }
-
-      if (i > length(data_list) || is.null(data_list[[i]])) {
-        warning(sprintf(
-          "compute_ovl_matchit(): trimming dataset %d missing for method '%s'; verify data_list ordering",
-          i,
-          method_name
-        ), call. = FALSE)
-        next
+      if (is.null(data_i)) {
+        data_i <- attr(match_obj, "match_source")
+        if (is.null(data_i)) {
+          warning(sprintf(
+            "compute_ovl_matchit(): source data missing for method '%s' index %d (%s); cannot recover matched data.",
+            method_name,
+            i,
+            label_i
+          ), call. = FALSE)
+          next
+        }
       }
-
-      data <- data_list[[i]]
-      if (!is.data.frame(data)) {
+      if (!is.data.frame(data_i)) {
         warning(sprintf(
           "compute_ovl_matchit(): data_list[[%d]] for method '%s' is type '%s' not data.frame",
           i,
           method_name,
-          paste(class(data), collapse = "/")
+          paste(class(data_i), collapse = "/")
         ), call. = FALSE)
         next
       }
-      if (!nrow(data)) {
+      if (!nrow(data_i)) {
         warning(sprintf(
           "compute_ovl_matchit(): data_list[[%d]] for method '%s' has zero rows",
           i,
@@ -338,24 +429,26 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
         ), call. = FALSE)
         next
       }
-
-      matched_data <- match.data(match_obj, data = data)
-
+      matched_data <- match.data(match_obj, data = data_i)
       if (!is.data.frame(matched_data) || !nrow(matched_data)) {
         warning(sprintf(
-          "compute_ovl_matchit(): matched data empty for method '%s' (index %d)",
+          "compute_ovl_matchit(): matched data empty for method '%s' index %d (%s)",
           method_name,
-          i
+          i,
+          label_i
         ), call. = FALSE)
         next
       }
-
       if (ps %in% names(matched_data)) {
         ps_vals <- as.numeric(matched_data[[ps]])
       } else {
         if (is.null(covar)) {
-          stop(paste0("Propensity scores not found for '", method_name, "' on iteration ", i,
-                      " and 'covar' not provided to estimate them"))
+          stop(sprintf(
+            "compute_ovl_matchit(): propensity scores missing for '%s' index %d (%s) and 'covar' not provided",
+            method_name,
+            i,
+            label_i
+          ), call. = FALSE)
         }
         X <- matched_data[, covar, drop = FALSE]
         Y <- as.factor(matched_data[[treat]])
@@ -367,76 +460,92 @@ compute_ovl_matchit <- function(match_list, data_list, ps = "ps_assoverlap", tre
         ps_vals <- p.forest1$predictions[, 2]
         ps_vals[which(abs(ps_vals) <= 1e-7)] <- 1e-7
       }
-
       treat_vals <- matched_data[[treat]]
       valid_idx <- !is.na(ps_vals) & !is.na(treat_vals) & (ps_vals >= 0 & ps_vals <= 1)
       ps_vals <- ps_vals[valid_idx]
       treat_vals <- treat_vals[valid_idx]
-
       if (!length(ps_vals) || length(unique(treat_vals)) < 2) {
         warning(sprintf(
-          "compute_ovl_matchit(): insufficient treated/control overlap after cleaning for method '%s' (index %d)",
+          "compute_ovl_matchit(): insufficient treated/control overlap after cleaning for method '%s' index %d (%s)",
           method_name,
-          i
+          i,
+          label_i
         ), call. = FALSE)
         next
       }
-
       treated_scores <- ps_vals[treat_vals == 1]
       control_scores <- ps_vals[treat_vals == 0]
-
+      if (length(treated_scores) < 2 || length(control_scores) < 2) {
+        warning(sprintf(
+          "compute_ovl_matchit(): Not enough treated/control units for density estimation in method '%s' index %d (%s)",
+          method_name,
+          i,
+          label_i
+        ), call. = FALSE)
+        next
+      }
       dens_treated <- density(treated_scores, from = 0, to = 1, n = n_points)
       dens_control <- density(control_scores, from = 0, to = 1, n = n_points)
       x_grid <- dens_treated$x
       min_density <- pmin(dens_treated$y, dens_control$y)
       bin_width <- x_grid[2] - x_grid[1]
       ovl <- sum(min_density) * bin_width
-
-      ovl_results[[paste(method_name, i, sep = "_")]] <- data.frame(Method = paste(method_name, i, sep = "_"), OVL = ovl)
+      ovl_results[[paste(method_name, label_i, sep = "_")]] <- data.frame(
+        Method = paste(method_name, label_i, sep = "_"),
+        OVL = ovl
+      )
     }
   }
-
-  if (!length(ovl_results)) {
+  if (length(ovl_results) == 0) {
     return(data.frame(Method = character(0), OVL = numeric(0)))
   }
-
   final_df <- do.call(rbind, ovl_results)
   rownames(final_df) <- NULL
   return(final_df)
 }
 
-
-## 3.6 Getting top methods and datasets
+## 4. Identifying best methods
+### 4.1 Ranking
 #### combine_results()
-combine_results <- function(dataset_name) {
-  dataset_lower <- tolower(dataset_name)
+combine_results <- function(data) {
+  data_lower <- tolower(data)
   # retrieve individual method results
-  smd_trimming <- get(paste0("smd_trim.", dataset_lower))
-  ovl_trimming <- get(paste0("ovl_trim.", dataset_lower))
-  smd_trunc <- get(paste0("smd_trunc.", dataset_lower))
-  ovl_trunc <- get(paste0("ovl_trunc.", dataset_lower))
-  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", dataset_lower))
-  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", dataset_lower))
-  smd_trim_weight_combined <- get(paste0("smd_trim_weight_comb.", dataset_lower))
-  ovl_trim_weight_combined <- get(paste0("ovl_trim_weight_comb.", dataset_lower))
-  smd_all <- do.call(rbind, list(
-    smd_trimming,
-    smd_trim_match_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trim_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trunc_match_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")],
-    smd_trunc_weight_combined[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD")]
-  ))
-  # combine all OVL results
-  ovl_all <- do.call(rbind, list(
-    ovl_trimming,
-    ovl_trim_match_combined[, c("Method", "OVL")],
-    ovl_trim_weight_combined[, c("Method", "OVL")],
-    ovl_trunc_match_combined[, c("Method", "OVL")],
-    ovl_trunc_weight_combined[, c("Method", "OVL")]
-  ))
+  smd_trimming <- get(paste0("smd_trim.", data_lower))
+  ovl_trimming <- get(paste0("ovl_trim.", data_lower))
+  smd_trim_match_combined <- get(paste0("smd_trim_match_comb.", data_lower))
+  ovl_trim_match_combined <- get(paste0("ovl_trim_match_comb.", data_lower))
+  format_smd_results <- function(df) {
+    if (is.null(df) || !nrow(df)) {
+      return(data.frame(Method = character(0), Mean_Abs_SMD = numeric(0), Max_Abs_SMD = numeric(0)))
+    }
+    out <- df
+    if ("MatchIndex" %in% names(out)) {
+      out$Method <- paste(out$Method, out$MatchIndex, sep = "_")
+      out$MatchIndex <- NULL
+    }
+    out[, c("Method", "Mean_Abs_SMD", "Max_Abs_SMD"), drop = FALSE]
+  }
+  format_ovl_results <- function(df) {
+    if (is.null(df) || !nrow(df)) {
+      return(data.frame(Method = character(0), OVL = numeric(0)))
+    }
+    df[, c("Method", "OVL"), drop = FALSE]
+  }
+  smd_all <- dplyr::bind_rows(
+    format_smd_results(smd_trimming),
+    format_smd_results(smd_trim_match_combined)
+  )
+  ovl_all <- dplyr::bind_rows(
+    format_ovl_results(ovl_trimming),
+    format_ovl_results(ovl_trim_match_combined)
+  )
   # merge absolute SMD and OVL results by method
-  final_df <- merge(smd_all, ovl_all, by = "Method", all = TRUE)
-  # remove dataset suffixes for clean labels
+  final_df <- dplyr::full_join(smd_all, ovl_all, by = "Method")
+  if (!nrow(final_df)) {
+    return(final_df)
+  }
+  final_df$Method <- as.character(final_df$Method)
+  # remove sample suffixes for clean labels
   final_df$Method <- gsub("\\.psid", "", final_df$Method, ignore.case = TRUE)
   final_df$Method <- gsub("\\.cps", "", final_df$Method, ignore.case = TRUE)
   # reset row names
@@ -455,69 +564,128 @@ save_csv <- function(data, filename) {
 #### assess_methods()
 assess_methods <- function(data) {
   data %>%
-    dplyr::select(Method, OVL) %>%
+    dplyr::select(Method, OVL, Mean_Abs_SMD) %>%
     arrange(desc(OVL))
 }
 
-#### rank_methods()
-
-
 #### get_top_methods()
-get_top_methods <- function(summary_df, top_n = 5) {
-  if (!all(c("Method", "Score") %in% names(summary_df))) {
-    stop("Data frame must contain columns 'Method' and 'Score'")
+get_top_methods <- function(data, top_n = 5, score_col = NULL) {
+  if (!"Method" %in% names(data)) {
+    stop("Data frame must contain column 'Method'")
   }
-  top_methods_df <- summary_df %>%
-    arrange(desc(Score)) %>%
-    head(top_n)
-  return(top_methods_df$Method)
+  if (is.null(score_col)) {
+    if ("Score" %in% names(data)) {
+      score_col <- "Score"
+    } else if ("OVL" %in% names(data)) {
+      score_col <- "OVL"
+    } else {
+      stop("Data frame must contain a scoring column ('Score' or 'OVL'), or specify 'score_col'")
+    }
+  }
+  if (!score_col %in% names(data)) {
+    stop(sprintf("Column '%s' not found in data", score_col))
+  }
+  data %>%
+    dplyr::filter(!is.na(.data[[score_col]])) %>%
+    arrange(dplyr::desc(.data[[score_col]])) %>%
+    head(top_n) %>%
+    dplyr::pull(Method)
 }
 
-#### create_top5_datasets()
-create_top5_datasets <- function(dataset_list, top5_method_names, weight_list, trunc_list, trim_list) {
-  lapply(top5_method_names, function(method_name) {
-      if (!method_name %in% names(dataset_list)) {
-        stop(paste0("Method '", method_name, "' not found in the dataset lookup list"))
+### 4.2 Sample construction
+#### wrap_match_entries()
+wrap_match_entries <- function(match_list, source_list, prefix) {
+  if (!is.list(match_list)) {
+    return(list())
+  }
+  max_idx <- min(length(match_list), length(source_list))
+  source_labels <- if (length(names(source_list))) names(source_list) else seq_len(max_idx)
+  entries <- vector("list", max_idx)
+  names(entries) <- paste0(prefix, "_", source_labels[seq_len(max_idx)])
+  for (i in seq_len(max_idx)) {
+    match_obj <- match_list[[i]]
+    if (is.null(match_obj)) {
+      next
+    }
+    entries[[i]] <- list(matchit = match_obj, data = source_list[[i]])
+  }
+  Filter(Negate(is.null), entries)
+}
+
+#### create_top5_samples()
+create_top5_samples <- function(data_list, top_method_names) {
+  if (!is.list(data_list) || length(data_list) == 0) {
+    stop("create_top5_samples(): 'data_list' must be a non-empty list", call. = FALSE)
+  }
+  if (length(top_method_names) == 0) {
+    stop("create_top5_samples(): 'top_method_names' must contain at least one method name", call. = FALSE)
+  }
+  missing_methods <- setdiff(top_method_names, names(data_list))
+  if (length(missing_methods)) {
+    stop(sprintf(
+      "create_top5_samples(): the following methods are missing from 'data_list': %s",
+      paste(missing_methods, collapse = ", ")
+    ), call. = FALSE)
+  }
+  out <- lapply(top_method_names, function(method_name) {
+    ds <- data_list[[method_name]]
+    if (is.null(ds)) {
+      stop(sprintf("create_top5_samples(): sample for method '%s' is NULL", method_name), call. = FALSE)
+    }
+    if (inherits(ds, "matchit")) {
+      source_data <- attr(ds, "match_source")
+      if (is.null(source_data)) {
+        stop(sprintf(
+          "create_top5_samples(): matchit object '%s' is missing source data. Regenerate it with attach_matchit() so 'match_source' attribute is available or provide a data.frame entry instead.",
+          method_name
+        ), call. = FALSE)
       }
-      ds <- dataset_list[[method_name]]
-      # matching 
-      if (inherits(ds, "matchit")) {
-        return(as.data.frame(match.data(ds)))
-      # dataframe (trimming and truncation)
-      } else if (is.data.frame(ds)) {
-        return(ds)
-      } else {
-        stop(paste("Unsupported data type for method", method_name))
-      }
-    })
+      return(as.data.frame(match.data(ds, data = source_data)))
+    }
+    if (is.list(ds) && inherits(ds$matchit, "matchit") && is.data.frame(ds$data)) {
+      return(as.data.frame(match.data(ds$matchit, data = ds$data)))
+    }
+    if (is.data.frame(ds)) {
+      return(ds)
+    }
+    stop(sprintf("create_top5_samples(): unsupported entry type for method '%s'", method_name), call. = FALSE)
+  })
+  names(out) <- top_method_names
+  out
 }  
 
-#### save_top5_datasets()
-save_top5_datasets <- function(combined_methods_list, top5_method_names, prefix) {
-  for (i in seq_along(top5_method_names)) {
-    method_name <- top5_method_names[i]
+#### save_top5_samples()
+save_top5_samples <- function(combined_methods_list, top_method_names, prefix) {
+  dir.create("tutorial/data", showWarnings = FALSE, recursive = TRUE)
+  for (i in seq_along(top_method_names)) {
+    method_name <- top_method_names[i]
     if (!method_name %in% names(combined_methods_list)) {
       warning(paste0("Method '", method_name, "' not found in combined methods list"))
       next
     }
-    dataset_to_save <- combined_methods_list[[method_name]]
+    sample_to_save <- combined_methods_list[[method_name]]
     file_name <- sprintf("tutorial/data/top%d_%s_method_%s.RData", i, prefix, method_name)
-    save(dataset_to_save, file = file_name)
+    save(sample_to_save, file = file_name)
   }
 }
 
-# 4. Estimating
-## 4.1 ATT
-# difference in means
-# diff()
+# 5. Estimating
+## 5.1 ATT
+#### quiet()***
+quiet <- function(x) {
+  sink(tempfile())
+  on.exit(sink())
+  invisible(force(x))
+}
+
+#### diff()***
 diff <- function(data, Y, treat) {
   fml <- as.formula(paste(Y, "~", treat))
   out <- summary(lm_robust(fml, data = data, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
   return(out) # extract coef, se, ci.lower, ci.upper
 }
 
-# regression adjustment
-# reg()
+#### reg()***
 reg <- function(data, Y, treat, covar) {
   fml <- as.formula(paste(Y, "~", treat, "+", paste(covar, collapse = " + ")))
   out <- summary(lm_robust(fml, data = data, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
@@ -525,18 +693,22 @@ reg <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# matching
 # library(Matching)
-# matching()
+#### matching()***
 matching <- function(data, Y, treat, covar) {
-  m.out <- Match(Y = data[, Y], Tr = data[, treat], X = data[, covar], Z = data[, covar],
-                 estimand = "ATT", M = 5, replace = TRUE, ties = TRUE, BiasAdjust = TRUE)
-  out <- c(m.out$est[1], m.out$se[1], m.out$est[1] - 1.96 * m.out$se[1],
-           m.out$est[1] + 1.96 * m.out$se[1])
-  return(out)
+  tryCatch({
+    m.out <- Match(Y = data[, Y], Tr = data[, treat], X = data[, covar], Z = data[, covar],
+                   estimand = "ATT", M = 5, replace = TRUE, ties = TRUE, BiasAdjust = TRUE)
+    out <- c(m.out$est[1], m.out$se[1], m.out$est[1] - 1.96 * m.out$se[1],
+             m.out$est[1] + 1.96 * m.out$se[1])
+    return(out)
+  }, error = function(e) {
+    cat("Warning in matching method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
-# psm()
+#### psm()***
 psm <- function(data, Y, treat, covar) {
   ps <- probability_forest(X = data[, covar],
                            Y = as.factor(data[,treat]), seed = 42, num.trees = 4000)$predictions[,2]
@@ -552,8 +724,7 @@ psm <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# OM (reg)
-# om.reg()
+#### om.reg()***
 om.reg <- function(data, Y, treat, covar) {
   tr <- which(data[, treat] == 1)
   co <- which(data[, treat] == 0)
@@ -565,9 +736,8 @@ om.reg <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# OM (grf)
 # library(grf)
-# om.grf()
+#### om.grf()***
 om.grf <- function(data, Y, treat, covar) {
   tr <- which(data[, treat] == 1)
   co <- which(data[, treat] == 0)
@@ -578,8 +748,7 @@ om.grf <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# IPW
-# ipw()
+#### ipw()***
 ipw <- function(data, Y, treat, covar) {
   ps <- probability_forest(X = data[, covar, drop = FALSE], Y = as.factor(data[, treat]), seed = 42)$predictions[,2]
   fml <- as.formula(paste(Y, "~", treat))
@@ -591,36 +760,45 @@ ipw <- function(data, Y, treat, covar) {
   return(out)
 }
 
-# CBPS
 # library("CBPS")
-# cbps()
+#### cbps()***
 cbps <- function(data, Y, treat, covar) {
-  fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
-  ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
-  fml <- as.formula(paste(Y, "~", treat))
-  weights <- rep(1, nrow(data))
-  co <- which(data[, treat] == 0)
-  weights[co] <- ps[co]/(1-ps[co])
-  out <- summary(lm_robust(fml, data = data, weights = weights, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
-  return(out)
+  tryCatch({
+    fml <- as.formula(paste(treat, "~", paste(covar, collapse = " + ")))
+    ps <- quiet(CBPS(fml, data = data, standardize = TRUE)$fitted.values)
+    fml <- as.formula(paste(Y, "~", treat))
+    weights <- rep(1, nrow(data))
+    co <- which(data[, treat] == 0)
+    weights[co] <- ps[co]/(1-ps[co])
+    out <- summary(lm_robust(fml, data = data, weights = weights, se_type = "stata"))$coefficients[treat, c(1, 2, 5, 6)]
+    return(out)
+  }, error = function(e) {
+    cat("Warning in cbps method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
-# ebal()
-#library(hbal)
+# library(hbal)
+#### ebal()***
 ebal <- function(data, Y, treat, covar) {
-  ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
-  out <- hbal::att(ebal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
-  return(out)
+  tryCatch({
+    ebal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 1)
+    out <- hbal::att(ebal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
+    return(out)
+  }, error = function(e) {
+    cat("Warning in ebal method:", e$message, "\n")
+    return(c(NA, NA, NA, NA))
+  })
 }
 
-# hbal
+#### hbal()***
 # hbal <- function(data, Y, treat, covar) {
 #   hbal.out <- hbal::hbal(Y = Y, Treat = treat, X = covar,  data = data, expand.degree = 2, # cv = TRUE)
 #   out <- hbal::att(hbal.out, dr = FALSE)[1, c(1, 2, 5, 6)]
 #   return(out)
 # }
 
-# aipw_grf()
+#### aipw_grf()***
 aipw <- function(data, Y, treat, covar) {
   tryCatch({
     #library("grf")
@@ -638,7 +816,7 @@ aipw <- function(data, Y, treat, covar) {
   })
 }
 
-# aipw.match()
+#### aipw.match()***
 aipw.match <- function(data, Y, treat, covar) { # match on ps
   ps <- probability_forest(X = data[, covar], Y = as.factor(data[, treat]), seed = 42)$predictions[,2]
   m.out <- Match(Y = data[, Y], Tr = data[, treat], X = ps,
@@ -651,7 +829,7 @@ aipw.match <- function(data, Y, treat, covar) { # match on ps
   return(c(out, ks))
 }
 
-# aipw_ow() ***
+#### aipw_ow()
 aipw_ow <- function(data, Y, treat, covar) {
   tryCatch({
     for (var in c(Y, treat, covar)) {
@@ -661,11 +839,12 @@ aipw_ow <- function(data, Y, treat, covar) {
     Y <- data[, Y]
     W <- data[, treat]
     # run dml_with_smoother with AIPW_ATT
-    dml_fit <- dml_with_smoother(Y = Y, D = W, X = X,
-                                 estimators = c("AIPW_ATT"),
-                                 smoother = "honest_forest",
-                                 n_cf_folds = 5,
-                                 n_reps = 1)
+    dml_fit <- dml_with_smoother(
+      Y = Y, D = W, X = X,
+      estimators = c("AIPW_ATT"),
+      smoother = "honest_forest",
+      n_cf_folds = 5,
+      n_reps = 1)
     # extract estimate and SE from summary
     summ <- summary(dml_fit, quiet = TRUE)
     est <- summ["AIPW-ATT", "Estimate"]
@@ -681,23 +860,25 @@ aipw_ow <- function(data, Y, treat, covar) {
 
 ### this script checks for robustness by estimating original model
 ### using double/debiased machine learning using DoubleML package
-dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_l = lrn("regr.lm"), ml_m = lrn("regr.lm")){
+#### dml()***
+dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_l = lrn("regr.cv_glmnet"), ml_m = lrn("regr.cv_glmnet")){
   tryCatch({
     if(is.null(covar)){
       stop("No controls in specification.")
     }
     #require(DoubleML)
-    #require(mlr3learners)
+    #require(mlr3learners) 
     #require(fixest)
     #require(ggplot2)
     if(is.null(clust_var) == TRUE){
       dat = data[,c(Y,treat,covar)]
       dat = na.omit(dat)
-      dml_dat = DoubleMLData$new(dat,
-                                 y_col = Y,
-                                 d_cols = treat,
-                                 use_other_treat_as_covariate = FALSE,
-                                 x_cols = covar)
+      dml_dat = DoubleMLData$new(
+        dat,
+        y_col = Y,
+        d_cols = treat,
+        use_other_treat_as_covariate = FALSE,
+        x_cols = covar)
     }else{
       dat = data[,c(Y, treat, covar, clust_var)]
       dat[,clust_var] = as.numeric(factor(dat[,clust_var]))
@@ -705,12 +886,13 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
       dat = dat[is.na(dat[,D]) == FALSE,]
       features = data.frame(model.matrix(formula(paste(c('~ 1',treat,covar), collapse="+")), dat))
       dat = cbind(dat[,c(Y,clust_var)],features)
-      dml_dat = DoubleMLClusterData$new(dat,
-                                        y_col = Y,
-                                        d_cols = treat,
-                                        cluster_cols = clust_var,
-                                        use_other_treat_as_covariate = FALSE,
-                                        x_cols = covar)
+      dml_dat = DoubleMLClusterData$new(
+        dat,
+        y_col = Y,
+        d_cols = treat,
+        cluster_cols = clust_var,
+        use_other_treat_as_covariate = FALSE,
+        x_cols = covar)
     }
     # set active treatment treatment
     dml_dat$set_data_model(treat)
@@ -726,7 +908,7 @@ dml <-function(data, Y = NULL, treat = NULL, covar = NULL, clust_var = NULL, ml_
   })
 }
 
-# estimate_all ***
+#### estimate_all***
 estimate_all <- function(data, Y, treat, covar, 
                          methods = c("diff", "reg", "om.reg", "om.grf",
                                      "matching", "psm", "ipw", "cbps", "ebal", 
@@ -791,7 +973,7 @@ estimate_all <- function(data, Y, treat, covar,
   return(results)
 }
 
-#### plot_coef() ***
+#### plot_coef()***
 plot_coef <- function(out, 
                       methods = c("diff", "reg", "om.reg", "om.grf", 
                                   "matching", "psm", "ipw", "cbps", "ebal", 
@@ -859,11 +1041,12 @@ plot_coef <- function(out,
 }
 
 #### save_att_panels()
-save_att_panels <- function(out_list, plot_titles, band_list, est_list,
-                              prefix = "ldw_model_a_plus",
-                              plots_per_page = 4,
-                              ylim = c(-15500, 5500),
-                              folder = "graphs/lalonde") {
+save_att_panels <- function(
+    out_list, plot_titles, band_list, est_list,
+    prefix = "ldw_model_a_plus",
+    plots_per_page = 4,
+    ylim = c(-15500, 5500),
+    folder = "graphs/lalonde") {
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   n <- length(out_list)
   pages <- ceiling(n / plots_per_page)
@@ -883,12 +1066,10 @@ save_att_panels <- function(out_list, plot_titles, band_list, est_list,
 }
 
 #### create_matrix_results()
-create_matrix_results <- function(all_outs, sample_names) {
+create_matrix_results <- function(all_outs, all_out_mat, sample_names) {
   n_samples <- length(sample_names)
   n_estimators <- nrow(all_outs[[1]])
-  # initialize empty matrix
   result_mat <- matrix("", nrow = n_estimators + 1, ncol = n_samples * 2)
-  # alternating column names (estimate / SE)
   cnames <- character(n_samples * 2)
   for (j in seq_along(sample_names)) {
     cnames[(j - 1) * 2 + 1] <- sample_names[j]
@@ -897,58 +1078,82 @@ create_matrix_results <- function(all_outs, sample_names) {
   colnames(result_mat) <- cnames
   estimator_names <- rownames(all_outs[[1]])
   rownames(result_mat) <- c("Experimental Benchmark", estimator_names)
-  # extract benchmark estimates 
-  bench.exp  <- all_outs[[1]][1, 1:2]   # experimental LDW
-  bench.cps  <- all_outs[[2]][1, 1:2]   # LDW-CPS1 trimmed benchmark
-  bench.psid <- all_outs[[3]][1, 1:2]   # LDW-PSID1 trimmed benchmark
-  # fill results column by column
+  # all_out_mat contains 13 entries
+  bench.exp      <- if(!is.null(all_out_mat[[1]])) all_out_mat[[1]][1, 1:2] else c(NA, NA)
+  bench.cps      <- if(length(all_out_mat) >= 6) lapply(all_out_mat[2:6], function(x) if(!is.null(x)) x[1, 1:2] else c(NA, NA)) else NULL
+  bench.psid     <- if(length(all_out_mat) >= 11) lapply(all_out_mat[7:11], function(x) if(!is.null(x)) x[1, 1:2] else c(NA, NA)) else NULL
+  bench.cps_plus <- if(length(all_out_mat) >= 12 && !is.null(all_out_mat[[12]])) all_out_mat[[12]][1, 1:2] else c(NA, NA)
+  bench.psid_plus<- if(length(all_out_mat) >= 13 && !is.null(all_out_mat[[13]])) all_out_mat[[13]][1, 1:2] else c(NA, NA)
+  # all_outs contains 15 entries
   for (j in seq_along(all_outs)) {
     out <- all_outs[[j]]
-    # assign benchmark row depending on dataset type
-    if (j <= 3) {  
+    # assign benchmark according to position
+    # use bench.exp for the first 3 entries in all_outs
+    if (j <= 3 && !any(is.na(bench.exp))) {
       result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.exp[1])
       result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.exp[2]), ")")
-    } 
-    else if (grepl("CPS", sample_names[j], ignore.case = TRUE)) {
-      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.cps[1])
-      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.cps[2]), ")")
-    } 
-    else if (grepl("PSID", sample_names[j], ignore.case = TRUE)) {
-      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.psid[1])
-      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.psid[2]), ")")
+    }
+    # use bench.cps for the next 5 entries in all_outs
+    # use all entries in bench.cps one after another
+    if (j >= 4 && j <= 8 && !is.null(bench.cps) && length(bench.cps) >= (j - 3)) {
+      b <- bench.cps[[j - 3]]
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", b[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", b[2]), ")")
+    }
+    # use bench.psid for the next 5 entries in all_outs
+    # use all entries in bench.psid one after another
+    if (j >= 9 && j <= 13 && !is.null(bench.psid) && length(bench.psid) >= (j - 8)) {
+      b <- bench.psid[[j - 8]]
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", b[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", b[2]), ")")
+    }
+    # use bench.cps_plus for the second last entry in all_outs
+    if (j == n_samples - 1 && !any(is.na(bench.cps_plus))) {
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.cps_plus[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.cps_plus[2]), ")")
+    }
+    # use bench.psid_plus for the last entry in all_outs
+    if (j == n_samples && !any(is.na(bench.psid_plus))) {
+      result_mat[1, (j - 1) * 2 + 1] <- sprintf("%.2f", bench.psid_plus[1])
+      result_mat[1, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", bench.psid_plus[2]), ")")
     }
     # fill in estimates + SEs
     for (i in 2:(n_estimators + 1)) {
-      result_mat[i, (j - 1) * 2 + 1] <- sprintf("%.2f", out[i - 1, 1])
-      result_mat[i, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", out[i - 1, 2]), ")")
+      if ((i-1) <= nrow(out)) {
+        result_mat[i, (j - 1) * 2 + 1] <- sprintf("%.2f", out[i - 1, 1])
+        result_mat[i, (j - 1) * 2 + 2] <- paste0("(", sprintf("%.2f", out[i - 1, 2]), ")")
+      } else {
+        result_mat[i, (j - 1) * 2 + 1] <- ""
+        result_mat[i, (j - 1) * 2 + 2] <- ""
+      }
     }
   }
   return(result_mat)
 }
 
 #### eval_att()
-eval_att <- function(result) {
+eval_att <- function(data) {
   data.frame(
-    Mean_SE = mean(result[, "SE"], na.rm = TRUE), # mean standard error
-    Min_Estimate = min(result[, "Estimate"], na.rm = TRUE), # maximum estimate 
-    Max_Estimate = max(result[, "Estimate"], na.rm = TRUE), # minimum estimate 
-    Diff_Estimate = max(result[, "Estimate"], na.rm = TRUE) - min(result[, "Estimate"], na.rm = TRUE)
+    Mean_SE = mean(data[, "SE"], na.rm = TRUE), # mean standard error
+    Min_Estimate = min(data[, "Estimate"], na.rm = TRUE), # maximum estimate 
+    Max_Estimate = max(data[, "Estimate"], na.rm = TRUE), # minimum estimate 
+    Diff_Estimate = max(data[, "Estimate"], na.rm = TRUE) - min(data[, "Estimate"], na.rm = TRUE)
   )
 }
 
-## 4.2 CATT
-#### plot_catt_panels()
-plot_catt_panels <- function(exp_catt, catt_list, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
+## 5.2 CATT
+#### plot_catt_panels()***
+plot_catt_panels <- function(exp_catt_list, catt_list, plot_titles, plots_per_page = 4, range = c(-8000, 8000)) {
   n <- length(catt_list)
   num_pages <- ceiling(n / plots_per_page)
-  catt_ldw <- exp_catt$catt
-  att_ldw  <- exp_catt$att[1]
-  id_ldw   <- if (!is.null(exp_catt$id)) exp_catt$id else seq_along(catt_ldw)
   for (page in seq_len(num_pages)) {
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx   <- min(page * plots_per_page, n)
     par(mfrow = c(2, 2), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
+      catt_ldw <- exp_catt_list[[i]]$catt
+      att_ldw  <- exp_catt_list[[i]]$att[1]
+      id_ldw   <- if (!is.null(exp_catt_list[[i]]$id)) exp_catt_list[[i]]$id else seq_along(catt_ldw)
       catt2 <- catt_list[[i]]$catt
       att2  <- catt_list[[i]]$att[1]
       id2   <- if (!is.null(catt_list[[i]]$id)) catt_list[[i]]$id else seq_along(catt2)
@@ -971,22 +1176,18 @@ plot_catt_panels <- function(exp_catt, catt_list, plot_titles, plots_per_page = 
   }
 }
 
-#### save_catt_panels()
+#### save_catt_panels()***
 save_catt_panels <- function(
-    exp_catt, 
+    exp_catt_list,   
     catt_list, 
     plot_titles, 
     prefix = "catt_top5", 
-    plots_per_page = 4, 
+    plots_per_page = 1, 
     range = c(-8000, 8000), 
-    folder = "graphs/lalonde"
-) {
+    folder = "graphs/lalonde") {
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
   n <- length(catt_list)
   num_pages <- ceiling(n / plots_per_page)
-  catt_ldw <- exp_catt$catt
-  att_ldw  <- exp_catt$att[1]
-  id_ldw   <- if (!is.null(exp_catt$id)) exp_catt$id else seq_along(catt_ldw)
   for (page in seq_len(num_pages)) {
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx   <- min(page * plots_per_page, n)
@@ -994,6 +1195,10 @@ save_catt_panels <- function(
     pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
+      # Use matching elements from both lists
+      catt_ldw <- exp_catt_list[[i]]$catt
+      att_ldw  <- exp_catt_list[[i]]$att[1]
+      id_ldw   <- if (!is.null(exp_catt_list[[i]]$id)) exp_catt_list[[i]]$id else seq_along(catt_ldw)
       catt2 <- catt_list[[i]]$catt
       att2  <- catt_list[[i]]$att[1]
       id2   <- if (!is.null(catt_list[[i]]$id)) catt_list[[i]]$id else seq_along(catt2)
@@ -1021,13 +1226,13 @@ save_catt_panels <- function(
   }
 }
 
-#### save_main_catt_panels()
+#### save_main_catt_panels()***
 save_main_catt_panels <- function(
     catt_refs,
     catt_comps, 
     ylabels,
     prefix = "catt_main", 
-    plots_per_page = 4, 
+    plots_per_page = 1, 
     main_titles = NULL, 
     range = c(-8000, 8000), 
     folder = "graphs/lalonde"
@@ -1039,7 +1244,7 @@ save_main_catt_panels <- function(
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx <- min(page * plots_per_page, n_panels)
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       ref_idx <- min(i, length(catt_refs))
@@ -1066,13 +1271,13 @@ save_main_catt_panels <- function(
   }
 }
 
-#### save_plus_catt_panels()
+#### save_plus_catt_panels()***
 save_plus_catt_panels <- function(
     catt1_list, 
     catt2_list, 
     ylabels, 
     prefix = "catt_plus", 
-    plots_per_page = 4, 
+    plots_per_page = 1, 
     main_titles = NULL, 
     range = c(-8000, 8000), 
     folder = "graphs/lalonde"
@@ -1084,7 +1289,7 @@ save_plus_catt_panels <- function(
     start_idx <- (page - 1) * plots_per_page + 1
     end_idx <- min(page * plots_per_page, n_panels)
     file_name <- file.path(folder, paste0(prefix, "_", page, ".pdf"))
-    pdf(file = file_name, width = 10, height = 3 * plots_per_page)
+    pdf(file = file_name, width = 10, height = 12)
     par(mfrow = c(plots_per_page, 1), mar = c(4.5, 5, 3, 2))
     for (i in start_idx:end_idx) {
       catt1 <- catt1_list[[i]]$catt
@@ -1125,22 +1330,33 @@ eval_catt <- function(all_catt, plot_titles) {
   }))
 }
 
-## 4.3 QTET
-#### plot_qte_top()
-plot_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1, 
+## 5.3 QTET
+#### est_qte_safe()***
+est_qte_safe <- function(Y, treat, covar, data, cores = 1) {
+  tryCatch({
+    est_qte(Y, treat, covar, data = data, cores = cores)
+  }, error = function(e) {
+    cat("Warning in est_qte:", e$message, "\n")
+    return(NULL)
+  })
+}
+
+#### plot_qte_top()***
+plot_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start = 1, 
                          ylim = c(-25000, 15000), col = NULL) {
   n <- length(qtet_top)
-  for (i in 1:n) {
+  for (i in seq_len(n)) {
     main_title <- plot_titles[main_start + i - 1]
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
+    bm  <- bm_list[[i]]
     plot_qte(mod, mod2, bm, main = main_title, ylim = ylim, col = col)
     legend("bottomleft", legend = c("Experimental", "Unadjusted", "Adjusted"),
            lty = 1, pch = c(16, 17, 16), col = c(4, 2, 1), bty = "n")
   }
 }
 
-#### save_qtet()
+#### save_qtet()***
 save_qtet <- function(plots, plot_titles = NULL, main_start = 1, 
                       ylim = c(-25000, 15000), col = NULL, prefix = "ldw") {
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
@@ -1158,14 +1374,15 @@ save_qtet <- function(plots, plot_titles = NULL, main_start = 1,
   }
 }
 
-#### save_qte_top()
-save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
-                                ylim = c(-25000, 15000), col = NULL, prefix = "ldw_top") {
+#### save_qte_top()***
+save_qte_top <- function(qtet_top, qtet_top0, bm_list, plot_titles, main_start = 1,
+                         ylim = c(-25000, 15000), col = NULL, prefix = "ldw_top") {
   n <- length(qtet_top)
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_len(n)) {
     mod <- qtet_top[[i]]
     mod2 <- qtet_top0[[i]]
+    bm <- bm_list[[i]]                 
     main_title <- plot_titles[main_start + i - 1]
     clean_title <- gsub("[^a-zA-Z0-9]", "_", main_title)
     file_name <- sprintf("graphs/lalonde/%s_qte_estimates_%s.pdf", prefix, clean_title)
@@ -1177,26 +1394,47 @@ save_qte_top <- function(qtet_top, qtet_top0, bm, plot_titles, main_start = 1,
   }
 }
 
-## 4.4 Assessing outcome weights (OW)
+## 5.4 Assessing outcome weights (OW)
 #### get_res_att()
-get_res_att <- function(dataset_list, Y, treat, covar,
-                            estimator = "AIPW_ATT",
-                            smoother = "honest_forest",
-                            n_cf_folds = 5,
-                            n_reps = 1) {
-  lapply(dataset_list,
-      function(data) {
-        dml_with_smoother(
-          Y = data[[Y]],
-          D = data[[treat]],
-          X = data[, covar, drop = FALSE],
-          estimator = estimator,
-          smoother = smoother,
-          n_cf_folds = n_cf_folds,
-          n_reps = n_reps
+get_res_att <- function(data_list, Y, treat, covar,
+                        estimator = "AIPW_ATT", 
+                        smoother = "honest_forest", 
+                        n_cf_folds = 5,
+                        n_reps = 1) {
+      results <- lapply(seq_along(data_list),
+          function(i) {
+            data <- data_list[[i]]
+            n_obs <- nrow(data)
+            # adjust n_cf_folds for small samples
+            folds <- if (n_obs < 100) {
+              max(2, min(3, n_cf_folds))
+            } else if (n_obs < 300) {
+              max(3, min(4, n_cf_folds))
+            } else {
+              n_cf_folds
+            }
+            tryCatch({
+              dml_with_smoother(
+                Y = data[[Y]],
+                D = data[[treat]],
+                X = data[, covar, drop = FALSE],
+                estimator = estimator,
+                smoother = smoother,
+                n_cf_folds = folds,
+                n_reps = n_reps
+              )
+            }, error = function(e) {
+              cat(sprintf("WARNING: get_res_att failed for sample %d (n=%d): %s\n", i, n_obs, e$message))
+              return(NULL)
+            })
+          }
       )
-    }
-  )
+    # summary report
+    null_count <- sum(sapply(results, is.null))
+    success_count <- length(results) - null_count
+    cat(sprintf("OUTCOME WEIGHTS SUMMARY: %d succeeded, %d failed out of %d samples\n", 
+                success_count, null_count, length(results)))
+    return(results)
 }
 
 #### derive_ow()
@@ -1211,7 +1449,7 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
     weights <- outcome_weights[[i]]$omega[estimator, ]
-    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
   }
@@ -1219,17 +1457,18 @@ plot_ow <- function(outcome_weights, plot_titles = NULL, breaks = 50,
 }
 
 #### eval_ow()
-eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
+eval_ow <- function(outcome_weights, data_list, plot_titles = NULL, treat = "treat", estimator = "AIPW-ATT") {
   results <- lapply(seq_along(outcome_weights), function(i) {
     ow <- outcome_weights[[i]]$omega[estimator, ]
-    treat <- dataset_list[[i]][[treat]]
-    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    treat <- data_list[[i]][[treat]]
+    method <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     sum_treated <- sum(ow[treat == 1])
     sum_untreated <- sum(ow[treat == 0])
     data.frame(
       Method = method,
       Sum_Treated = sum_treated,
       Sum_Untreated = sum_untreated,
+      Total_Sum = sum_treated + sum_untreated,
       stringsAsFactors = FALSE
     )
   })
@@ -1239,28 +1478,28 @@ eval_ow <- function(outcome_weights, dataset_list, plot_titles = NULL, treat = "
 #### save_ow()
 save_ow <- function(outcome_weights, plot_titles = NULL,
                     breaks = 50, col = "#ff000080", xlab = "Outcome Weight",
-                    prefix = "model_a", estimand = "AIPW-ATT") {
+                    prefix = "model_a", estimator = "AIPW-ATT") {
   dir.create("graphs/lalonde", showWarnings = FALSE, recursive = TRUE)
   N <- length(outcome_weights)
   for (i in seq_len(N)) {
     file_name <- sprintf("graphs/lalonde/%s_outcomewt_%d.pdf", prefix, i)
     pdf(file = file_name, width = 8, height = 6)
-    weights <- outcome_weights[[i]]$omega[estimand, ]
-    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Dataset", i)
+    weights <- outcome_weights[[i]]$omega[estimator, ]
+    main_title <- if (!is.null(plot_titles)) plot_titles[i] else paste("Sample", i)
     hist(weights, breaks = breaks, main = main_title, xlab = xlab, col = col)
     mtext(paste("N =", length(weights)), side = 3, line = -1.5, cex = 0.8)
     dev.off()
   }
 }
 
-# 5. Sensitivity Analysis
-#### check_filter_datasets()
-check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
-  valid_datasets <- list()
-  for (i in seq_along(datasets)) {
-    data <- datasets[[i]]
-    name <- names(datasets)[i]
-    if (is.null(name) || name == "") name <- paste0("dataset_", i)  # provide a name if missing
+# 6. Sensitivity Analysis
+#### check_filter_samples()
+check_filter_samples <- function(data_list, Y, treat, covar, bm) {
+  valid_samples <- list()
+  for (i in seq_along(data_list)) {
+    data <- data_list[[i]]
+    name <- names(data_list)[i]
+    if (is.null(name) || name == "") name <- paste0("data_", i)  # provide a name if missing
     vars_needed <- c(Y, treat, covar, bm)
     if (!all(vars_needed %in% names(data))) { # check all variables exist
       message("Removed ", name, ": missing required variables") 
@@ -1284,23 +1523,72 @@ check_filter_datasets <- function(datasets, Y, treat, covar, bm) {
       message("Removed ", name, ": covariate variable(s) lack variation")
       next
     }
-    valid_datasets[[name]] <- data # if all passed dataset is kept
+    valid_samples[[name]] <- data # if all passed sample is kept
   }
-  return(valid_datasets)
+  return(valid_samples)
 }
 
 #### save_sensitivity_plots()
-save_sensitivity_plots <- function(filtered_datasets, Y, treat, covar, bm, plot_titles, prefix) {
+save_sensitivity_plots <- function(filtered_data_list, Y, treat, covar, bm, plot_titles, prefix) {
   folder <- "graphs/lalonde"
   if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
-  for (i in seq_along(filtered_datasets)) {
+  success_count <- 0
+  fail_count <- 0
+  for (i in seq_along(filtered_data_list)) {
     idx <- i
     file_name <- file.path(folder, paste0(prefix, "_sensitivity_", idx, ".pdf"))
     pdf(file_name, width = 8, height = 8)
-    sens_ana(filtered_datasets[[i]], Y, treat, covar, bm, kd = 1:3)
-    if (!missing(plot_titles) && length(plot_titles) >= idx) {
-      title(main = plot_titles[idx])
-    }
+    tryCatch({
+      sens_ana(filtered_data_list[[i]], Y, treat, covar, bm, kd = 1:3)
+      if (!is.null(plot_titles) && length(plot_titles) >= idx) {
+        title(main = plot_titles[idx])
+      }
+      success_count <- success_count + 1
+    }, error = function(e) {
+      plot.new()
+      title_text <- if (!is.null(plot_titles) && length(plot_titles) >= idx) plot_titles[idx] else paste("Sample", idx)
+      text(0.5, 0.5, paste("ERROR:", title_text, "\n", e$message), cex = 0.8)
+      cat(sprintf("WARNING: Sensitivity plot %d (%s) failed: %s\n", idx, title_text, e$message))
+      fail_count <- fail_count + 1
+    })
     dev.off()
- }
+  }
+  cat(sprintf("SUMMARY: Sensitivity plots - %d succeeded, %d failed out of %d total\n", 
+              success_count, fail_count, length(filtered_data_list)))
+}
+
+# 7. Balance
+#### save_balance()
+save_balance <- function(
+    data_list,
+    method_names,
+    balance_var = "re75",
+    prefix = "balance_panels",
+    plots_per_page = 4,
+    folder = "graphs/lalonde"
+) {
+  if (!dir.exists(folder)) dir.create(folder, recursive = TRUE)
+  n <- length(data_list)
+  pages <- ceiling(n / plots_per_page)
+  for (p in seq_len(pages)) {
+    start <- (p - 1) * plots_per_page + 1
+    end <- min(p * plots_per_page, n)
+    file_name <- file.path(folder, paste0(prefix, "_", balance_var, "_", p, ".pdf"))
+    plot_list <- list()
+    for (i in start:end) {
+      plot_title <- paste0(method_names[i])
+      pl <- tryCatch({
+        form <- as.formula(paste0("treat ~ ", balance_var))
+        bal.plot(form, data = data_list[[i]], which = "both") +
+          ggtitle(plot_title)
+      }, error = function(e) {
+        message(sprintf("Could not plot %s: %s", method_names[i], e$message))
+        ggplot() + ggtitle(sprintf("Error: %s", method_names[i]))
+      })
+      plot_list[[length(plot_list)+1]] <- pl
+    }
+    pdf(file_name, width = 8, height = 11)
+    print(wrap_plots(plotlist = plot_list, ncol = 1))
+    dev.off()
+  }
 }
