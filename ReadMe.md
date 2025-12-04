@@ -41,8 +41,9 @@ Successful replication requires installation of the following R packages:
 
 ``` r
 # required packages
-packages <- c("data.table", "dplyr", "ggplot2", "gridExtra", "highr", "highs" , "kableExtra", "MatchIt", "optmatch", "optweight", "quickmatch", 
-"readr", "rgenoud", "tidyr", "tidyverse", "WeightIt"
+packages <- c("CBPS", "cobalt", "data.table", "dplyr", "DT", "DoubleML", "ebal", "estimatr", "ggplot2", "gridExtra", "grf",
+              "hbal", "highr", "highs", "kableExtra", "MatchIt", "Matching", "mlr3", "mlr3learners", "OutcomeWeights",
+              "optmatch", "optweight", "quickmatch", "readr", "rgenoud", "tidyr", "tidyverse", "patchwork", "ppcor", "WeightIt"
 )
 
 # install packages
@@ -134,18 +135,6 @@ Sekhon, Jasjeet S. 2011. “Multivariate and Propensity Score Matching Software 
 
 </div>
 
-<div id="ref-hainmueller2011" class="csl-entry">
-  
-Hainmueller, Jens. 2011. “Entropy Balancing for Causal Effects: A Multivariate Reweighting Method to Produce Balanced Samples in Observational Studies.” Political Analysis.
-
-</div>
-
-<div id="ref-wang2022" class="csl-entry">
-  
-Wang, Jingshu. 2022. “R Example 6: Inverse Propensity Score Weighting.” Retrieved from https://jingshuw.org/materials/stat246_2022/r_example6.nb.
-
-</div>
-
 <div id="ref-sharon2024" class="csl-entry">
   
 Green, Sharon. 2024. “Propensity Score Matching for Causal Inference: Creating Data Visualizations to Assess Covariate Balance in R.” Retrieved from https://dlab.berkeley.edu/news/propensity-score-matching-causal-inference-creating-data-visualizations-assess-covariate.
@@ -158,33 +147,9 @@ Bryer, Jason. 2025. “Applied Propensity Score Analysis with R.” Retrieved fr
 
 </div>
 
-<div id="ref-olmos2015" class="csl-entry">
-  
-Olmos, Antonio, and Priyalatha Govindasamy. 2015. “A Practical Guide for Using Propensity Score Weighting in R.” Retrieved from https://www.math.umd.edu/~slud/s818M-MissingData/PropensityScoreWeightingR.pdf.
-
-</div>
-
-<div id="ref-greifer4_2025" class="csl-entry">
-
-Greifer, Noah. 2025. “Using WeightIt to Estimate Balancing Weights.” Retrieved from https://cran.r-project.org/web/packages/WeightIt/vignettes/WeightIt.html.
-
-</div>
-
 <div id="ref-larson2023" class="csl-entry">
 
 Larson, Dirk R., Isabella Zaniletti, David G. Lewallen, Daniel J. Berry, and Hilal Maradit Kremers. 2023. “Propensity Scores: Confounder Adjustment When Comparing Nonrandomized Groups in Orthopaedic Surgery.” The Journal of Arthroplasty 38: 622–26.
-
-</div>
-
-<div id="ref-xiao2013" class="csl-entry">
-
-Xiao, Yongling, Erica E.M. Moodie, and Michal Abrahamowicz. 2013. “Comparison of Approaches to Weight Truncation for Marginal Structural Cox Models.” Epidemiologic Methods 2 (1): 1–20.
-
-</div>
-
-<div id="ref-juschwablaan2013" class="csl-entry">
-
-Ju, Cheng, Joshua Schwab, and Mark J. van der Laan. 2013. “On Adaptive Propensity Score Truncation in Causal Inference.” Retrieved from https://arxiv.org/pdf/1707.05861.
 
 </div>
 
@@ -211,5 +176,9 @@ Stürmer, Til, Kenneth J. Rothman, Jerry Avorn, and Robert J. Glynn. 2010. “Tr
 Matsouaka, Roland A., and Yunji Zhou. 2023. “Causal Inference in the Absence of Positivity: The Role of Overlap Weights.” Biometrical Journal.
 
 </div>
+
+<div id="ref-Firpo2007" class="csl-entry">
+
+Firpo, Sergio. 2007. “Efficient Semiparametric Estimation of Quantile Treatment Effects.” Econometrica 75 (1): 259-276 
 
 </div>
