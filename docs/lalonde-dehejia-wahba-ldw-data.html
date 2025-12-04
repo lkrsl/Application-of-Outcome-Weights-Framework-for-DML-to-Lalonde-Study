@@ -1261,7 +1261,7 @@ of the LDW-PSID-1-PLUS sample the mean CATT estimates remains notably lower.</p>
 </div>
 <div id="quantile-treatment-effect-on-the-treated-qtet" class="section level3 hasAnchor" number="2.7.3">
 <h3><span class="header-section-number">2.7.3</span> Quantile treatment effect on the treated (QTET)<a href="lalonde-dehejia-wahba-ldw-data.html#quantile-treatment-effect-on-the-treated-qtet" class="anchor-section" aria-label="Anchor link to header"></a></h3>
-<p>QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by <span class="citation">Firp (<a href="#ref-Firpo_2007">2007</a>)</span>, implemented through the <code>est_qte()</code> function established by <span class="citation">Imbens and Xu (<a href="#ref-imbens2024">2024</a>)</span>. Visualization is conducted using their <code>plot_qte()</code> function and a modified version thereof.</p>
+<p>QTET provides a robust way to analyze treatment effect heterogeneity while being less impacted by outliers compared to average treatment effect measures. The QTET estimates are obtained using the propensity score re-weighting method introduced by <span class="citation">Firpo (<a href="#ref-Firpo_2007">2007</a>)</span>, implemented through the <code>est_qte()</code> function established by <span class="citation">Imbens and Xu (<a href="#ref-imbens2024">2024</a>)</span>. Visualization is conducted using their <code>plot_qte()</code> function and a modified version thereof.</p>
 <div class="sourceCode" id="cb124"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb124-1"><a href="lalonde-dehejia-wahba-ldw-data.html#cb124-1" tabindex="-1"></a><span class="co"># estimate QTET</span></span>
 <span id="cb124-2"><a href="lalonde-dehejia-wahba-ldw-data.html#cb124-2" tabindex="-1"></a>qte.ldw <span class="ot">&lt;-</span> <span class="fu">est_qte</span>(Y, treat, covar, <span class="at">data =</span> ldw, <span class="at">cores =</span> <span class="dv">4</span>)</span>
 <span id="cb124-3"><a href="lalonde-dehejia-wahba-ldw-data.html#cb124-3" tabindex="-1"></a>qte.ldw_cps <span class="ot">&lt;-</span> <span class="fu">est_qte</span>(Y, treat, covar, <span class="at">data =</span> ldw_cps)</span>
@@ -1836,7 +1836,7 @@ Figure 2.60: FIGUREA8. SubfigureA:LDW-Experimental. SubfigureB:LDW-CPS-1. Subfig
 <h3>References<a href="references.html#references" class="anchor-section" aria-label="Anchor link to header"></a></h3>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
 <div id="ref-Firpo_2007" class="csl-entry">
-Firp, Sergio. 2007. <span>“Efficient Semiparametric Estimation of Quantile Treatment Effects.”</span>
+Firpo, Sergio. 2007. <span>“Efficient Semiparametric Estimation of Quantile Treatment Effects.”</span>
 </div>
 <div id="ref-Greifer_3_2025" class="csl-entry">
 Greifer, Noah. 2025. <span>“Matching Methods.”</span>
