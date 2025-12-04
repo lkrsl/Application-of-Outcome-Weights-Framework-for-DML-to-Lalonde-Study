@@ -2,7 +2,7 @@ Replication Files for Kreisel (2025)
 ================
 
 This Github repository contains the data and code necessary to replicate
-**Kreisel (2025)**: "Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study (2025)"
+**Kreisel (2025)**: "Application of the Outcome Weights Framework for Double Machine Learning to the LaLonde Study (2025)"
 
 **Tutorial**: For a detailed bookdown tutorial, see
 [here](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study). 

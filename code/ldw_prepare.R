@@ -1,4 +1,4 @@
-# Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study
+# Application of the Outcome Weights Framework for Double Machine Learning to the LaLonde Study
 # Laura Kreisel
 # 2025
 
