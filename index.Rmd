@@ -27,12 +27,12 @@ applies the outcome weights framework by @OW_Package to assess another estimator
 It further applies placebo tests and sensitivity analysis to assess the robustness of the treatment effect estimates. 
 The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) data.
 
-```{r, echo=FALSE, out.width="80%", fig.align="center"}
-knitr::include_graphics("tutorial/Outcome-Weights_files/figure-html/image3.jpg")
+```{r, echo=FALSE, out.width="80%", fig.align="center", fig.cap='Conceptual illustration (AI-generated)'}
+knitr::include_graphics("graphs/preface/preface_illustration.jpg")
 ```
 
 Section 1 introduces required packages and wrapper functions used throughout the analysis. 
 Section 2 replicates and extends the full covariate model from @imbens2024 using the LDW sample. 
 Section 3 applies a reduced covariate set to the same LDW sample. 
-Section 4 analyzes the original LaLonde data following similar methods and 
-section 5 explores the LaLonde-Calónico-Smith (LCS) sample, focusing on female samples.
+Section 4 analyzes the NSW sample following similar methods and 
+section 5 explores the LCS sample, focusing on female samples.

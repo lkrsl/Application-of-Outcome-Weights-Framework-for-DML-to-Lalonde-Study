@@ -820,6 +820,9 @@ Among the top-ranked LDW-CPS-1 samples, CATT ranges vary substantially, yet thei
 
 The CATT estimates for the LDW-PSID-1 top-ranked samples reveal substantially decreased mean CATT estimates compared to the LDW-CPS-1 top-ranked samples, reflecting greater difficulties in producing reliable treatment effect estimates.
 
+The mean CATT estimate for the trimmed and matched version of the LDW-CPS-1-PLUS sample aligns more closely with the benchmark, whereas for the trimmed and matched version
+of the LDW-PSID-1-PLUS sample the mean CATT estimates remains notably lower.
+
 This variation in range and means across methods and samples reflects substantial heterogeneity in treatment effect estimation, indicating that while some criteria improve alignment with the experimental benchmark, others introduce considerable discrepancies and variability in estimated heterogeneous effects.
 ```{r, message=FALSE, warning=FALSE}
 # save results
@@ -1176,7 +1179,7 @@ cor_table <- data.frame(Method = all_plot_titles, Cor_re74_treat = cor_treat, Co
 datatable(cor_table, caption = "Correlations of re74 with treatment and outcome across samples",
           options = list(scrollX = TRUE, paging = FALSE, pageLength = -1, searching = FALSE))
 ```
-The tabulated results indicate that 1974 earnings (`re74`) is effectively independent of treatment assignment across all samples, with correlations ranging from approximately −0.32 to 0.18. In contrast, 1974 earnings exhibits moderately strong positive correlations with the outcome, ranging from approximately −0.03 to 0.70, suggesting that this pretreatment characteristic constitutes a meaningful confounder of post-program earnings, but not a driver of treatment assignment. Further, 1974 earnings exhibits substantial correlation with 1975 earnings, implying considerable collinearity between these two lagged covariates and suggesting that the informational gain from including both may be limited.
+The tabulated results indicate that 1974 earnings (`re74`) is effectively independent of the treatment assignment across all samples, with correlations ranging from approximately −0.32 to 0.18. In contrast, 1974 earnings exhibits moderately strong positive correlations with the outcome, ranging from approximately −0.03 to 0.70, suggesting that this pretreatment characteristic constitutes a meaningful confounder of post-program earnings, but not an important determinant of the treatment assignment. Further, 1974 earnings exhibits substantial correlation with 1975 earnings, implying considerable collinearity between these two lagged covariates and suggesting that the informational gain from including both may be limited.
 
 Overall, these results do not provide clear guidance on whether to include 1974 earnings in the set of covariates, but suggest that one should weigh the trade-off between potential omitted variable bias and increased collinearity when making covariate selection decisions.
 ```{r, message=FALSE, warning=FALSE}
@@ -1219,9 +1222,9 @@ save_balance(all_samples, all_plot_titles, balance_var = "re75", prefix = "ldw_m
 save_balance(all_samples, all_plot_titles, balance_var = "re74", prefix = "ldw_model_a_balance_panels_74")
 ```
 
-The density plots show that treated and control units do not substantially differ in `re74` across all samples. This suggests that the potential for confounding is low, and the risk of bias from omitting `re74` from the set of covariates is rather negligible. Conversely, `re75` exhibits pronounced distributional differences between treated and control units across all samples, suggesting material confounding risk and necessitating its inclusion as a covariate to mitigate bias. 
+The density plots indicate that treated and control units do not substantially differ in `re74` across all samples. However, clear while moderate discrepancies are present in the top‑ranked LDW–PSID‑1 samples. The corresponding plots for `re75` show a broadly comparable degree of difference but slightly more pronounced distributional differences between treated and control units across most samples. Overall, this pattern suggests that the risk of confounding from `re74` is limited and that the bias from omitting re74 from the covariate set is reasonably small.
 
-Thus, considering the pronounced collinearity with 1975 earnings, the moderate correlation with the outcome, and the negligible balance concerns, 1974 earnings may be excluded from the covariate set. However, whether its inclusion or exclusion materially affects the treatment effect estimates warrants validation. Accordingly, model B is specified without 1974 earnings and the complete analysis is redone. 
+Thus, considering the pronounced collinearity with 1975 earnings, the moderate correlation with the outcome, and the minor balance concerns, 1974 earnings may be excluded from the covariate set. However, whether its inclusion or exclusion materially affects the treatment effect estimates warrants validation. Accordingly, model B is specified without 1974 earnings and the complete analysis is redone. 
 
 ## Summary
 After reexamining model A, that is based on the LDW sample, several insights emerge. First, we confirm that ensuring overlap between treated and control groups remains crucial for credible causal estimation. The LDW-Experimental sample exhibits almost perfect overlap, while the observational samples show poorer overlap, with many treated units outside the control range. 
@@ -1230,6 +1233,6 @@ Second, controlling for covariates such as age, education, race, and prior earni
 
 Further, placebo tests and sensitivity analyses reveal lingering concerns about the unconfoundedness assumption and robustness of some estimators.
 
-The correlation and balance analysis reveals that its important to control for 1975 earnings, while for 1974 earnings its rather negligible, although this warrants further investigation.
+The correlation and balance analysis reveals that its important to control for 1975 earnings, while for 1974 earnings it may be limited, although this warrants further investigation.
 
 Overall, this section highlights the importance of overlap, the utility of propensity scores, and the need for rigorous validation of the unconfoundedness assumption to produce credible effect estimates. 

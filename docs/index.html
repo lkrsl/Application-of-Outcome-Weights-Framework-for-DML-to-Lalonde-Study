@@ -44,7 +44,7 @@ LaLonde–Calónico–Smith (LCS) data.</p>" />
 <meta name="author" content="Laura Kreisel" />
 
 
-<meta name="date" content="2025-12-01" />
+<meta name="date" content="2025-12-04" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -400,7 +400,7 @@ div.csl-indent {
 <div id="header">
 <h1 class="title">Application of the Outcome Weights Framework for Double Machine Learning to the Lalonde Study</h1>
 <p class="author"><em>Laura Kreisel</em></p>
-<p class="date"><em>2025-12-01</em></p>
+<p class="date"><em>2025-12-04</em></p>
 </div>
 <div id="preface" class="section level1 unnumbered hasAnchor">
 <h1>Preface<a href="index.html#preface" class="anchor-section" aria-label="Anchor link to header"></a></h1>
@@ -410,12 +410,17 @@ It evaluates various methods to improve overlap and covariate balance for robust
 applies the outcome weights framework by <span class="citation">Knaus and Pfleiderer (<a href="#ref-OW_Package">2024</a>)</span> to assess another estimator, while analysing the distributional properties of resulting outcome weights.
 It further applies placebo tests and sensitivity analysis to assess the robustness of the treatment effect estimates.
 The analysis draws on the original LaLonde data (NSW) as well as the LaLonde–Dehejia–Wahba (LDW) and LaLonde–Calónico–Smith (LCS) data.</p>
-<p><img src="tutorial/Outcome-Weights_files/figure-html/image3.jpg" width="80%" style="display: block; margin: auto;" /></p>
+<div class="figure" style="text-align: center"><span style="display:block;" id="fig:unnamed-chunk-1"></span>
+<img src="graphs/preface/preface_illustration.jpg" alt="Conceptual illustration (AI-generated)" width="80%" />
+<p class="caption">
+Figure 0.1: Conceptual illustration (AI-generated)
+</p>
+</div>
 <p>Section 1 introduces required packages and wrapper functions used throughout the analysis.
 Section 2 replicates and extends the full covariate model from <span class="citation">Imbens and Xu (<a href="#ref-imbens2024">2024</a>)</span> using the LDW sample.
 Section 3 applies a reduced covariate set to the same LDW sample.
-Section 4 analyzes the original LaLonde data following similar methods and
-section 5 explores the LaLonde-Calónico-Smith (LCS) sample, focusing on female samples.</p>
+Section 4 analyzes the NSW sample following similar methods and
+section 5 explores the LCS sample, focusing on female samples.</p>
 
 </div>
 <h3>References<a href="references.html#references" class="anchor-section" aria-label="Anchor link to header"></a></h3>

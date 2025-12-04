@@ -656,7 +656,7 @@ create_top5_samples <- function(data_list, top_method_names) {
 
 #### save_top5_samples()
 save_top5_samples <- function(combined_methods_list, top_method_names, prefix) {
-  dir.create("tutorial/data", showWarnings = FALSE, recursive = TRUE)
+  dir.create("data", showWarnings = FALSE, recursive = TRUE)
   for (i in seq_along(top_method_names)) {
     method_name <- top_method_names[i]
     if (!method_name %in% names(combined_methods_list)) {
@@ -664,7 +664,7 @@ save_top5_samples <- function(combined_methods_list, top_method_names, prefix) {
       next
     }
     sample_to_save <- combined_methods_list[[method_name]]
-    file_name <- sprintf("tutorial/data/top%d_%s_method_%s.RData", i, prefix, method_name)
+    file_name <- sprintf("data/lalonde/top%d_%s_method_%s.RData", i, prefix, method_name)
     save(sample_to_save, file = file_name)
   }
 }
