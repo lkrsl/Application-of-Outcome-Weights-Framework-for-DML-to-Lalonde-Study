@@ -1880,7 +1880,7 @@ eval_ow <- function(outcome_weights, data_list, plot_titles = NULL, treat = "tre
 }
 ```
 
-**Arguments*
+**Arguments**
 
 - `outcome_weights`: A list of outcome weight objects.
 - `data_list`: A list of samples containing data. 
