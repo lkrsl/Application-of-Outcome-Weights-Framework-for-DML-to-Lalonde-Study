@@ -85,8 +85,8 @@ If RStudio is used, the functions should now appear in the environment section.
 |------------------|------------------------------------|:----------------:|
 | `inspect_data()` , `save_overlap_panels` | Inspects samples and save overlap visualizations.  | [More](#setup) |
 | `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()`, `ps_estimate()`, `attach_matchit()` | Implements methods to improve overlap, address covariate imbalance and reestimate propensity scores. | [More](#impl-cov-bal-overl-mthds)  |
-| `compute_abs_smd_trim()`, `compute_ovl_trim()`, `compute_abs_smd_matchit()`, `compute_ovl_matchit()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `wrap_match_entries()`, `create_top5_samples()`, `save_top5_samples()` | Evaluates performance of previous methods through comparative metrics (OVL, ASMD). | [More](#eval-mthds)  |
-| `estimate_all()`, `plot_coef()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `save_main_catt_panels()`, `save_plus_catt_panels()`, `eval_catt()`, `est_qte_safe()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes treatment effect estimands (ATT, CATT, QTET) using a number of estimators.    | [More](#est-and-plot-att-catt-qtet) |
+| `compute_abs_smd_trim()`, `compute_ovl_trim()`, `compute_abs_smd_matchit()`, `compute_ovl_matchit()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `wrap_match_entries()`, `create_top5_samples()`, `save_top5_samples()` |  Evaluates performance of previous methods through comparative metrics (OVL, ASMD). | [More](#eval-mthds) |
+| `estimate_all()`, `plot_coef()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `save_main_catt_panels()`, `save_plus_catt_panels()`, `eval_catt()`, `est_qte_safe()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes treatment effect estimands (ATT, CATT, QTET) using a number of estimators.  | [More](#est-and-plot-att-catt-qtet) |
 | `get_res_att()`, `derive_ow()`, `plot_ow()`, `eval_ow()`, `save_ow()` | Analyses outcome weights of samples.    | [More](#ow-ana) |
 | `check_filter_samples()`, `save_sensitivity_plots()` | Validates and filters samples.    | [More](#sens-ana) |
 | `save_balance()` | Saves results of balance check in covariates.    | [More](#bal-ana) |
@@ -780,7 +780,7 @@ get_top_methods <- function(data, top_n = 5, score_col = NULL) {
 - `top_n`: Integer specifying the number of top-performing methods to return (default 5).
 - `score_col`: The name of the column to use for ranking methods.
 
-`wrap_match_entries()`
+`wrap_match_entries()` constructs a clean, named lookup list that ties each fitted matchit object to its corresponding trimmed source data set.
 ```{r}
 wrap_match_entries <- function(match_list, source_list, prefix) {
   if (!is.list(match_list)) {
@@ -1515,7 +1515,7 @@ save_catt_panels <- function(
 - `range`: A numeric vector of axis limits for plots (default c(-8000, 8000)).
 - `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
 
-`save_main_catt_panels()`
+`save_main_catt_panels()` generates and saves multi-page PDF plots comparing CATT estimates across different methods.
 ```{r}
 save_main_catt_panels <- function(
     catt_refs,
@@ -1573,7 +1573,7 @@ save_main_catt_panels <- function(
 - `range`: A numeric vector of axis limits for plots (default c(-8000, 8000)).
 - `folder`: A string specifying the folder path where the PDF panels will be saved (default is "graphs/lalonde").
 
-`save_plus_catt_panels()`
+`save_plus_catt_panels()` generates and saves multi-page PDF plots comparing CATT estimates across different methods.
 ```{r}
 save_plus_catt_panels <- function(
     catt1_list, 
@@ -1966,7 +1966,7 @@ check_filter_samples <- function(data_list, Y, treat, covar, bm) {
 - `covar`: A vector of covariate names.
 - `bm`: A vector of baseline variable names.
 
-`save_sensitivity_plots()` generates sensitivity analysis plots for a series of filtered samples, saving each as a pdf file.
+`save_sensitivity_plots()`*** generates sensitivity analysis plots for a series of filtered samples, saving each as a pdf file.
 ```{r}
 save_sensitivity_plots <- function(filtered_data_list, Y, treat, covar, bm, plot_titles, prefix) {
   folder <- "graphs/lalonde"
