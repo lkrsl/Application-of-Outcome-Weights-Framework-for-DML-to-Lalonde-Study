@@ -1,0 +1,16 @@
+"Method","Sum_Treated","Sum_Untreated","Total_Sum"
+"(A) NSW-Experimental",1,-1,0
+"(B) NSW-CPS1",1,-0.999999999999999,1.33226762955019e-15
+"(C) NSW-PSID1",1,-1,0
+"(D) Top CPS1: cem_crump",1,-1,-2.22044604925031e-16
+"(E) Top CPS1: genetic_crump",1,-1,0
+"(F) Top CPS1: k3_walker",1,-1,0
+"(G) Top CPS1: nn_walker",1,-1,-2.22044604925031e-16
+"(H) Top CPS1: optimal_pair_walker",1,-1,0
+"(I) Top PSID1: cem_walker",1,-1,0
+"(J) Top PSID1: optimal_pair_walker",1,-1,0
+"(K) Top PSID1: subcl_stuermer",1,-1,0
+"(L) Top PSID1: optimal_full_stuermer",1,-1,0
+"(M) Top PSID1: stuermer",1,-1,0
+"(N) Trimmed NSW-CPS1-PLUS",1,-1,-2.22044604925031e-16
+"(O) Trimmed NSW-PSID1-PLUS",1,-1,0

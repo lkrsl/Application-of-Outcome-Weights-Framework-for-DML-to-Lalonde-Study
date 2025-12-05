@@ -1,0 +1,16 @@
+"Method","Sum_Treated","Sum_Untreated","Total_Sum"
+"(A) LDW-Experimental",1,-1,0
+"(B) LDW-CPS-1",1,-1,2.22044604925031e-16
+"(C) LDW-PSID-1",1,-1,-1.11022302462516e-16
+"(D) Top CPS-1: genetic_crump",1,-1,0
+"(E) Top CPS-1: cem_stuermer",1,-1,-1.11022302462516e-16
+"(F) Top CPS-1: k2_crump",1,-1,1.11022302462516e-16
+"(G) Top CPS-1: cs_crump",1,-1,0
+"(H) Top CPS-1: nn_crump",1,-1,0
+"(I) Top PSID-1: genetic_walker",1,-1,0
+"(J) Top PSID-1: mahvars_walker",1,-1,0
+"(K) Top PSID-1: k2_walker",1,-1,-1.11022302462516e-16
+"(L) Top PSID-1: optimal_pair_stuermer",1,-1,1.11022302462516e-16
+"(M) Top PSID-1: optimal_pair_walker",1,-1,0
+"(N) Trimmed LDW-CPS-1-PLUS",1,-1,0
+"(O) Trimmed LDW-PSID-1-PLUS",1,-1,0

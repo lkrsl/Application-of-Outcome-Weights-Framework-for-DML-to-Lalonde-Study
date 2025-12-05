@@ -1,0 +1,9 @@
+"Method","Sum_Treated","Sum_Untreated","Total_Sum"
+"(A) LCS-Experimental",1,-1,-1.11022302462516e-16
+"(B) LCS-PSID-1",1,-1,-2.22044604925031e-16
+"(C) Top PSID-1: exact_common_range",1,-1,0
+"(D) Top PSID-1: genetic_stuermer",1,-1,0
+"(E) Top PSID-1: genetic_walker",1,-1,-1.11022302462516e-16
+"(F) Top PSID-1: cem_stuermer",1,-1,-2.22044604925031e-16
+"(G) Top PSID-1: optimal_pair_stuermer",1,-1,0
+"(H) Trimmed LCS-PSID-1-PLUS",1,-1,3.33066907387547e-16
