@@ -15,12 +15,12 @@ The folder structure of this repository is as follows:
 |:-------|:-----------------------------------------------------------|
 | bookdown| Bookdown files                                             |
 | code    | R scripts                                                  |
-| data    | Data files, including four subfolders “ldw_model_a”, “ldw_model_b”, “nsw” & “lcs” |
+| data    | Data files, including four subfolders “lalonde” and “cs” |
 | docs    | HTML documentation and website files from bookdown rendering |
-| graphs  | Graphics including one subfolder "lalonde"                   |
+| graphs  | Graphics including two subfolders "lalonde" and "preface"     |
 | package | Local R package including "OutcomeWeights" package source code |
 | tables  | CSV files                                           |
-| tutorial  | Bookdown RMD files, functions, bibliography, data and style sheets   |
+| tutorial  | Bookdown RMD files, functions, bibliography and style sheets |
 
 ## Data Files
 
