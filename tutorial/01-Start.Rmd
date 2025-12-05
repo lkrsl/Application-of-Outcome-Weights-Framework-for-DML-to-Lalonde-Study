@@ -1,7 +1,7 @@
 # Getting started
 
 <div class="callout-caution">
-The functions presented below constitute the core wrapper functions utilized throughout the analysis, including functions originally from the @imbens2024 tutorial, that were modified to suit specific analytical purposes (highlighted by ***), as well as others that were integrated without modification. For the full collection of functions by @imbens2024, please consult their official source code available on their GitHub [repository](https://github.com/lkrsl/Application-of-Outcome-Weights-Framework-for-DML-to-Lalonde-Study).
+The functions presented below constitute the core wrapper functions utilized throughout the analysis, including functions originally from the @imbens2024 tutorial, that were modified to suit specific analytical purposes (highlighted by ***), as well as others that were integrated without modification. For the full collection of functions by @imbens2024, please consult their official source code available on their GitHub [repository](https://github.com/xuyiqing/lalonde).
 </div>
 
 ## Installation
@@ -84,7 +84,7 @@ If RStudio is used, the functions should now appear in the environment section.
 | Function                                            | Description                                                                                                                                                                     |                 Code                  |
 |------------------|------------------------------------|:----------------:|
 | `inspect_data()` , `save_overlap_panels` | Inspects samples and save overlap visualizations.  | [More](#setup) |
-| `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()`, `ps_estimate()`, `attach_matchit()` | Implements methods to improve overlap, address covariate imbalance and reestimate propensity scores.   | [More](#impl-cov-bal-overl-mthds)  |
+| `ps_trim()`, `common_range_trim()`, `crump_trim()`, `stuermer_trim ()`, `walker_trim()`, `ps_estimate()`, `attach_matchit()` | Implements methods to improve overlap, address covariate imbalance and reestimate propensity scores. | [More](#impl-cov-bal-overl-mthds)  |
 | `compute_abs_smd_trim()`, `compute_ovl_trim()`, `compute_abs_smd_matchit()`, `compute_ovl_matchit()`, `combine_results()`, `save_csv()`, `assess_methods()`, `get_top_methods()`, `wrap_match_entries()`, `create_top5_samples()`, `save_top5_samples()` | Evaluates performance of previous methods through comparative metrics (ASMD, OVL).    |
 [More](#eval-mthds) |
 | `estimate_all()`, `plot_coef()`, `save_att_panels()`, `create_matrix_results()`, `eval_att()`, `plot_catt_panels()`, `save_catt_panels()`, `save_main_catt_panels()`, `save_plus_catt_panels()`, `eval_catt()`, `est_qte_safe()`, `plot_qte_top()`, `save_qtet()`, `save_qte_top()` | Computes and visualizes treatment effect estimands (ATT, CATT, QTET) using a number of estimators.    | [More](#est-and-plot-att-catt-qtet) |
