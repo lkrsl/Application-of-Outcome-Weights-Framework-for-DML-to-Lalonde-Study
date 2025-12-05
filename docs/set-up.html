@@ -374,7 +374,7 @@ Figure 2.3: FIGURE2. SubfigureC:LCS-PSID1-PLUS.
 <h4><span class="header-section-number">2.4.1.3</span> Pure subset selection<a href="set-up.html#pure-subset-selection" class="anchor-section" aria-label="Anchor link to header"></a></h4>
 <div id="cardinality-profile-matching" class="section level5 hasAnchor" number="2.4.1.3.1">
 <h5><span class="header-section-number">2.4.1.3.1</span> Cardinality profile matching<a href="set-up.html#cardinality-profile-matching" class="anchor-section" aria-label="Anchor link to header"></a></h5>
-<div class="sourceCode" id="cb81"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb81-1"><a href="set-up.html#cb81-1" tabindex="-1"></a><span class="co"># select largest balanced subsample meeting covariate balance tolerances</span></span>
+<div class="sourceCode" id="cb81"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb81-1"><a href="set-up.html#cb81-1" tabindex="-1"></a><span class="co"># select largest balanced sample meeting covariate balance tolerances</span></span>
 <span id="cb81-2"><a href="set-up.html#cb81-2" tabindex="-1"></a>m.out.psid_plus.card <span class="ot">&lt;-</span> <span class="fu">matchit</span>(model, <span class="at">data =</span> lcs_psid_plus, <span class="at">method =</span> <span class="st">&quot;cardinality&quot;</span>, <span class="at">tols =</span> <span class="fl">0.1</span>, <span class="at">ratio =</span> <span class="dv">1</span>)</span></code></pre></div>
 </div>
 <div id="profile-matching" class="section level5 hasAnchor" number="2.4.1.3.2">
@@ -1215,9 +1215,9 @@ Figure 2.63: FIGURE 10. ATT Estimates Given Unconfoundedness using LCS Samples
 </div>
 <div class="sourceCode" id="cb194"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb194-1"><a href="set-up.html#cb194-1" tabindex="-1"></a><span class="co"># save results</span></span>
 <span id="cb194-2"><a href="set-up.html#cb194-2" tabindex="-1"></a><span class="fu">save_att_panels</span>(all_outs, plot_titles, band, est, <span class="st">&quot;lcs&quot;</span>)</span></code></pre></div>
-<p>The above figures show the ATT estimates and their 95% confidence intervals for eight samples: LCS-Experimental, LCS-PSID1, a trimmed version of the LCS-PSID1 sample (analogous to Imbens &amp; Xu) and a series of top-ranked subsamples of LCS-PSID1 based on various matching, weighting, truncation and trimming criteria.</p>
-<p>Figure (A) presents the benchmark from the experimental sample (LCS-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) shows results for the observational sample LCS-PSID1 and figure (C) for its trimmed version, replicating the tutorial results of Imbens &amp; Xu (2024). Figures (D) through (H) display results for PSID1-based subsamples.</p>
-<p>Across the LCS-PSID1 dataset and its top-ranked subsamples, all estimators yield ATT estimates that largely cluster around the experimental benchmark except <code>Diff-in-Means</code>, which tends to produce estimates that deviate more noticeably from the benchmark.</p>
+<p>The above figures show the ATT estimates and their 95% confidence intervals for eight samples: LCS-Experimental, LCS-PSID1, a trimmed version of the LCS-PSID1 sample (analogous to Imbens &amp; Xu) and a series of top-ranked samples of LCS-PSID1 based on various matching, weighting, truncation and trimming criteria.</p>
+<p>Figure (A) presents the benchmark from the experimental sample (LCS-Experimental), serving as a reference for bias and variance assessment of observational samples. Figures (B) shows results for the observational sample LCS-PSID1 and figure (C) for its trimmed version, replicating the tutorial results of Imbens &amp; Xu (2024). Figures (D) through (H) display results for PSID1-based samples.</p>
+<p>Across the LCS-PSID1 dataset and its top-ranked samples, all estimators yield ATT estimates that largely cluster around the experimental benchmark except <code>Diff-in-Means</code>, which tends to produce estimates that deviate more noticeably from the benchmark.</p>
 <div class="sourceCode" id="cb195"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb195-1"><a href="set-up.html#cb195-1" tabindex="-1"></a><span class="co"># prepare all results in the order shown in the plots</span></span>
 <span id="cb195-2"><a href="set-up.html#cb195-2" tabindex="-1"></a>all_summaries <span class="ot">&lt;-</span> <span class="fu">lapply</span>(all_outs, eval_att)</span>
 <span id="cb195-3"><a href="set-up.html#cb195-3" tabindex="-1"></a>att_summary <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, all_summaries)</span>
@@ -1536,7 +1536,7 @@ Figure 2.63: FIGURE 10. ATT Estimates Given Unconfoundedness using LCS Samples
 </tr>
 </tbody>
 </table>
-<p>The tabulated results confirm visual patterns: Column (A) reports the estimates for the LCS-Experimental sample, column (B) for the LCS-PSID1 sample, and column (C) for its trimmed version. Columns (D)-(H) show results of the top-ranked subsample of LCS-PSID1.</p>
+<p>The tabulated results confirm visual patterns: Column (A) reports the estimates for the LCS-Experimental sample, column (B) for the LCS-PSID1 sample, and column (C) for its trimmed version. Columns (D)-(H) show results of the top-ranked sample of LCS-PSID1.</p>
 <p>For all PSID1-based samples, the ATT estimates remain overly positive. However, the estimates obtained with the <code>Diff-in-Means</code> estimator are consistently negative. Likewise, for the sample constructed with the <code>card</code> method, the estimates remain negative across all estimators.</p>
 <div class="sourceCode" id="cb198"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb198-1"><a href="set-up.html#cb198-1" tabindex="-1"></a><span class="co"># save results </span></span>
 <span id="cb198-2"><a href="set-up.html#cb198-2" tabindex="-1"></a><span class="fu">save_csv</span>(result_mat, <span class="st">&quot;LCS_att_estimates&quot;</span>)</span></code></pre></div>
@@ -1586,7 +1586,7 @@ Figure 2.65: FIGURE 11. CATT Estimates using LCS Data
 ## 7  415.5800  6121.760
 ## 8  391.2748  6067.663</code></pre>
 <p>With LCS-PSID1, CATT estimates span from $-3,357.48 to $2,404.33, contrasting with the CATT estimated from experimental data which ranges from $-359.43 to $2,719.14, with a mean CATT estimate of $863.51.</p>
-<p>In contract, across the LCS-PSID1-based subsamples, the ranges of CATT estimates are relatively similar. Importantly, the mean CATT estimates remain positive in all cases, except for <code>card</code> subsample, that produces a mean CATT estimate of $-415.71.</p>
+<p>In contract, across the LCS-PSID1-based samples, the ranges of CATT estimates are relatively similar. Importantly, the mean CATT estimates remain positive in all cases, except for <code>card</code> sample, that produces a mean CATT estimate of $-415.71.</p>
 <div class="sourceCode" id="cb204"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb204-1"><a href="set-up.html#cb204-1" tabindex="-1"></a><span class="co"># save results</span></span>
 <span id="cb204-2"><a href="set-up.html#cb204-2" tabindex="-1"></a><span class="fu">save_catt_panels</span>(all_catt, plot_titles, <span class="at">prefix =</span> <span class="st">&quot;lcs&quot;</span>)</span></code></pre></div>
 </div>
@@ -1626,7 +1626,7 @@ Figure 2.66: FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs.
 Figure 2.67: FIGURE C12. QTET Estimates Model A using NSW Data: Experimental vs. Nonexperimental
 </p>
 </div>
-<p>These figures present QTET estimates obtained from LCS-Experimental sample and several observational samples. The QTETs estimated from both the original and trimmed LCS-PSID1 samples (B and C), as well as from the top-ranked subsamples (E through H), align comparatively close with the true QTET. However, the QTETs from subsample (F) exhibit a stronger bias, suggesting greater estimation uncertainty.</p>
+<p>These figures present QTET estimates obtained from LCS-Experimental sample and several observational samples. The QTETs estimated from both the original and trimmed LCS-PSID1 samples (B and C), as well as from the top-ranked samples (E through H), align comparatively close with the true QTET. However, the QTETs from sample (F) exhibit a stronger bias, suggesting greater estimation uncertainty.</p>
 <div class="sourceCode" id="cb210"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb210-1"><a href="set-up.html#cb210-1" tabindex="-1"></a>plots_lcs <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
 <span id="cb210-2"><a href="set-up.html#cb210-2" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">mod =</span> qte.lcs_psid, <span class="at">mod0 =</span> qte.lcs_psid0, <span class="at">bm =</span> qte.lcs, <span class="at">main =</span> <span class="st">&quot;(B) LCS PSID&quot;</span>),</span>
 <span id="cb210-3"><a href="set-up.html#cb210-3" tabindex="-1"></a>  <span class="fu">list</span>(<span class="at">mod =</span> qte.lcs_psid.trim, <span class="at">mod0 =</span> qte.lcs_psid.trim0, <span class="at">bm =</span> qte.lcs_psid, <span class="at">main =</span> <span class="st">&quot;(D) LCS PSID (Trimmed)&quot;</span>)</span>
@@ -2051,7 +2051,7 @@ Figure 2.73: FIGURE 14. Sensitivity Analyses LCS
 </div>
 <div class="sourceCode" id="cb231"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb231-1"><a href="set-up.html#cb231-1" tabindex="-1"></a><span class="co"># save results</span></span>
 <span id="cb231-2"><a href="set-up.html#cb231-2" tabindex="-1"></a><span class="fu">save_sensitivity_plots</span>(filtered_datasets_sens, Y, treat, covar, bm, plot_titles, <span class="st">&quot;lcs&quot;</span>)</span></code></pre></div>
-<p>The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Observational samples instead show varying degrees of sensitivity, with the full observational sample (B) being more sensitive than the trimmed version (C). The top-ranked PSID1 subsamples (D-H) show that despite employing advanced criteria to improve balance and overlap, treatment effect estimates can exhibit increasing bias under plausible stronger confounding scenarios based on the reference confounder strength.</p>
+<p>The sensitivity analysis shows that treatment effect estimates in LCS-Experimental (A) are robust to unmeasured confounding, as expected. Observational samples instead show varying degrees of sensitivity, with the full observational sample (B) being more sensitive than the trimmed version (C). The top-ranked PSID1 samples (D-H) show that despite employing advanced criteria to improve balance and overlap, treatment effect estimates can exhibit increasing bias under plausible stronger confounding scenarios based on the reference confounder strength.</p>
 </div>
 </div>
             </section>

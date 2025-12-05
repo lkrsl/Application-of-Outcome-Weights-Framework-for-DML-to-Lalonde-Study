@@ -341,7 +341,7 @@ subcl_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method =
 ###### Pure subset selection
 14) Cardinality profile matching
 ```{r, message=FALSE, warning=FALSE}
-# select largest balanced subsample meeting covariate balance tolerances and a fixed ratio of controls to treated units
+# select largest balanced sample meeting covariate balance tolerances and a fixed ratio of controls to treated units
 card_trim_comb.cps <- attach_matchit(model, data_list = all_trim.cps, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
 card_trim_comb.psid <- attach_matchit(model,data_list = all_trim.psid, method = "cardinality", tols = 0.1, ratio = 1, time = 1200)
 ```
